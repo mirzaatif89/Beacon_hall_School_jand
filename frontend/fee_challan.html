@@ -888,10 +888,11 @@
             margin-top: 1rem;
         }
 
-        .compact-challan-paper { position: relative; color: #111827; font-size: 11px; }
+        .compact-challan-paper { position: relative; color: #000; font-size: 12px; font-weight: 600; border: 2px solid #334155; }
         .compact-copy-label { text-align: right; color: #475569; font-size: 9px; font-style: italic; line-height: 1; }
         .compact-school-header { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 5px; border: 1px solid #64748b; border-bottom: 0; text-align: center; }
-        .compact-school-header img { width: 34px; height: 28px; object-fit: contain; }
+        .compact-school-header img { width: 48px; height: 48px; object-fit: contain; }
+        .compact-school-header strong { font-size: 14px; font-weight: 900; line-height: 1.2; }
         .compact-school-address,
         .compact-contact-line,
         .compact-note,
@@ -904,7 +905,7 @@
         .compact-field span,
         .compact-field strong { min-width: 0; padding: 5px; overflow-wrap: anywhere; }
         .compact-field span { border-right: 1px solid #64748b; background: #f1f5f9; font-weight: 800; }
-        .compact-field strong { font-weight: 500; }
+        .compact-field strong { font-weight: 700; }
         .compact-fee-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .compact-fee-table th,
         .compact-fee-table td { padding: 5px 7px; border: 1px solid #64748b; border-top: 0; text-align: left; }
@@ -917,7 +918,7 @@
         .compact-qr { height: 100%; display: grid; place-items: center; border-left: 1px solid #64748b; }
         .compact-qr img,
         .compact-qr svg { width: 44px; height: 44px; display: block; }
-        .compact-signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 8px 2px 0; font-size: 9px; }
+        .compact-signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 9px 6px; font-size: 10px; font-weight: 700; }
 
         @media (max-width: 1100px) {
             .challan-layout {
@@ -993,7 +994,7 @@
             }
 
             .preview-sheet {
-                border: 1px solid #475569;
+                border: 0;
                 margin: 0;
                 height: auto;
                 overflow: hidden;
@@ -1164,72 +1165,101 @@
                 height: 100%;
                 padding: 0.7mm;
                 overflow: hidden;
-                font-size: 6.5px;
-                line-height: 1.12;
+                font-size: 7.5px;
+                line-height: 1.18;
+                font-weight: 700;
+                border: 0.45mm solid #111827;
             }
 
             .compact-copy-label {
                 min-height: 2.2mm;
-                font-size: 6px;
+                font-size: 7px;
+                font-weight: 800;
                 margin-bottom: 0.25mm;
             }
 
             .compact-school-header {
-                min-height: 7mm;
-                gap: 1mm;
-                padding: 0.55mm;
+                min-height: 14mm;
+                gap: 2mm;
+                padding: 1mm;
             }
 
             .compact-school-header img {
-                width: 6mm;
-                height: 5mm;
+                width: 11mm;
+                height: 11mm;
             }
 
             .compact-school-header strong {
-                font-size: 7.3px;
-                line-height: 1.08;
+                font-size: 11px;
+                font-weight: 900;
+                line-height: 1.15;
             }
 
             .compact-school-address,
             .compact-contact-line,
             .compact-note,
             .compact-terminated {
-                padding: 0.65mm 0.8mm;
-                font-size: 5.7px;
-                line-height: 1.15;
+                min-height: 6mm;
+                padding: 1mm 1.2mm;
+                font-size: 7.5px;
+                font-weight: 800;
+                line-height: 1.2;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .compact-contact-line {
+                justify-content: flex-start;
             }
 
             .compact-field {
-                grid-template-columns: 13mm minmax(0, 1fr);
+                grid-template-columns: 15mm minmax(0, 1fr);
+                min-height: 7mm;
             }
 
             .compact-field-wide {
-                grid-template-columns: 19mm minmax(0, 1fr);
+                grid-template-columns: 21mm minmax(0, 1fr);
             }
 
             .compact-field span,
             .compact-field strong {
-                padding: 0.7mm;
-                font-size: 6.2px;
-                line-height: 1.12;
+                padding: 0.9mm;
+                font-size: 8px;
+                line-height: 1.18;
+                display: flex;
+                align-items: center;
             }
 
             .compact-field span {
                 overflow-wrap: normal;
                 word-break: normal;
+                font-weight: 900;
+            }
+
+            .compact-field strong {
+                font-weight: 800;
             }
 
             .compact-fee-table th,
             .compact-fee-table td {
-                padding: 0.7mm 0.9mm;
-                font-size: 6.3px;
-                line-height: 1.12;
+                height: 8mm;
+                padding: 1mm 1.2mm;
+                font-size: 9px;
+                font-weight: 800;
+                line-height: 1.18;
+            }
+
+            .compact-fee-table th {
+                font-size: 9.5px;
+                font-weight: 900;
             }
 
             .compact-payment-row {
-                min-height: 13mm;
-                grid-template-columns: minmax(0, 1fr) 14mm;
-                font-size: 5.8px;
+                min-height: 16mm;
+                grid-template-columns: minmax(0, 1fr) 16mm;
+                font-size: 7px;
+                font-weight: 800;
             }
 
             .compact-payment-row > div:first-child {
@@ -1238,14 +1268,16 @@
 
             .compact-qr img,
             .compact-qr svg {
-                width: 10mm;
-                height: 10mm;
+                width: 12mm;
+                height: 12mm;
             }
 
             .compact-signatures {
                 gap: 1mm;
-                padding: 1.4mm 0.5mm 0;
-                font-size: 5.5px;
+                margin-top: auto;
+                padding: 2mm 1mm 1.5mm;
+                font-size: 7px;
+                font-weight: 800;
             }
         }
     </style>
