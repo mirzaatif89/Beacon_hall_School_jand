@@ -2,17 +2,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --primary-color: #43206f;
-    --primary-dark: #2b124d;
-    --secondary-color: #6b5a7c;
-    --accent-color: #d9272f;
-    --bg-color: #f8f5fb;
+    --primary-color: #1f5a3e;
+    --primary-dark: #123d2a;
+    --secondary-color: #55705f;
+    --accent-color: #f5bd13;
+    --bg-color: #f4f8f5;
     --surface-color: #ffffff;
-    --text-primary: #20152f;
-    --text-secondary: #6b5a7c;
+    --text-primary: #153326;
+    --text-secondary: #55705f;
     --success-color: #10b981;
     --danger-color: #d9272f;
-    --border-color: #e6dff0;
+    --border-color: #d9e7de;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -96,7 +96,7 @@ ul {
     display: flex;
     height: 100vh;
     width: 100%;
-    background: linear-gradient(135deg, rgba(67, 32, 111, 0.1), rgba(217, 39, 47, 0.08));
+    background: linear-gradient(135deg, rgba(31, 90, 62, 0.14), rgba(245, 189, 19, 0.12));
     /* Logo theme background */
     align-items: center;
     justify-content: center;
@@ -128,7 +128,7 @@ ul {
 .login-icon-circle {
     width: min(330px, 100%);
     min-height: 96px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(43, 18, 77, 0.18));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(18, 61, 42, 0.22));
     border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 8px;
     display: grid;
@@ -402,7 +402,7 @@ ul {
 
 .sidebar {
     width: 244px;
-    background: linear-gradient(180deg, #2b124d 0%, #2b124d 100%);
+    background: linear-gradient(180deg, #1f5a3e 0%, #123d2a 100%);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
@@ -424,9 +424,9 @@ ul {
     min-height: 62px;
     padding: 0.6rem 0.72rem;
     margin-bottom: 1.55rem;
-    border: 1px solid rgba(147, 197, 253, 0.24);
+    border: 1px solid rgba(245, 189, 19, 0.35);
     border-radius: 8px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(43, 108, 176, 0.09));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(245, 189, 19, 0.1));
     color: #ffffff;
     text-align: left;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.12);
@@ -447,7 +447,7 @@ ul {
 }
 
 .sidebar .logo-section::after {
-    content: "American Lyceum International School";
+    content: "Beacon Light School System\A Jand";
     color: #ffffff;
     font-size: 0.9rem;
     font-weight: 800;
@@ -647,7 +647,7 @@ ul {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #d9272f 0%, #43206f 100%);
+    background: linear-gradient(135deg, #f5bd13 0%, #1f5a3e 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -911,7 +911,7 @@ ul {
     position: absolute;
     inset: 0 0 auto 0;
     height: 3px;
-    background: linear-gradient(90deg, #43206f 0%, #5a2d86 100%);
+    background: linear-gradient(90deg, #1f5a3e 0%, #f5bd13 100%);
 }
 
 .card:hover {
@@ -1315,8 +1315,8 @@ tbody tr:hover {
 
 .doc-download-btn {
     border: 1px solid #bfdbfe;
-    background: linear-gradient(135deg, #fbf7fd, #f1e8f7);
-    color: #43206f;
+    background: linear-gradient(135deg, #f4f8f5, #fff8db);
+    color: #1f5a3e;
     border-radius: 999px;
     padding: 0.38rem 0.72rem;
     font-size: 0.72rem;
@@ -2255,7 +2255,7 @@ button {
         padding: 0.4rem;
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 8px;
-        background: #2b124d;
+        background: #123d2a;
         box-shadow: var(--shadow-lg);
     }
 

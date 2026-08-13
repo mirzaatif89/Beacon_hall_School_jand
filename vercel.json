@@ -7,7 +7,19 @@
     },
     {
       "source": "/",
-      "destination": "/frontend/index.html"
+      "destination": "/frontend/login.html"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/frontend/login.html"
+    },
+    {
+      "source": "/website",
+      "destination": "/frontend/login.html"
+    },
+    {
+      "source": "/website.html",
+      "destination": "/frontend/login.html"
     },
     {
       "source": "/:path*",

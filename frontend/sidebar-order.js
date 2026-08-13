@@ -103,13 +103,8 @@
                 { type: 'link', page: 'designation-permissions', label: 'Designation Permissions', icon: 'shield-check' }
             ]
         },
-        { type: 'link', page: 'library', label: 'Library', icon: 'library' },
         { type: 'link', page: 'complain_box', label: 'Complain Box', icon: 'message-square' },
         { type: 'link', page: 'branch_registration', label: 'Branch Registration', icon: 'building-2' },
-        { type: 'link', page: 'visitor_books', label: 'Visitor Records', icon: 'clipboard-list' },
-        { type: 'link', page: 'certificate', label: 'Certificates', icon: 'award' },
-        { type: 'link', page: 'cafe', label: 'Cafe Records', icon: 'coffee' },
-        { type: 'link', page: 'transport', label: 'Transport', icon: 'bus' },
         { type: 'link', page: 'aboutme', label: 'About', icon: 'info' },
         { type: 'logout', label: 'Logout', icon: 'log-out' }
     ];

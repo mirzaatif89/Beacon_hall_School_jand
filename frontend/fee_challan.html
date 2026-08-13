@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fee Challan Generator - American Lyceum International School</title>
+    <title>Fee Challan Generator - Beacon Light School System</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -1287,7 +1287,7 @@
     <div class="dashboard-container">
         <aside class="sidebar">
             <div class="logo-section">
-                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="American Lyceum International School logo">
+                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo">
             </div>
             <nav class="nav-links">
                 <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
@@ -1464,11 +1464,11 @@
                                 </div>
                                 <div class="field-block">
                                     <label for="schoolName">School Name</label>
-                                    <input type="text" id="schoolName" placeholder="American Lyceum International School">
+                                    <input type="text" id="schoolName" placeholder="Beacon Light School System">
                                 </div>
                                 <div class="field-block full">
                                     <label for="schoolAddress">Address / Campus</label>
-                                    <input type="text" id="schoolAddress" placeholder="Main branch - Address: Main tehsil Road near post office Sharaqpur Sharif district sheikhupura. Phone: 03174944258">
+                                    <input type="text" id="schoolAddress" placeholder="Main branch - Address: Jand. Phone: 03174944258">
                                 </div>
                                 <div class="field-block full">
                                     <label for="urduNote">Important Note</label>
@@ -1594,8 +1594,8 @@
     <script>
         const CHALLAN_BRANCH_CONTACTS = {
             main: {
-                campusLabel: 'Sharaqpur Campus',
-                addressLine: 'Address: Main tehsil Road near post office Sharaqpur Sharif district sheikhupura. Phone: 03174944258'
+                campusLabel: 'Jand',
+                addressLine: 'Address: Jand. Phone: 03174944258'
             }
         };
         const challanFormFields = ['challanNumber', 'challanStudent', 'studentSid', 'studentAdmNo', 'studentClass', 'studentRollNo', 'fatherName', 'fatherMobile', 'challanSession', 'challanMonth', 'feeMonth', 'dueDate', 'baseAmount', 'payNowAmount', 'additionalCharges', 'discountValue', 'particulars', 'schoolName', 'schoolAddress', 'urduNote', 'challanNotes'];
@@ -1621,7 +1621,7 @@
         let classPopupSelectedStudentIds = new Set();
         let classPopupLastVisibleStudentIds = [];
         let challanSelectedFeeMonths = [];
-        const CHALLAN_FALLBACK_CAMPUSES = ['Sharaqpur Campus'];
+        const CHALLAN_FALLBACK_CAMPUSES = ['Jand'];
         const CHALLAN_FALLBACK_CLASSES = [
             'Play Group', 'KG1', 'KG2',
             'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
@@ -2442,7 +2442,7 @@
             document.getElementById('challanMonth').value = now.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).replace(' ', ', ');
             document.getElementById('feeMonth').value = now.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).replace(' ', ', ');
             document.getElementById('particulars').value = 'Tuition Fee';
-            document.getElementById('schoolName').value = 'American Lyceum International School';
+            document.getElementById('schoolName').value = 'Beacon Light School System';
             applyBranchDetailsToChallan('Main branch');
             document.getElementById('urduNote').value = 'Note: Fees will not be accepted after the due date.';
             document.getElementById('challanNotes').value = 'No additional instructions.';
@@ -3381,7 +3381,7 @@
                 discountLabel: discountInput || '0',
                 discountAmount,
                 particulars: document.getElementById('particulars').value.trim() || 'Tuition Fee',
-                schoolName: document.getElementById('schoolName').value.trim() || 'American Lyceum International School',
+                schoolName: document.getElementById('schoolName').value.trim() || 'Beacon Light School System',
                 schoolAddress: document.getElementById('schoolAddress').value.trim() || `${CHALLAN_BRANCH_CONTACTS.main.campusLabel} - ${CHALLAN_BRANCH_CONTACTS.main.addressLine}`,
                 urduNote: document.getElementById('urduNote').value.trim() || '',
                 notes: document.getElementById('challanNotes').value.trim() || 'No additional instructions.',
@@ -3707,7 +3707,7 @@
                 const numericDiscount = Number(discountInput);
                 const discountAmount = Number.isNaN(numericDiscount) ? 0 : numericDiscount;
                 const particulars = document.getElementById('particulars').value.trim() || 'Tuition Fee';
-                const schoolName = document.getElementById('schoolName').value.trim() || 'American Lyceum International School';
+                const schoolName = document.getElementById('schoolName').value.trim() || 'Beacon Light School System';
                 const schoolAddress = document.getElementById('schoolAddress').value.trim() || `${CHALLAN_BRANCH_CONTACTS.main.campusLabel} - ${CHALLAN_BRANCH_CONTACTS.main.addressLine}`;
                 const urduNote = document.getElementById('urduNote').value.trim() || '';
                 const notes = document.getElementById('challanNotes').value.trim() || 'No additional instructions.';
@@ -3923,7 +3923,7 @@
             const discountAmount = Number.isNaN(numericDiscount) ? 0 : numericDiscount;
 
             const particulars = document.getElementById('particulars').value.trim() || 'Tuition Fee';
-            const schoolName = document.getElementById('schoolName').value.trim() || 'American Lyceum International School';
+            const schoolName = document.getElementById('schoolName').value.trim() || 'Beacon Light School System';
             const schoolAddress = document.getElementById('schoolAddress').value.trim() || `${CHALLAN_BRANCH_CONTACTS.main.campusLabel} - ${CHALLAN_BRANCH_CONTACTS.main.addressLine}`;
             const useFormAddressForBulk = !!selectedCampus;
             const urduNote = document.getElementById('urduNote').value.trim() || '';
@@ -4145,7 +4145,7 @@
             const numericDiscount = Number(discountInput);
             const discountAmount = Number.isNaN(numericDiscount) ? 0 : numericDiscount;
             const particulars = document.getElementById('particulars').value.trim() || 'Tuition Fee';
-            const schoolName = document.getElementById('schoolName').value.trim() || 'American Lyceum International School';
+            const schoolName = document.getElementById('schoolName').value.trim() || 'Beacon Light School System';
             const schoolAddress = document.getElementById('schoolAddress').value.trim() || 'School Address';
             const urduNote = document.getElementById('urduNote').value.trim() || '';
             const notes = document.getElementById('challanNotes').value.trim() || 'No additional instructions.';

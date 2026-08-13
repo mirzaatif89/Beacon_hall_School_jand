@@ -63,7 +63,7 @@ function resolvePageFileByRoute(routeName = '') {
     if (!normalized) return '';
     if (RESERVED_ROUTE_NAMES.has(normalized)) return '';
     if (normalized === 'login') return 'login.html';
-    if (normalized === 'index' || normalized === 'website') return 'index.html';
+    if (normalized === 'index' || normalized === 'website') return 'login.html';
     if (!/^[a-z0-9_-]+$/i.test(normalized)) return '';
 
     const candidate = `${normalized}.html`;
@@ -72,7 +72,7 @@ function resolvePageFileByRoute(routeName = '') {
 }
 
 app.get('/', (_req, res) => {
-    res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+    res.sendFile(path.join(FRONTEND_DIR, 'login.html'));
 });
 
 app.get('/:pageName([a-zA-Z0-9_-]+).html', (req, res, next) => {
@@ -2978,7 +2978,7 @@ app.post('/api/email/execute-all', authenticateToken, async (req, res) => {
             paidByStudent.set(studentId, (paidByStudent.get(studentId) || 0) + (Number(payment.amount || 0) || 0));
         });
 
-        const schoolName = getSmtpConfig().fromName || 'American Lyceum International School Sharaqpur Campus';
+        const schoolName = getSmtpConfig().fromName || 'Beacon Light School System Jand';
         const result = { pendingFees: { sent: 0, failed: 0, skipped: 0, errors: [] }, birthdays: { sent: 0, failed: 0 }, specialNotices: { sent: 0, failed: 0 } };
 
         for (const row of students) {
@@ -3118,14 +3118,14 @@ app.get('/api/about-software', (_req, res) => {
         success: true,
         aboutSoftware: records[0] || {
             id: 'ABOUT-SOFTWARE',
-            appName: 'American Lyceum International School Sharaqpur Campus',
-            schoolName: 'American Lyceum International School Sharaqpur Campus',
-            website: process.env.SCHOOL_WEBSITE || 'https://americanlyceum.com/',
-            supportEmail: process.env.SMTP_FROM_EMAIL || 'americanlyceumschoolsharaqpurc@gmail.com',
+            appName: 'Beacon Light School System Jand',
+            schoolName: 'Beacon Light School System Jand',
+            website: process.env.SCHOOL_WEBSITE || '',
+            supportEmail: process.env.SMTP_FROM_EMAIL || '',
             supportPhone: '03174944258',
-            schoolAddress: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura',
+            schoolAddress: 'Jand',
             principalName: 'Mahmood ul Hassan',
-            description: 'Student and teacher portal APIs for American Lyceum International School Sharaqpur Campus.',
+            description: 'Student and teacher portal APIs for Beacon Light School System Jand.',
             version: '1.0.0'
         }
     });
@@ -3382,7 +3382,7 @@ function buildLocalAiAnswer(question = '', context = {}) {
 
 async function callOpenAiForSchoolAnswer(message, context) {
     const prompt = [
-        'You are American Lyceum International School Sharaqpur Campus portal assistant.',
+        'You are Beacon Light School System Jand portal assistant.',
         'Answer in the same language style as the user. Most users write Roman Urdu.',
         'Use only the provided school system context. If exact data is not present, say that it is not available in the current system snapshot.',
         'Do not expose passwords, secrets, API keys, or hidden implementation details.',

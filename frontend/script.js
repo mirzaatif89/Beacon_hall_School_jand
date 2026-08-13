@@ -1392,16 +1392,26 @@ function escapeHtml(value) {
 
 function getBrandingSettings() {
     const fallback = {
-        schoolName: 'American Lyceum International School Sharaqpur Campus',
-        schoolTitle: 'American Lyceum International School Sharaqpur Campus',
+        schoolName: 'Beacon Light School System Jand',
+        schoolTitle: 'Beacon Light School System Jand',
         session: '',
         phone: '03174944258',
-        address: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura',
-        schoolAddress: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura',
+        address: 'Jand',
+        schoolAddress: 'Jand',
         logoDataUrl: ''
     };
     try {
-        return { ...fallback, ...(JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS) || '{}') || {}) };
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS) || '{}') || {};
+        const settings = { ...fallback, ...saved };
+        if (/american\s+lyceum/i.test(String(settings.schoolName || settings.schoolTitle || ''))) {
+            settings.schoolName = fallback.schoolName;
+            settings.schoolTitle = fallback.schoolTitle;
+            settings.address = fallback.address;
+            settings.schoolAddress = fallback.schoolAddress;
+            settings.logoDataUrl = '';
+            localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+        }
+        return settings;
     } catch (_error) {
         return fallback;
     }
@@ -2401,12 +2411,12 @@ function queueWelcomeAnimationForNextPage(user) {
     try {
         const displayName = user?.fullName || user?.username || user?.role || 'User';
         const role = user?.role || 'User';
-        let schoolName = 'American Lyceum International School Sharaqpur Campus';
+        let schoolName = 'Beacon Light School System Jand';
         try {
             const settings = JSON.parse(localStorage.getItem('eduCore_settings') || '{}') || {};
             schoolName = String(settings.schoolName || settings.schoolTitle || schoolName).trim() || schoolName;
         } catch (_error) {
-            schoolName = 'American Lyceum International School Sharaqpur Campus';
+            schoolName = 'Beacon Light School System Jand';
         }
         sessionStorage.setItem(
             EDUCORE_WELCOME_SESSION_KEY,
@@ -2452,11 +2462,11 @@ function showWelcomeAnimationIfNeeded() {
     const schoolName = String(payload.schoolName || (() => {
         try {
             const settings = JSON.parse(localStorage.getItem('eduCore_settings') || '{}') || {};
-            return settings.schoolName || settings.schoolTitle || 'American Lyceum International School Sharaqpur Campus';
+            return settings.schoolName || settings.schoolTitle || 'Beacon Light School System Jand';
         } catch (_error) {
-            return 'American Lyceum International School Sharaqpur Campus';
+            return 'Beacon Light School System Jand';
         }
-    })()).trim() || 'American Lyceum International School Sharaqpur Campus';
+    })()).trim() || 'Beacon Light School System Jand';
     const escape = typeof escapeSessionText === 'function' ? escapeSessionText : (value) => String(value ?? '');
 
     overlay.innerHTML = `
@@ -2891,9 +2901,7 @@ function ensureAdminRecordsNav() {
 
     const currentPage = getCurrentPageName();
     const adminRecordLinks = [
-        { page: 'certificate.html', label: 'Certificate', icon: 'award' },
-        { page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
-        { page: 'visitor_books.html', label: 'Visitor Books', icon: 'clipboard-list' }
+        { page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' }
     ];
     const fragment = document.createDocumentFragment();
 
@@ -3294,44 +3302,8 @@ function ensureStudentRecordsNav() {
 }
 
 function ensureFacilityNav() {
-    const navLinks = document.querySelector('.nav-links');
-    if (!navLinks) return;
-    if (navLinks.querySelector('[data-facility-nav-link]')) return;
-
-    const currentPage = getCurrentPageName();
-    const facilityLinks = [
-        { page: 'library.html', label: 'Library', icon: 'library' },
-        { page: 'cafe.html', label: 'Cafe', icon: 'coffee' },
-        { page: 'transport.html', label: 'Transport', icon: 'bus' }
-    ];
-    const fragment = document.createDocumentFragment();
-
-    facilityLinks.forEach((item) => {
-        if (Array.from(navLinks.querySelectorAll('a[href]'))
-            .some((link) => normalizeClientPageName(link.getAttribute('href') || '') === item.page)) {
-            return;
-        }
-        const link = document.createElement('a');
-        link.href = toRoutePath(item.page);
-        link.className = `nav-item${currentPage === item.page ? ' active' : ''}`;
-        link.dataset.facilityNavLink = 'true';
-        link.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
-        fragment.appendChild(link);
-    });
-
-    const feeChallanLink = Array.from(navLinks.querySelectorAll('a[href]'))
-        .find((link) => normalizeClientPageName(link.getAttribute('href') || '') === 'fee_challan.html');
-    const feesLink = Array.from(navLinks.querySelectorAll('a[href]'))
-        .find((link) => normalizeClientPageName(link.getAttribute('href') || '') === 'fees.html');
-    const insertAfter = feeChallanLink || feesLink;
-
-    if (insertAfter) {
-        insertAfter.parentNode.insertBefore(fragment, insertAfter.nextSibling);
-    } else {
-        navLinks.appendChild(fragment);
-    }
-
-    if (window.lucide) window.lucide.createIcons();
+    // Facility modules are intentionally hidden from the school sidebar.
+    return;
 }
 
 function ensureAdminSidebarCompleteness() {
@@ -3367,13 +3339,8 @@ function ensureAdminSidebarCompleteness() {
         { page: 'notifications.html', label: 'Notifications', icon: 'bell-ring' },
         { page: 'permissions.html', label: 'Permissions', icon: 'shield' },
         { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' },
-        { page: 'library.html', label: 'Library', icon: 'library' },
         { page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
         { page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
-        { page: 'visitor_books.html', label: 'Visitor Records', icon: 'clipboard-list' },
-        { page: 'certificate.html', label: 'Certificates', icon: 'award' },
-        { page: 'cafe.html', label: 'Cafe Records', icon: 'coffee' },
-        { page: 'transport.html', label: 'Transport', icon: 'bus' },
         { page: 'aboutme.html', label: 'About', icon: 'info' }
     ];
 
@@ -3504,13 +3471,8 @@ function renderAdminSidebarSequence() {
                 { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' }
             ]
         },
-        { type: 'link', page: 'library.html', label: 'Library', icon: 'library' },
         { type: 'link', page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
         { type: 'link', page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
-        { type: 'link', page: 'visitor_books.html', label: 'Visitor Records', icon: 'clipboard-list' },
-        { type: 'link', page: 'certificate.html', label: 'Certificates', icon: 'award' },
-        { type: 'link', page: 'cafe.html', label: 'Cafe Records', icon: 'coffee' },
-        { type: 'link', page: 'transport.html', label: 'Transport', icon: 'bus' },
         { type: 'link', page: 'aboutme.html', label: 'About', icon: 'info' },
         { type: 'logout', label: 'Logout', icon: 'log-out' }
     ];
@@ -6118,9 +6080,9 @@ function printStudentAdmissionFormFromEncoded(encodedPayload) {
 function getEmailSchoolName() {
     try {
         const branding = typeof getBrandingSettings === 'function' ? getBrandingSettings() : {};
-        return String(branding.schoolName || branding.schoolTitle || 'American Lyceum International School Sharaqpur Campus').trim() || 'American Lyceum International School Sharaqpur Campus';
+        return String(branding.schoolName || branding.schoolTitle || 'Beacon Light School System Jand').trim() || 'Beacon Light School System Jand';
     } catch (_error) {
-        return 'American Lyceum International School Sharaqpur Campus';
+        return 'Beacon Light School System Jand';
     }
 }
 
@@ -7685,7 +7647,7 @@ function printStudentAdmissionForm(student = {}) {
     const legacyPlaceholderNames = new Set(['harward school', 'harvard school']);
     const schoolName = rawSchoolName && !legacyPlaceholderNames.has(rawSchoolName.toLowerCase())
         ? rawSchoolName
-        : 'American Lyceum International School Sharaqpur Campus';
+        : 'Beacon Light School System Jand';
     const schoolLogo = new URL('images/logo.jpeg', window.location.href).href;
     const printedAt = new Date().toLocaleString();
     const statusLabel = getStudentStatusLabel(student);

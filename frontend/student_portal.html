@@ -2386,7 +2386,7 @@
 
 <body>
     <header class="portal-header">
-        <img class="portal-logo" src="images/logo.jpeg" alt="American Lyceum International School Sharaqpur Campus logo">
+        <img class="portal-logo" src="images/logo.jpeg" alt="Beacon Light School System Jand logo">
         <button class="portal-menu-btn" type="button" onclick="logout()" title="Logout" aria-label="Logout">
             <i data-lucide="log-out" width="16"></i>
             Logout
@@ -2988,14 +2988,14 @@
         function getPortalBrandingSettings() {
             try {
                 return {
-                    schoolName: 'American Lyceum International School Sharaqpur Campus',
-                    schoolTitle: 'American Lyceum International School Sharaqpur Campus',
-                    phone: '03174944258', address: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura', schoolAddress: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura',
+                    schoolName: 'Beacon Light School System Jand',
+                    schoolTitle: 'Beacon Light School System Jand',
+                    phone: '03174944258', address: 'Jand', schoolAddress: 'Jand',
                     logoDataUrl: '',
                     ...(JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS) || '{}') || {})
                 };
             } catch (_error) {
-                return { schoolName: 'American Lyceum International School Sharaqpur Campus', schoolTitle: 'American Lyceum International School Sharaqpur Campus', phone: '03174944258', address: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura', schoolAddress: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura', logoDataUrl: '' };
+                return { schoolName: 'Beacon Light School System Jand', schoolTitle: 'Beacon Light School System Jand', phone: '03174944258', address: 'Jand', schoolAddress: 'Jand', logoDataUrl: '' };
             }
         }
 
@@ -3159,7 +3159,7 @@
             <\/thead>
             <tbody>${subjectBlocks}<\/tbody>
         <\/table>
-        <div class="footer">American Lyceum International School Sharaqpur Campus<\/div>
+        <div class="footer">Beacon Light School System Jand<\/div>
     <\/main>
 <\/body>
 <\/html>`;
@@ -5207,8 +5207,8 @@
 
         function getStudentBranchContactDetails(_campusName) {
             return {
-                campusLabel: 'Sharaqpur Campus',
-                contactLine: 'Address: Main tehsil Road near post office Sharaqpur Sharif district sheikhupura | Phone: 03174944258'
+                campusLabel: 'Jand',
+                contactLine: 'Address: Jand | Phone: 03174944258'
             };
         }
 

@@ -512,9 +512,9 @@ if (window.Capacitor?.isNativePlatform?.()) {
     function getWelcomeSchoolName() {
         try {
             const settings = JSON.parse(localStorage.getItem('eduCore_settings') || '{}') || {};
-            return String(settings.schoolName || settings.schoolTitle || 'American Lyceum International School Sharaqpur Campus').trim() || 'American Lyceum International School Sharaqpur Campus';
+            return String(settings.schoolName || settings.schoolTitle || 'Beacon Light School System Jand').trim() || 'Beacon Light School System Jand';
         } catch (_error) {
-            return 'American Lyceum International School Sharaqpur Campus';
+            return 'Beacon Light School System Jand';
         }
     }
 
@@ -539,7 +539,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
         if (document.getElementById('eduWelcomeOverlay')) return;
 
         const displayName = String(payload.displayName || loggedInUser?.fullName || loggedInUser?.username || 'User').trim() || 'User';
-        const schoolName = String(payload.schoolName || getWelcomeSchoolName()).trim() || 'American Lyceum International School Sharaqpur Campus';
+        const schoolName = String(payload.schoolName || getWelcomeSchoolName()).trim() || 'Beacon Light School System Jand';
         const logoSrc = 'images/logo.jpeg';
         const overlay = document.createElement('div');
         overlay.id = 'eduWelcomeOverlay';
@@ -796,13 +796,8 @@ if (window.Capacitor?.isNativePlatform?.()) {
                         { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' }
                     ]
                 },
-                { type: 'link', page: 'library.html', label: 'Library', icon: 'library' },
                 { type: 'link', page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
                 { type: 'link', page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
-                { type: 'link', page: 'visitor_books.html', label: 'Visitor Records', icon: 'clipboard-list' },
-                { type: 'link', page: 'certificate.html', label: 'Certificates', icon: 'award' },
-                { type: 'link', page: 'cafe.html', label: 'Cafe Records', icon: 'coffee' },
-                { type: 'link', page: 'transport.html', label: 'Transport', icon: 'bus' },
                 { type: 'link', page: 'aboutme.html', label: 'About', icon: 'info' },
                 { type: 'logout', label: 'Logout', icon: 'log-out' }
             ];
@@ -1169,7 +1164,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
         return `
             <aside class="sidebar" data-portal-sidebar>
                 <div class="logo-section">
-                    <img class="sidebar-logo-img" src="images/logo.jpeg" alt="American Lyceum International School Sharaqpur Campus logo">
+                    <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System Jand logo">
                 </div>
                 <div class="portal-sidebar-user">
                     <strong>${escapeHtml(displayName)}</strong>

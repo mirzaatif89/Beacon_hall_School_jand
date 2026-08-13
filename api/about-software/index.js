@@ -3,14 +3,14 @@ const { readStore, upsertRecord } = require('../_lib/mobileStore');
 
 const defaultAboutSoftware = {
     id: 'ABOUT-SOFTWARE',
-    appName: 'American Lyceum International School Sharaqpur Campus',
-    schoolName: 'American Lyceum International School Sharaqpur Campus',
-    website: process.env.SCHOOL_WEBSITE || 'https://americanlyceum.com/',
-    supportEmail: process.env.SMTP_FROM_EMAIL || 'americanlyceumschoolsharaqpurc@gmail.com',
+    appName: 'Beacon Light School System Jand',
+    schoolName: 'Beacon Light School System Jand',
+    website: process.env.SCHOOL_WEBSITE || '',
+    supportEmail: process.env.SMTP_FROM_EMAIL || '',
     supportPhone: '03174944258',
-    schoolAddress: 'Main tehsil Road near post office Sharaqpur Sharif district sheikhupura',
+    schoolAddress: 'Jand',
     principalName: 'Mahmood ul Hassan',
-    description: 'Student and teacher portal APIs for American Lyceum International School Sharaqpur Campus.',
+    description: 'Student and teacher portal APIs for Beacon Light School System Jand.',
     version: '1.0.0'
 };
 
