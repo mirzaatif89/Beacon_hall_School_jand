@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
 
 :root {
-    --bg: #0b2117;
-    --bg-soft: #123d2a;
-    --panel: rgba(18, 61, 42, 0.74);
-    --panel-strong: rgba(18, 61, 42, 0.92);
+    --bg: #184d35;
+    --bg-soft: #35a56e;
+    --panel: rgba(43, 135, 90, 0.74);
+    --panel-strong: rgba(43, 135, 90, 0.92);
     --line: rgba(148, 163, 184, 0.16);
     --line-strong: rgba(148, 163, 184, 0.28);
     --text: #e5eefb;
@@ -36,7 +36,7 @@ body {
     background:
         radial-gradient(circle at top left, rgba(245, 189, 19, 0.18), transparent 30%),
         radial-gradient(circle at top right, rgba(79, 183, 122, 0.16), transparent 28%),
-        linear-gradient(180deg, #123d2a 0%, #0b2117 42%, #07150f 100%);
+        linear-gradient(180deg, #35a56e 0%, #23734c 52%, #184d35 100%);
     overflow-x: hidden;
 }
 
