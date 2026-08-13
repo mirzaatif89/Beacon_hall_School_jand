@@ -733,7 +733,6 @@ if (window.Capacitor?.isNativePlatform?.()) {
             const navItems = [
                 { type: 'link', page: 'dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
                 { type: 'link', page: 'banners.html', label: 'Banners', icon: 'image' },
-                { type: 'link', page: 'ads.html', label: 'Ads', icon: 'megaphone' },
                 { type: 'link', page: 'online_admissions.html', label: 'Online Admissions', icon: 'clipboard-list' },
                 { type: 'link', page: 'classes.html', label: 'Classes', icon: 'school' },
                 { type: 'link', page: 'students.html', label: 'Students', icon: 'users' },
@@ -796,7 +795,6 @@ if (window.Capacitor?.isNativePlatform?.()) {
                         { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' }
                     ]
                 },
-                { type: 'link', page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
                 { type: 'link', page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
                 { type: 'link', page: 'aboutme.html', label: 'About', icon: 'info' },
                 { type: 'logout', label: 'Logout', icon: 'log-out' }

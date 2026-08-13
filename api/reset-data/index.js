@@ -35,6 +35,8 @@ module.exports = createHandler({
             'StudentAttendance',
             'TeacherAttendance',
             'SpecialNotice',
+            'ClassFeeHistory',
+            'ClassFee',
             'Student',
             'Teacher',
             'Staff',

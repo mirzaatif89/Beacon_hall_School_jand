@@ -2846,6 +2846,253 @@ button {
     --app-control-height: clamp(2.1rem, 3.3vw, 2.25rem);
 }
 
+/* === BEACON LIGHT SIGNATURE THEME === */
+:root {
+    --primary-color: #35a56e;
+    --primary-dark: #247b51;
+    --secondary-color: #60756a;
+    --accent-color: #e8b923;
+    --bg-color: #f7faf7;
+    --surface-color: #ffffff;
+    --text-primary: #17382a;
+    --text-secondary: #60756a;
+    --border-color: #dce9e1;
+    --shadow-sm: 0 2px 8px rgba(27, 78, 54, 0.06);
+    --shadow-md: 0 10px 28px rgba(27, 78, 54, 0.10);
+    --shadow-lg: 0 22px 55px rgba(27, 78, 54, 0.15);
+    --radius-md: 10px;
+    --radius-lg: 16px;
+}
+
+body {
+    background: #f7faf7;
+    color: var(--text-primary);
+}
+
+.dashboard-container .sidebar {
+    background:
+        radial-gradient(circle at 15% 0%, rgba(232, 185, 35, 0.13), transparent 28%),
+        linear-gradient(180deg, #f7fff9 0%, #e9f7ee 100%);
+    border-right: 1px solid #cfe4d7;
+    color: #294b3b;
+    box-shadow: 8px 0 30px rgba(35, 91, 62, 0.07);
+}
+
+.sidebar .logo-section {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(53, 165, 110, 0.28);
+    border-bottom: 3px solid rgba(232, 185, 35, 0.65);
+    box-shadow: 0 10px 28px rgba(37, 113, 75, 0.10);
+    border-radius: 14px;
+}
+
+.sidebar .logo-section::before {
+    border-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(34, 94, 62, 0.16);
+}
+
+.sidebar .logo-section::after {
+    color: #1e573b;
+    text-shadow: none;
+}
+
+.sidebar .nav-links::-webkit-scrollbar-thumb {
+    background: rgba(53, 165, 110, 0.22);
+}
+
+.sidebar .nav-item,
+.sidebar .nav-subitem {
+    color: #49685a;
+    border: 1px solid transparent;
+}
+
+.sidebar .nav-item:hover,
+.sidebar .nav-subitem:hover {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(53, 165, 110, 0.16);
+    color: #236d49;
+    transform: translateX(2px);
+}
+
+.sidebar .nav-item.active,
+.sidebar .nav-subitem.active,
+.sidebar .nav-dropdown.open > .nav-dropdown-toggle {
+    background: linear-gradient(135deg, #35a56e, #2d9362);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(53, 165, 110, 0.25);
+}
+
+.dashboard-container .sidebar :is(.nav-item, .nav-subitem):not(.active):hover svg,
+.dashboard-container .sidebar .nav-dropdown:not(.open) > .nav-item:hover svg {
+    color: var(--admin-icon-color, var(--admin-sub-icon-color, #35a56e));
+}
+
+.sidebar .nav-submenu {
+    border-left-color: rgba(53, 165, 110, 0.25);
+}
+
+.sidebar .user-profile {
+    border-top-color: rgba(53, 165, 110, 0.22);
+    background: rgba(255, 255, 255, 0.48);
+    border-radius: 12px;
+    padding: 0.75rem;
+}
+
+.sidebar .user-profile:hover {
+    background: #ffffff;
+    padding-left: 0.75rem;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.sidebar .user-info h4 { color: #214b37; }
+.sidebar .user-info p { color: #71897d; }
+.sidebar .avatar {
+    background: linear-gradient(135deg, #e8b923 0%, #f6d86d 100%);
+    color: #31543f;
+    box-shadow: 0 5px 14px rgba(190, 145, 8, 0.22);
+}
+
+.dashboard-container .main-content {
+    background:
+        radial-gradient(circle at 92% 2%, rgba(232, 185, 35, 0.08), transparent 24%),
+        radial-gradient(circle at 15% 100%, rgba(53, 165, 110, 0.08), transparent 30%),
+        linear-gradient(180deg, #fbfdfb 0%, #f4f8f5 100%);
+}
+
+.dashboard-container .header h1 {
+    color: #1f6845;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+.dashboard-container :is(
+    .card,
+    .form-container,
+    .panel-card,
+    .table-container,
+    .settings-card,
+    .charges-panel,
+    .schedule-panel,
+    .step-panel,
+    .module-panel,
+    .bill-panel,
+    .upload-panel,
+    .set-fee-panel,
+    .library-panel,
+    .input-card
+) {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(191, 216, 201, 0.8);
+    border-radius: 14px;
+    box-shadow: 0 8px 26px rgba(34, 91, 61, 0.07);
+}
+
+.dashboard-container .card {
+    overflow: hidden;
+}
+
+.dashboard-container .card::before {
+    background: linear-gradient(90deg, #35a56e, #e8b923);
+    height: 3px;
+}
+
+.dashboard-container .card:hover {
+    border-color: rgba(53, 165, 110, 0.38);
+    box-shadow: 0 14px 34px rgba(34, 91, 61, 0.12);
+    transform: translateY(-3px);
+}
+
+.dashboard-container :is(input, select, textarea, .search-bar, .table-action-select) {
+    background-color: #fcfefc;
+    border-color: #cfe1d6;
+    color: #17382a;
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+.dashboard-container :is(input, select, textarea):focus,
+.dashboard-container .search-bar:focus-within,
+.dashboard-container .table-action-select:focus {
+    outline: none;
+    background-color: #ffffff;
+    border-color: #35a56e;
+    box-shadow: 0 0 0 4px rgba(53, 165, 110, 0.12);
+}
+
+.btn-primary,
+.btn-success,
+.dashboard-container .btn-primary,
+.dashboard-container .btn-success {
+    background: linear-gradient(135deg, #35a56e 0%, #28875a 100%);
+    color: #ffffff;
+    border: 0;
+    box-shadow: 0 7px 16px rgba(53, 165, 110, 0.22);
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.dashboard-container .btn-primary:hover,
+.dashboard-container .btn-success:hover {
+    background: linear-gradient(135deg, #2f9866 0%, #226f4a 100%);
+    box-shadow: 0 10px 22px rgba(53, 165, 110, 0.3);
+}
+
+.dashboard-container .btn-outline {
+    background: #ffffff;
+    border-color: #bdd8c8;
+    color: #276e4b;
+}
+
+.dashboard-container thead th {
+    background: #edf7f1;
+    color: #315f49;
+    border-bottom-color: #cfe3d7;
+}
+
+.dashboard-container tbody tr:hover td {
+    background: #f6fbf8;
+}
+
+.login-layout {
+    background:
+        radial-gradient(circle at 15% 20%, rgba(232, 185, 35, 0.18), transparent 28%),
+        radial-gradient(circle at 85% 80%, rgba(53, 165, 110, 0.18), transparent 32%),
+        linear-gradient(135deg, #f8fcf9 0%, #eaf6ef 100%);
+}
+
+.login-card {
+    border-radius: 18px;
+    border: 1px solid rgba(53, 165, 110, 0.18);
+    box-shadow: 0 28px 70px rgba(26, 77, 51, 0.18);
+}
+
+.login-header {
+    background:
+        radial-gradient(circle at 90% 0%, rgba(232, 185, 35, 0.28), transparent 36%),
+        linear-gradient(135deg, #35a56e 0%, #257a51 100%);
+}
+
+.login-icon-circle {
+    border-radius: 14px;
+}
+
+.login-school-logo {
+    border-radius: 12px;
+}
+
+.login-body .input-group input {
+    border-radius: 10px;
+    border-color: #cfe1d6;
+    background: #fbfdfb;
+}
+
+.login-body .input-group input:focus {
+    border-color: #35a56e;
+    box-shadow: 0 0 0 4px rgba(53, 165, 110, 0.13);
+}
+
 html,
 body {
     width: 100%;
@@ -3225,5 +3472,36 @@ td {
     .dashboard-container .toolbar,
     .dashboard-container .table-header {
         margin-bottom: 1rem;
+    }
+}
+
+/* Signature theme final override */
+.dashboard-container :is(
+    .card,
+    .form-container,
+    .panel-card,
+    .table-container,
+    .settings-card,
+    .charges-panel,
+    .schedule-panel,
+    .step-panel,
+    .module-panel,
+    .bill-panel,
+    .upload-panel,
+    .set-fee-panel,
+    .library-panel,
+    .input-card
+) {
+    border-radius: 14px;
+}
+
+.dashboard-container .btn,
+.dashboard-container button:not(.notification-bell):not(.session-modal-close) {
+    border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+    .dashboard-container :is(.card, .form-container, .panel-card, .table-container, .set-fee-panel) {
+        border-radius: 12px !important;
     }
 }

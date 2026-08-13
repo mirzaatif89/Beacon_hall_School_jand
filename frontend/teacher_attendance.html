@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Attendance - Apexiueum</title>
+    <title>Teacher Attendance - Beacon Light School System</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
-    <link rel="stylesheet" href="style.css?v=20260603-american-lyceum-brand">
+    <link rel="stylesheet" href="style.css?v=20260813-beacon-signature-theme">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .header { margin-bottom: 0.9rem; }
@@ -42,6 +42,8 @@
         .chip-absent { background: #fee2e2; color: #991b1b; }
         .chip-late { background: #fef3c7; color: #92400e; }
         .chip-leave { background: #f1e8f7; color: #43206f; }
+        .chip-off-day { background: #fef3c7; color: #92400e; }
+        .attendance-off-day-row td { background: #fffbeb; }
         .chip-empty { background: #e2e8f0; color: #475569; }
         .attendance-actions { display: flex; gap: 0.3rem; justify-content: flex-end; flex-wrap: wrap; }
         .dashboard-container .attendance-actions .btn {
@@ -144,6 +146,7 @@
                                 <label class="attendance-check"><input type="checkbox" value="Present"><span>Present</span></label>
                                 <label class="attendance-check"><input type="checkbox" value="Leave"><span>Leave</span></label>
                                 <label class="attendance-check"><input type="checkbox" value="Absent"><span>Absent</span></label>
+                                <label class="attendance-check"><input type="checkbox" value="Off Day"><span>Off Day</span></label>
                             </div>
                         </div>
                     </div>
@@ -239,6 +242,11 @@
 
         function getSelectedTeacherDateKey() {
             return document.getElementById('teacherAttendanceDate').value || new Date().toISOString().slice(0, 10);
+        }
+
+        function isSundayDate(dateKey) {
+            const parts = String(dateKey || '').split('-').map(Number);
+            return parts.length === 3 && new Date(parts[0], parts[1] - 1, parts[2]).getDay() === 0;
         }
 
         function addEmployeeAttendanceSelectOption(select, value, label = value) {
@@ -361,6 +369,7 @@
         }
 
         function getTeacherStatusForDate(teacherId, dateKey) {
+            if (isSundayDate(dateKey)) return 'Off Day';
             const store = getTeacherAttendanceStore();
             const [year, month, day] = dateKey.split('-').map(Number);
             const monthKey = `${year}-${String(month).padStart(2, '0')}`;
@@ -370,6 +379,10 @@
 
         async function setTeacherAttendance(teacherId, status, options = {}) {
             const dateKey = getSelectedTeacherDateKey();
+            if (isSundayDate(dateKey)) {
+                if (!options.silent) renderTeacherAttendancePage();
+                return;
+            }
             const [year, month, day] = dateKey.split('-').map(Number);
             const monthKey = `${year}-${String(month).padStart(2, '0')}`;
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -404,6 +417,9 @@
 
         function buildTeacherAttendanceActions(employeeId, status) {
             const employeeIdArg = escapeHtml(JSON.stringify(String(employeeId || '')));
+            if (status === 'Off Day') {
+                return '<span class="attendance-chip chip-off-day">Sunday</span>';
+            }
             if (status && status !== 'Not Marked') {
                 return `<select class="attendance-update-select" onchange="handleTeacherAttendanceUpdate(this, ${employeeIdArg})" aria-label="Update attendance status">
                     <option value="">Update Status</option>
@@ -451,6 +467,10 @@
 
         async function markAllVisibleEmployeesPresent() {
             const dateKey = getSelectedTeacherDateKey();
+            if (isSundayDate(dateKey)) {
+                renderTeacherAttendancePage();
+                return;
+            }
             const employees = getFilteredEmployeeAttendanceRows({ statusFilter: [] });
             if (!dateKey || !employees.length) {
                 alert('No records found for selected filters.');
@@ -597,8 +617,11 @@
                             ? 'chip-late'
                             : status === 'Leave'
                                 ? 'chip-leave'
+                                : status === 'Off Day'
+                                    ? 'chip-off-day'
                                 : 'chip-empty';
                 const tr = document.createElement('tr');
+                if (status === 'Off Day') tr.className = 'attendance-off-day-row';
                 tr.innerHTML = `
                     <td>${escapeHtml(employee.fullName || '-')}</td>
                     <td>${escapeHtml(employee.roleLabel || '-')}</td>

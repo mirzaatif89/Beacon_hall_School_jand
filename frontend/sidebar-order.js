@@ -41,7 +41,6 @@
     const navItems = [
         { type: 'link', page: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
         { type: 'link', page: 'banners', label: 'Banners', icon: 'image' },
-        { type: 'link', page: 'ads', label: 'Ads', icon: 'megaphone' },
         { type: 'link', page: 'online_admissions', label: 'Online Admissions', icon: 'clipboard-list' },
         { type: 'link', page: 'classes', label: 'Classes', icon: 'school' },
         { type: 'link', page: 'students', label: 'Students', icon: 'users' },
@@ -103,7 +102,6 @@
                 { type: 'link', page: 'designation-permissions', label: 'Designation Permissions', icon: 'shield-check' }
             ]
         },
-        { type: 'link', page: 'complain_box', label: 'Complain Box', icon: 'message-square' },
         { type: 'link', page: 'branch_registration', label: 'Branch Registration', icon: 'building-2' },
         { type: 'link', page: 'aboutme', label: 'About', icon: 'info' },
         { type: 'logout', label: 'Logout', icon: 'log-out' }

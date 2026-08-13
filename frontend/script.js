@@ -51,22 +51,18 @@ const DASHBOARD_CAMPUS_FILTER_KEY = 'eduCore_dashboard_campus_filter';
 const GLOBAL_CAMPUS_FILTER_KEY = DASHBOARD_CAMPUS_FILTER_KEY;
 const DEFAULT_CAMPUS_NAMES = ['Main Campus'];
 const DEFAULT_STUDENT_CLASS_ORDER = [
-    'Montessori Junior Blue',
-    'Montessori Junior Red',
-    'Montessori Junior Green',
-    'Montessori Senior',
-    'Montessori Advance',
-    'Grade 1st',
-    'Grade 2nd',
-    'Grade 3rd',
-    'Grade 4th',
-    'Grade 5th',
-    'Grade 6th',
-    'Grade 7th',
-    'Grade 8th',
-    'Grade 9th',
-    'Grade 10th',
-    "O Level's"
+    'Nursarry',
+    'Prep',
+    'Class One',
+    'Class Two',
+    'Class Three',
+    'Class Four',
+    'Class Five',
+    'Class Six',
+    'Class Seven',
+    'Class Eight',
+    'Class Nine',
+    'Class 10'
 ];
 let studentQuickFilterBranchCampuses = [];
 let studentColumnSearchFilter = null;
@@ -2895,38 +2891,8 @@ function ensureBranchRegistrationNav() {
 }
 
 function ensureAdminRecordsNav() {
-    const navLinks = document.querySelector('.nav-links');
-    const loggedInUser = getLoggedInUser();
-    if (!navLinks || !loggedInUser || loggedInUser.role !== 'Admin') return;
-    if (navLinks.querySelector('[data-admin-records-link]')) return;
-
-    const currentPage = getCurrentPageName();
-    const adminRecordLinks = [
-        { page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' }
-    ];
-    const fragment = document.createDocumentFragment();
-
-    adminRecordLinks.forEach((item) => {
-        const link = document.createElement('a');
-        link.href = toRoutePath(item.page);
-        link.className = `nav-item${currentPage === item.page ? ' active' : ''}`;
-        link.dataset.adminRecordsLink = 'true';
-        link.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
-        fragment.appendChild(link);
-    });
-
-    const branchRegistrationLink = navLinks.querySelector('[data-branch-registration-link]');
-    const teachersLink = Array.from(navLinks.querySelectorAll('a[href]'))
-        .find((link) => normalizeClientPageName(link.getAttribute('href') || '') === 'teachers.html');
-    const insertAfter = branchRegistrationLink || teachersLink;
-
-    if (insertAfter) {
-        insertAfter.parentNode.insertBefore(fragment, insertAfter.nextSibling);
-    } else {
-        navLinks.appendChild(fragment);
-    }
-
-    if (window.lucide) window.lucide.createIcons();
+    // Admin record shortcuts are intentionally hidden from the sidebar.
+    return;
 }
 
 function ensureAttendanceNav() {
@@ -3340,7 +3306,6 @@ function ensureAdminSidebarCompleteness() {
         { page: 'notifications.html', label: 'Notifications', icon: 'bell-ring' },
         { page: 'permissions.html', label: 'Permissions', icon: 'shield' },
         { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' },
-        { page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
         { page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
         { page: 'aboutme.html', label: 'About', icon: 'info' }
     ];
@@ -3472,7 +3437,6 @@ function renderAdminSidebarSequence() {
                 { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' }
             ]
         },
-        { type: 'link', page: 'complain_box.html', label: 'Complain Box', icon: 'message-square' },
         { type: 'link', page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
         { type: 'link', page: 'aboutme.html', label: 'About', icon: 'info' },
         { type: 'logout', label: 'Logout', icon: 'log-out' }
@@ -4540,12 +4504,7 @@ function getDashboardStudentFee(student = {}) {
     const hasManualFee = studentFee > 0 && (student?.monthlyFeeCustom === true || student?.monthlyFeeCustom === 'true');
     if (hasManualFee) return studentFee;
 
-    let classFees = {};
-    try {
-        classFees = JSON.parse(localStorage.getItem(STORAGE_KEY_CLASS_FEES) || '{}') || {};
-    } catch (_error) {
-        classFees = {};
-    }
+    const classFees = classFeeDefaults || {};
 
     const normalize = (value) => String(value || '').trim().toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
     const targetClass = normalize(student?.classGrade || '');
@@ -5318,27 +5277,32 @@ function getAvailableStudentClassOptions() {
 }
 
 function normalizeClassFeeConfig(input = {}) {
-    const raw = input && typeof input === 'object' ? input : {};
-    return Object.entries(raw).reduce((acc, [className, config]) => {
-        const name = String(className || '').trim();
+    const entries = Array.isArray(input)
+        ? input.map((config) => [config?.className || config?.name || '', config])
+        : Object.entries(input && typeof input === 'object' ? input : {});
+    return entries.reduce((acc, [className, config]) => {
+        const name = String(config?.className || className || '').trim();
         const monthlyFee = String(config?.monthlyFee ?? config?.fee ?? '').trim();
         const annualCharges = String(config?.annualCharges ?? config?.annualFee ?? '').trim();
         const feeFrequency = String(config?.feeFrequency || 'Monthly').trim() || 'Monthly';
         const feeMonth = String(config?.feeMonth || '').trim();
         const feeYear = String(config?.feeYear || '').trim();
-        if (name && (monthlyFee || annualCharges)) acc[name] = { monthlyFee, annualCharges, feeFrequency, feeMonth, feeYear };
+        const sessionFrom = String(config?.sessionFrom || '').trim();
+        const sessionTo = String(config?.sessionTo || '').trim();
+        if (name && (monthlyFee || annualCharges)) acc[name] = { monthlyFee, annualCharges, feeFrequency, feeMonth, feeYear, sessionFrom, sessionTo };
         return acc;
     }, {});
 }
 
-function saveClassFeeLocalBackup() {
+function clearLegacyClassFeeLocalStorage() {
     try {
-        localStorage.setItem(STORAGE_KEY_CLASS_FEES, JSON.stringify(classFeeDefaults || {}));
-        localStorage.setItem(STORAGE_KEY_CLASS_FEE_HISTORY, JSON.stringify(Array.isArray(classFeeHistory) ? classFeeHistory : []));
+        localStorage.removeItem(STORAGE_KEY_CLASS_FEES);
+        localStorage.removeItem(STORAGE_KEY_CLASS_FEE_HISTORY);
     } catch (_error) {}
 }
 
 async function loadClassFeeDefaults() {
+    clearLegacyClassFeeLocalStorage();
     try {
         const response = await fetch(`${API_BASE_URL}/class-fees`);
         const result = await parseJsonResponse(response, 'Class fee defaults unavailable.');
@@ -5347,16 +5311,10 @@ async function loadClassFeeDefaults() {
         }
         classFeeDefaults = normalizeClassFeeConfig(result.classFees || {});
         classFeeHistory = Array.isArray(result.classFeeHistory) ? result.classFeeHistory : [];
-        saveClassFeeLocalBackup();
     } catch (error) {
-        try {
-            classFeeDefaults = normalizeClassFeeConfig(JSON.parse(localStorage.getItem(STORAGE_KEY_CLASS_FEES) || '{}'));
-            classFeeHistory = JSON.parse(localStorage.getItem(STORAGE_KEY_CLASS_FEE_HISTORY) || '[]');
-            if (!Array.isArray(classFeeHistory)) classFeeHistory = [];
-        } catch (_fallbackError) {
-            classFeeDefaults = {};
-            classFeeHistory = [];
-        }
+        classFeeDefaults = {};
+        classFeeHistory = [];
+        console.error('Database class fee load failed:', error);
     }
     renderClassFeeSettings();
     renderClassFeeHistory();
@@ -5369,36 +5327,6 @@ function getClassFeeDefault(className = '') {
     const match = Object.entries(classFeeDefaults)
         .find(([name]) => normalizeClassFeeKey(name) === selectedKey);
     return match ? match[1] : null;
-}
-
-function applyClassFeeToLocalStudents(className = '', monthlyFee = '', feeFrequency = 'Monthly') {
-    const selectedKey = normalizeClassFeeKey(className);
-    if (!selectedKey) return;
-    const students = getArrayData(STORAGE_KEY_STUDENTS);
-    const previousClassFee = String(getClassFeeDefault(className)?.monthlyFee || '').trim();
-    let changed = false;
-    const updatedStudents = students.map((student) => {
-        if (normalizeClassFeeKey(student?.classGrade || '') !== selectedKey) return student;
-        const studentFee = String(student?.monthlyFee ?? '').trim();
-        const studentFeeAmount = Number(studentFee || 0) || 0;
-        const isFreeStudy = typeof isFreeStudyStudent === 'function' && isFreeStudyStudent(student);
-        const hasCustomFee = studentFeeAmount > 0 && (
-            student?.monthlyFeeCustom === true ||
-            student?.monthlyFeeCustom === 'true' ||
-            (previousClassFee && studentFee !== previousClassFee)
-        ) || isFreeStudy;
-        if (hasCustomFee) return student;
-        changed = true;
-        return {
-            ...student,
-            monthlyFee: String(monthlyFee || '0'),
-            monthlyFeeCustom: false,
-            feeFrequency: feeFrequency || 'Monthly'
-        };
-    });
-    if (changed) {
-        localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(updatedStudents));
-    }
 }
 
 function bindStudentClassFeeAutoFill() {
@@ -5508,9 +5436,8 @@ async function setupClassFeeSettings() {
     const classSelect = document.getElementById('classFeeClassSelect');
     const amountInput = document.getElementById('classFeeAmount');
     const annualInput = document.getElementById('classAnnualCharges');
-    const frequencyInput = document.getElementById('classFeeFrequency');
-    const monthInput = document.getElementById('classFeeMonth');
-    const yearInput = document.getElementById('classFeeYear');
+    const sessionFromInput = document.getElementById('classFeeSessionFrom');
+    const sessionToInput = document.getElementById('classFeeSessionTo');
     const saveButton = document.getElementById('classFeeSaveButton');
     const cancelEditButton = document.getElementById('classFeeCancelEditButton');
     if (!form || !classSelect || !amountInput) return;
@@ -5522,9 +5449,8 @@ async function setupClassFeeSettings() {
         const feeDefault = getClassFeeDefault(classSelect.value);
         amountInput.value = feeDefault?.monthlyFee || '';
         if (annualInput) annualInput.value = feeDefault?.annualCharges || '';
-        if (frequencyInput) frequencyInput.value = feeDefault?.feeFrequency || 'Monthly';
-        if (monthInput && feeDefault?.feeMonth) monthInput.value = feeDefault.feeMonth;
-        if (yearInput && feeDefault?.feeYear) yearInput.value = feeDefault.feeYear;
+        if (sessionFromInput && feeDefault?.sessionFrom) sessionFromInput.value = feeDefault.sessionFrom;
+        if (sessionToInput && feeDefault?.sessionTo) sessionToInput.value = feeDefault.sessionTo;
     });
 
     form.addEventListener('submit', async (event) => {
@@ -5532,11 +5458,19 @@ async function setupClassFeeSettings() {
         const className = String(classSelect.value || '').trim();
         const monthlyFee = String(amountInput.value || '').trim();
         const annualCharges = String(annualInput?.value || '').trim();
-        const feeFrequency = String(frequencyInput?.value || 'Monthly').trim() || 'Monthly';
-        const feeMonth = String(monthInput?.value || '').trim();
-        const feeYear = String(yearInput?.value || '').trim();
+        const feeFrequency = 'Monthly';
+        const sessionFrom = String(sessionFromInput?.value || '').trim();
+        const sessionTo = String(sessionToInput?.value || '').trim();
         if (!className || (!monthlyFee && !annualCharges)) {
             await showAppAlert('Please select a class and enter monthly fee or annual charges.', 'Missing Fee');
+            return;
+        }
+        if (!sessionFrom || !sessionTo) {
+            await showAppAlert('Please select both Session From and Session To.', 'Missing Session');
+            return;
+        }
+        if (sessionFrom > sessionTo) {
+            await showAppAlert('Session To must be the same as or later than Session From.', 'Invalid Session');
             return;
         }
 
@@ -5549,19 +5483,17 @@ async function setupClassFeeSettings() {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ className, monthlyFee, annualCharges, feeFrequency, feeMonth, feeYear })
+                body: JSON.stringify({ className, monthlyFee, annualCharges, feeFrequency, sessionFrom, sessionTo })
             });
             const result = await parseJsonResponse(response, 'Class fee could not be saved.');
             if (!response.ok || result?.success === false) {
                 throw new Error(result?.message || 'Class fee could not be saved.');
             }
-            const previousClassFeeDefaults = classFeeDefaults;
             classFeeDefaults = normalizeClassFeeConfig(result.classFees || {});
-            classFeeHistory = Array.isArray(result.classFeeHistory) ? result.classFeeHistory : classFeeHistory;
-            saveClassFeeLocalBackup();
-            classFeeDefaults = previousClassFeeDefaults;
-            applyClassFeeToLocalStudents(className, monthlyFee, feeFrequency);
-            classFeeDefaults = normalizeClassFeeConfig(result.classFees || {});
+            if (!Array.isArray(result.classFeeHistory)) {
+                throw new Error('Fee was not confirmed by database history. Please restart/update the backend server.');
+            }
+            classFeeHistory = result.classFeeHistory;
             clearClassFeeHistoryEditMode();
             renderClassFeeSettings();
             renderClassFeeHistory();
@@ -5604,7 +5536,7 @@ function renderClassFeeSettings() {
     }
     list.innerHTML = entries.map(([className, config]) => `
         <span class="class-fee-pill">
-            ${escapeHtml(className)}: PKR ${Number(config.monthlyFee || 0).toLocaleString('en-PK')} ${escapeHtml(config.feeFrequency || 'Monthly')}${config.annualCharges ? ` | Annual PKR ${Number(config.annualCharges || 0).toLocaleString('en-PK')}` : ''}${config.feeMonth || config.feeYear ? ` (${escapeHtml([config.feeMonth, config.feeYear].filter(Boolean).join(' '))})` : ''}
+            ${escapeHtml(className)}: PKR ${Number(config.monthlyFee || 0).toLocaleString('en-PK')} Monthly${config.annualCharges ? ` | Annual PKR ${Number(config.annualCharges || 0).toLocaleString('en-PK')}` : ''}${config.sessionFrom || config.sessionTo ? ` | Session: ${escapeHtml(formatClassFeeSession(config.sessionFrom, config.sessionTo))}` : ''}
         </span>
     `).join('');
 }
@@ -5649,18 +5581,16 @@ function editClassFeeHistory(historyId) {
     setClassFeeSelectValue(item.className || '');
     const amountInput = document.getElementById('classFeeAmount');
     const annualInput = document.getElementById('classAnnualCharges');
-    const frequencyInput = document.getElementById('classFeeFrequency');
-    const monthInput = document.getElementById('classFeeMonth');
-    const yearInput = document.getElementById('classFeeYear');
+    const sessionFromInput = document.getElementById('classFeeSessionFrom');
+    const sessionToInput = document.getElementById('classFeeSessionTo');
     const saveButton = document.getElementById('classFeeSaveButton');
     const cancelButton = document.getElementById('classFeeCancelEditButton');
     const form = document.getElementById('classFeeForm');
 
     if (amountInput) amountInput.value = item.monthlyFee || '';
     if (annualInput) annualInput.value = item.annualCharges || '';
-    if (frequencyInput) frequencyInput.value = item.feeFrequency || 'Monthly';
-    if (monthInput && item.feeMonth) monthInput.value = item.feeMonth;
-    if (yearInput) yearInput.value = item.feeYear || yearInput.value || String(new Date().getFullYear());
+    if (sessionFromInput) sessionFromInput.value = item.sessionFrom || '';
+    if (sessionToInput) sessionToInput.value = item.sessionTo || '';
     if (saveButton) saveButton.innerHTML = '<i data-lucide="save"></i> Update Fee';
     if (cancelButton) cancelButton.style.display = '';
     if (form) {
@@ -5695,7 +5625,6 @@ async function deleteClassFeeHistory(historyId) {
         }
         classFeeDefaults = normalizeClassFeeConfig(result.classFees || {});
         classFeeHistory = Array.isArray(result.classFeeHistory) ? result.classFeeHistory : [];
-        saveClassFeeLocalBackup();
         if (classFeeEditingHistoryId === id) clearClassFeeHistoryEditMode();
         renderClassFeeSettings();
         renderClassFeeHistory();
@@ -5733,12 +5662,10 @@ function renderClassFeeHistory() {
         <table class="history-table">
             <thead>
                 <tr>
-                    <th>Year</th>
-                    <th>Month</th>
+                    <th>Session</th>
                     <th>Class</th>
                     <th>Fee</th>
                     <th>Annual</th>
-                    <th>Frequency</th>
                     <th>Updated</th>
                     <th>Actions</th>
                 </tr>
@@ -5752,12 +5679,10 @@ function renderClassFeeHistory() {
                     const historyId = escapeHtml(item.id || '');
                     return `
                         <tr>
-                            <td>${escapeHtml(item.feeYear || '')}</td>
-                            <td>${escapeHtml(item.feeMonth || '')}</td>
+                            <td>${escapeHtml(formatClassFeeSession(item.sessionFrom, item.sessionTo))}</td>
                             <td>${escapeHtml(item.className || '')}</td>
                             <td>PKR ${Number(item.monthlyFee || 0).toLocaleString('en-PK')}</td>
                             <td>${item.annualCharges ? `PKR ${Number(item.annualCharges || 0).toLocaleString('en-PK')}` : '-'}</td>
-                            <td>${escapeHtml(item.feeFrequency || 'Monthly')}</td>
                             <td>${escapeHtml(updatedText)}</td>
                             <td>
                                 <div class="history-actions">
@@ -6474,6 +6399,8 @@ function parseStudentQuickFilterValues(values) {
     const campuses = [];
     const classes = [];
     const feeStatuses = [];
+    const paidClasses = [];
+    const unpaidClasses = [];
     let below5 = false;
     let polioList = false;
     let zeroFee = false;
@@ -6503,6 +6430,18 @@ function parseStudentQuickFilterValues(values) {
             return;
         }
 
+        if (value.startsWith('fee-paid-class:')) {
+            const className = value.slice('fee-paid-class:'.length);
+            if (className) paidClasses.push(className);
+            return;
+        }
+
+        if (value.startsWith('fee-unpaid-class:')) {
+            const className = value.slice('fee-unpaid-class:'.length);
+            if (className) unpaidClasses.push(className);
+            return;
+        }
+
         if (value === 'zero-fee') {
             zeroFee = true;
             return;
@@ -6523,6 +6462,8 @@ function parseStudentQuickFilterValues(values) {
         campuses,
         classes,
         feeStatuses,
+        paidClasses,
+        unpaidClasses,
         polioList,
         below5,
         zeroFee
@@ -6530,9 +6471,31 @@ function parseStudentQuickFilterValues(values) {
 }
 
 function isStudentZeroFee(student) {
-    const remaining = Number(student?.remainingAmount || student?.dueBalance || student?.balance || 0) || 0;
     const feeStatus = String(student?.feesStatus || '').trim().toLowerCase();
-    return feeStatus === 'zero fee student' || student?.freeStudy === true || student?.freeStudy === 'true' || (feeStatus === 'paid' && remaining === 0);
+    const rawMonthlyFee = String(student?.monthlyFee ?? student?.fee ?? '').trim();
+    const monthlyFee = Number(rawMonthlyFee || 0) || 0;
+    const zeroFeeReason = String(student?.zeroFeeReason || student?.freeStudyReason || '').trim();
+    return feeStatus === 'zero fee student' || student?.freeStudy === true || student?.freeStudy === 'true' || Boolean(zeroFeeReason) || (rawMonthlyFee !== '' && monthlyFee === 0);
+}
+
+function formatClassFeeSessionMonth(value = '') {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return String(value || '').trim();
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+    return date.toLocaleDateString('en-PK', { month: 'short', year: 'numeric' });
+}
+
+function formatClassFeeSession(from = '', to = '') {
+    return [formatClassFeeSessionMonth(from), formatClassFeeSessionMonth(to)].filter(Boolean).join(' to ') || '-';
+}
+
+function isStudentFeePaid(student) {
+    return String(getStudentStatusLabel(student) || '').trim().toLowerCase() === 'paid';
+}
+
+function isStudentFeeUnpaid(student) {
+    if (isStudentZeroFee(student)) return false;
+    return !isStudentFeePaid(student);
 }
 
 function getStudentClassSortRank(className) {
@@ -6661,8 +6624,21 @@ function compareStudentClassNames(a, b) {
 
 function getStudentQuickFilterClassLabel(className) {
     const normalized = String(className || '').trim().toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
-    if (normalized === 'nursery' || normalized === 'nursary' || normalized === 'kg1') return 'KG1';
-    if (normalized === 'prep' || normalized === 'kg2') return 'KG2';
+    if (['nursery', 'nursary', 'nursarry', 'kg1', 'montessori junior red'].includes(normalized)) return 'Nursarry';
+    if (['prep', 'kg2', 'montessori junior green'].includes(normalized)) return 'Prep';
+    const classAliases = {
+        'grade 1st': 'Class One', 'grade 1': 'Class One', 'class 1': 'Class One',
+        'grade 2nd': 'Class Two', 'grade 2': 'Class Two', 'class 2': 'Class Two',
+        'grade 3rd': 'Class Three', 'grade 3': 'Class Three', 'class 3': 'Class Three',
+        'grade 4th': 'Class Four', 'grade 4': 'Class Four', 'class 4': 'Class Four',
+        'grade 5th': 'Class Five', 'grade 5': 'Class Five', 'class 5': 'Class Five',
+        'grade 6th': 'Class Six', 'grade 6': 'Class Six', 'class 6': 'Class Six',
+        'grade 7th': 'Class Seven', 'grade 7': 'Class Seven', 'class 7': 'Class Seven',
+        'grade 8th': 'Class Eight', 'grade 8': 'Class Eight', 'class 8': 'Class Eight',
+        'grade 9th': 'Class Nine', 'grade 9': 'Class Nine', 'class 9': 'Class Nine',
+        'grade 10th': 'Class 10', 'grade 10': 'Class 10', 'class ten': 'Class 10'
+    };
+    if (classAliases[normalized]) return classAliases[normalized];
     return className;
 }
 
@@ -6958,6 +6934,8 @@ function renderStudents(term = '') {
     let campusSet = new Set(parsedFilters.campuses.map((campus) => String(campus || '').toLowerCase()));
     const classSet = new Set(parsedFilters.classes.map((className) => String(className || '').toLowerCase()));
     const feeStatusSet = new Set(parsedFilters.feeStatuses.map((status) => String(status || '').toLowerCase()));
+    const paidClassSet = new Set(parsedFilters.paidClasses.map((className) => String(className || '').toLowerCase()));
+    const unpaidClassSet = new Set(parsedFilters.unpaidClasses.map((className) => String(className || '').toLowerCase()));
     const requireBelow5 = parsedFilters.below5;
     const requireZeroFee = parsedFilters.zeroFee;
 
@@ -6983,7 +6961,15 @@ function renderStudents(term = '') {
         (!requireBelow5 || isStudentBelowAge(s, 5)) &&
         (classSet.size === 0 || classSet.has(String(s.classGrade || '').toLowerCase())) &&
         (campusSet.size === 0 || campusSet.has(normalizeCampusFilterValue(getRecordCampusName(s)))) &&
-        (feeStatusSet.size === 0 || feeStatusSet.has(String(getStudentStatusLabel(s) || '').toLowerCase())) &&
+        (feeStatusSet.size === 0 || Array.from(feeStatusSet).some((status) => (
+            status === 'unpaid'
+                ? isStudentFeeUnpaid(s)
+                : status === 'paid'
+                    ? isStudentFeePaid(s)
+                    : status === String(getStudentStatusLabel(s) || '').toLowerCase()
+        ))) &&
+        (paidClassSet.size === 0 || (paidClassSet.has(String(s.classGrade || '').toLowerCase()) && isStudentFeePaid(s))) &&
+        (unpaidClassSet.size === 0 || (unpaidClassSet.has(String(s.classGrade || '').toLowerCase()) && isStudentFeeUnpaid(s))) &&
         (!requireZeroFee || isStudentZeroFee(s)) &&
         !isStudentTerminated(s)
     );
@@ -7819,7 +7805,7 @@ function populateStudentQuickFilterOptions() {
     const campuses = Array.from(campusMap.values()).sort((a, b) => a.localeCompare(b));
     const classes = Array.from(classMap.values()).sort(compareStudentClassNames);
     const signature = [
-        'filters:v2',
+        'filters:v3',
         `campuses:${campuses.map((name) => String(name || '').toLowerCase()).join('|')}`,
         `classes:${classes.map((name) => String(name || '').toLowerCase()).join('|')}`
     ].join('||');
@@ -7829,13 +7815,13 @@ function populateStudentQuickFilterOptions() {
         quickFilter.innerHTML = `
             <option value="all">All Students</option>
             <option value="list:polio">Polio List</option>
-            <option value="gender:Male">Male Students</option>
-            <option value="gender:Female">Female Students</option>
+            <option value="gender:Male">Male Student List</option>
+            <option value="gender:Female">Female Student List</option>
             <option value="gender:Other">Other Gender</option>
-            <option value="age:below5">Below 5 Years</option>
-            <option value="fee:Paid">Fee Paid</option>
+            <option value="age:below5">Below 5 Years Students</option>
+            <option value="fee:Paid">All Fee Paid Students</option>
+            <option value="fee:Unpaid">All Fee Unpaid Students</option>
             <option value="zero-fee">Zero Fee Students</option>
-            <option value="fee:Pending">Fee Pending</option>
         `;
 
         if (campuses.length) {
@@ -7852,7 +7838,7 @@ function populateStudentQuickFilterOptions() {
 
         if (classes.length) {
             const classGroup = document.createElement('optgroup');
-            classGroup.label = 'Classes';
+            classGroup.label = 'Class Wise Student List';
             classes.forEach((className) => {
                 const option = document.createElement('option');
                 option.value = `class:${className}`;
@@ -7860,6 +7846,26 @@ function populateStudentQuickFilterOptions() {
                 classGroup.appendChild(option);
             });
             quickFilter.appendChild(classGroup);
+
+            const paidClassGroup = document.createElement('optgroup');
+            paidClassGroup.label = 'Fee Paid Student List (Class Wise)';
+            classes.forEach((className) => {
+                const option = document.createElement('option');
+                option.value = `fee-paid-class:${className}`;
+                option.textContent = `${getStudentQuickFilterClassLabel(className)} - Fee Paid`;
+                paidClassGroup.appendChild(option);
+            });
+            quickFilter.appendChild(paidClassGroup);
+
+            const unpaidClassGroup = document.createElement('optgroup');
+            unpaidClassGroup.label = 'Fee Unpaid Student List (Class Wise)';
+            classes.forEach((className) => {
+                const option = document.createElement('option');
+                option.value = `fee-unpaid-class:${className}`;
+                option.textContent = `${getStudentQuickFilterClassLabel(className)} - Fee Unpaid`;
+                unpaidClassGroup.appendChild(option);
+            });
+            quickFilter.appendChild(unpaidClassGroup);
         }
 
         quickFilter.dataset.signature = signature;

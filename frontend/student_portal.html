@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal - EduCore</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
-    <link rel="stylesheet" href="style.css?v=20260627-welcome-logo">
+    <link rel="stylesheet" href="style.css?v=20260813-beacon-signature-theme">
     <link rel="stylesheet" href="ai-chat.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -650,6 +650,12 @@
             background: #fff7f7;
             border-color: #fecaca;
             color: #991b1b;
+        }
+
+        .student-attendance-day.off-day {
+            background: #fef3c7;
+            border-color: #facc15;
+            color: #92400e;
         }
 
         .panel-table {
@@ -5360,7 +5366,8 @@
                 });
                 board.innerHTML = Array.from({ length: daysInMonth }, (_, index) => {
                     const day = index + 1;
-                    const status = statusByDay.get(day) || '';
+                    const isSunday = new Date(year, monthNumber - 1, day).getDay() === 0;
+                    const status = isSunday ? 'Off Day' : (statusByDay.get(day) || '');
                     const cls = status ? status.toLowerCase().replace(/\s+/g, '-') : 'empty';
                     const label = status || 'Not Marked';
                     return `

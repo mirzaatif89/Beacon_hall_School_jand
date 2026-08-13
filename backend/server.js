@@ -1261,10 +1261,15 @@ function normalizeClassFeeRecords(records = []) {
         if (!className) return;
         const key = className.toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
         byClass.set(key, {
-            id: record?.id || key,
+            id: record?.id || `CLASS-FEE-${key.replace(/[^a-z0-9]+/g, '-')}`,
             className,
             monthlyFee: Number(record?.monthlyFee || record?.amount || 0) || 0,
+            annualCharges: Number(record?.annualCharges || record?.annualFee || 0) || 0,
             feeFrequency: String(record?.feeFrequency || 'Monthly').trim() || 'Monthly',
+            feeMonth: String(record?.feeMonth || '').trim(),
+            feeYear: String(record?.feeYear || '').trim(),
+            sessionFrom: String(record?.sessionFrom || '').trim(),
+            sessionTo: String(record?.sessionTo || '').trim(),
             updatedAtLabel: record?.updatedAtLabel || new Date().toLocaleString('en-GB')
         });
     });
@@ -1295,13 +1300,32 @@ function deriveClassFeesFromStudents(students = []) {
     return Array.from(byClass.values()).sort((a, b) => a.className.localeCompare(b.className, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
+async function syncClassFeeToDatabaseStudents(record, previousMonthlyFee = 0) {
+    const targetClass = String(record?.className || '').trim().toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+    if (!targetClass) return;
+    const students = await sequelize.models.Student.findAll();
+    for (const student of students) {
+        const studentClass = String(student.classGrade || '').trim().toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+        if (studentClass !== targetClass) continue;
+        const studentFee = Number(student.monthlyFee || 0) || 0;
+        const isCustom = student.monthlyFeeCustom === true;
+        const isFree = student.freeStudy === true || Boolean(String(student.zeroFeeReason || '').trim());
+        const followsClassDefault = studentFee <= 0 || (Number(previousMonthlyFee || 0) > 0 && studentFee === Number(previousMonthlyFee));
+        if (isCustom || isFree || !followsClassDefault) continue;
+        await student.update({ monthlyFee: String(record.monthlyFee || 0), feeFrequency: 'Monthly' });
+    }
+}
+
 app.get('/api/class-fees', async (req, res) => {
     if (!sequelize) return res.status(503).json({ success: false, message: 'Database offline', classFees: [] });
 
     try {
         const rows = await sequelize.models.ClassFee.findAll({ order: [['className', 'ASC']] });
+        const history = sequelize.models.ClassFeeHistory
+            ? await sequelize.models.ClassFeeHistory.findAll({ order: [['updatedAt', 'DESC']] })
+            : [];
         if (rows.length) {
-            res.json({ success: true, classFees: rows });
+            res.json({ success: true, classFees: rows, classFeeHistory: history });
             return;
         }
 
@@ -1309,7 +1333,7 @@ app.get('/api/class-fees', async (req, res) => {
             attributes: ['classGrade', 'monthlyFee', 'feeFrequency'],
             order: [['classGrade', 'ASC']]
         });
-        res.json({ success: true, classFees: deriveClassFeesFromStudents(students), source: 'students' });
+        res.json({ success: true, classFees: deriveClassFeesFromStudents(students), classFeeHistory: history, source: 'students' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message, classFees: [] });
     }
@@ -1323,16 +1347,71 @@ app.post('/api/class-fees', authenticateToken, async (req, res) => {
         if (!ok) return;
 
         const ClassFee = sequelize.models.ClassFee;
+        const ClassFeeHistory = sequelize.models.ClassFeeHistory;
         const records = normalizeClassFeeRecords(Array.isArray(req.body) ? req.body : [req.body]);
-
-        await ClassFee.destroy({ where: {} });
+        if (!records.length) return res.status(400).json({ success: false, message: 'Class and fee details are required.' });
+        if (records.some((record) => !record.sessionFrom || !record.sessionTo || record.sessionFrom > record.sessionTo)) {
+            return res.status(400).json({ success: false, message: 'A valid session From and To is required.' });
+        }
         for (const record of records) {
+            const previous = await ClassFee.findByPk(record.id);
             await ClassFee.upsert(record);
+            await ClassFeeHistory.create({
+                ...record,
+                id: `CLASS-FEE-HISTORY-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+            });
+            await syncClassFeeToDatabaseStudents(record, previous?.monthlyFee || 0);
         }
 
         const allRecords = await ClassFee.findAll({ order: [['className', 'ASC']] });
+        const history = await ClassFeeHistory.findAll({ order: [['updatedAt', 'DESC']] });
         io.emit('class_fees_update', allRecords);
-        res.json({ success: true, classFees: allRecords });
+        res.json({ success: true, classFees: allRecords, classFeeHistory: history });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.put('/api/class-fees/history/:id', authenticateToken, async (req, res) => {
+    if (!sequelize) return res.status(503).json({ success: false, message: 'Database offline' });
+    try {
+        const ok = await enforceActionPermission(req, res, 'fees', 'edit');
+        if (!ok) return;
+        const historyRecord = await sequelize.models.ClassFeeHistory.findByPk(String(req.params.id || ''));
+        if (!historyRecord) return res.status(404).json({ success: false, message: 'Fee history record not found.' });
+        const normalized = normalizeClassFeeRecords([{ ...historyRecord.toJSON(), ...(req.body || {}) }])[0];
+        if (!normalized) return res.status(400).json({ success: false, message: 'Class and fee details are required.' });
+        if (!normalized.sessionFrom || !normalized.sessionTo || normalized.sessionFrom > normalized.sessionTo) {
+            return res.status(400).json({ success: false, message: 'A valid session From and To is required.' });
+        }
+        await historyRecord.update(normalized);
+        const classFeeKey = normalized.className.toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+        const currentClassFeeId = `CLASS-FEE-${classFeeKey.replace(/[^a-z0-9]+/g, '-')}`;
+        const previous = await sequelize.models.ClassFee.findByPk(currentClassFeeId);
+        await sequelize.models.ClassFee.upsert({
+            ...normalized,
+            id: currentClassFeeId
+        });
+        await syncClassFeeToDatabaseStudents(normalized, previous?.monthlyFee || 0);
+        const classFees = await sequelize.models.ClassFee.findAll({ order: [['className', 'ASC']] });
+        const classFeeHistory = await sequelize.models.ClassFeeHistory.findAll({ order: [['updatedAt', 'DESC']] });
+        io.emit('class_fees_update', classFees);
+        res.json({ success: true, classFees, classFeeHistory });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.delete('/api/class-fees/history/:id', authenticateToken, async (req, res) => {
+    if (!sequelize) return res.status(503).json({ success: false, message: 'Database offline' });
+    try {
+        const ok = await enforceActionPermission(req, res, 'fees', 'delete');
+        if (!ok) return;
+        const deleted = await sequelize.models.ClassFeeHistory.destroy({ where: { id: String(req.params.id || '') } });
+        if (!deleted) return res.status(404).json({ success: false, message: 'Fee history record not found.' });
+        const classFees = await sequelize.models.ClassFee.findAll({ order: [['className', 'ASC']] });
+        const classFeeHistory = await sequelize.models.ClassFeeHistory.findAll({ order: [['updatedAt', 'DESC']] });
+        res.json({ success: true, classFees, classFeeHistory });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -1719,6 +1798,7 @@ app.post('/api/reset-data', authenticateToken, async (req, res) => {
             'TeacherAttendance',
             'SpecialNotice',
             'Message',
+            'ClassFeeHistory',
             'ClassFee',
             'Student',
             'Teacher',
@@ -3630,7 +3710,27 @@ function defineClassFeeModel(db) {
         id: { type: DataTypes.STRING, primaryKey: true },
         className: { type: DataTypes.STRING, allowNull: false },
         monthlyFee: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
         feeFrequency: { type: DataTypes.STRING, defaultValue: 'Monthly' },
+        feeMonth: DataTypes.STRING,
+        feeYear: DataTypes.STRING,
+        sessionFrom: DataTypes.STRING,
+        sessionTo: DataTypes.STRING,
+        updatedAtLabel: DataTypes.STRING
+    });
+}
+
+function defineClassFeeHistoryModel(db) {
+    return db.define('ClassFeeHistory', {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        className: { type: DataTypes.STRING, allowNull: false },
+        monthlyFee: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        feeFrequency: { type: DataTypes.STRING, defaultValue: 'Monthly' },
+        feeMonth: DataTypes.STRING,
+        feeYear: DataTypes.STRING,
+        sessionFrom: DataTypes.STRING,
+        sessionTo: DataTypes.STRING,
         updatedAtLabel: DataTypes.STRING
     });
 }
@@ -3936,6 +4036,14 @@ async function ensureTableColumns(tableName, columnDefinitions) {
 }
 
 async function ensureLegacySchema() {
+    await ensureTableColumns('ClassFees', {
+        annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        feeMonth: { type: DataTypes.STRING, allowNull: true },
+        feeYear: { type: DataTypes.STRING, allowNull: true },
+        sessionFrom: { type: DataTypes.STRING, allowNull: true },
+        sessionTo: { type: DataTypes.STRING, allowNull: true }
+    });
+
     await ensureTableColumns('Students', {
         studentCode: { type: DataTypes.STRING, allowNull: true },
         fullName: { type: DataTypes.STRING, allowNull: true },
@@ -4087,6 +4195,7 @@ async function startServer() {
         defineFeePaymentModel(sequelize);
         defineFeeDueBalanceModel(sequelize);
         defineClassFeeModel(sequelize);
+        defineClassFeeHistoryModel(sequelize);
         defineStudentDiaryModel(sequelize);
         defineStudentAttendanceModel(sequelize);
         defineTeacherAttendanceModel(sequelize);

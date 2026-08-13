@@ -72,6 +72,8 @@ const apiCatalog = {
         { method: 'POST', path: '/api/fees/fine-charge', auth: false, group: 'Fees', description: 'Save fine charge.' },
         { method: 'GET', path: '/api/class-fees', auth: false, group: 'Fees', description: 'Class-wise fee setup.' },
         { method: 'POST', path: '/api/class-fees', auth: true, group: 'Fees', description: 'Save class-wise fee setup.' },
+        { method: 'PUT', path: '/api/class-fees/history/:id', auth: true, group: 'Fees', description: 'Update a fee history record.' },
+        { method: 'DELETE', path: '/api/class-fees/history/:id', auth: true, group: 'Fees', description: 'Delete a fee history record.' },
 
         { method: 'GET', path: '/api/messages', auth: true, group: 'Portal Communication', description: 'Messages for logged-in user or admin filter.' },
         { method: 'POST', path: '/api/messages', auth: true, group: 'Portal Communication', description: 'Send portal message from Admin/Principal to Student, Teacher, or Staff recipients.' },

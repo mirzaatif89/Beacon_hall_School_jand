@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Attendance - Apexiueum</title>
+    <title>Student Attendance - Beacon Light School System</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
-    <link rel="stylesheet" href="style.css?v=20260603-american-lyceum-brand">
+    <link rel="stylesheet" href="style.css?v=20260813-beacon-signature-theme">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .header { margin-bottom: 0.9rem; }
@@ -63,6 +63,8 @@
         .chip-absent { background: #fee2e2; color: #991b1b; }
         .chip-late { background: #fef3c7; color: #92400e; }
         .chip-leave { background: #f1e8f7; color: #43206f; }
+        .chip-off-day { background: #fef3c7; color: #92400e; }
+        .attendance-off-day-row td { background: #fffbeb; }
         .chip-empty { background: #e2e8f0; color: #475569; }
         .attendance-actions { display: flex; gap: 0.3rem; justify-content: flex-end; flex-wrap: wrap; }
         .dashboard-container .attendance-actions .btn {
@@ -163,6 +165,7 @@
                                 <label class="attendance-check"><input type="checkbox" value="Present"><span>Present</span></label>
                                 <label class="attendance-check"><input type="checkbox" value="Leave"><span>Leave</span></label>
                                 <label class="attendance-check"><input type="checkbox" value="Absent"><span>Absent</span></label>
+                                <label class="attendance-check"><input type="checkbox" value="Off Day"><span>Off Day</span></label>
                             </div>
                         </div>
                     </div>
@@ -232,6 +235,10 @@
         function getStudentAttendanceStore() { return JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT_ATTENDANCE) || '{}'); }
         function saveStudentAttendanceStore(store) { localStorage.setItem(STORAGE_KEY_STUDENT_ATTENDANCE, JSON.stringify(store)); }
         function getSelectedStudentDateKey() { return document.getElementById('studentAttendanceDate').value || new Date().toISOString().slice(0, 10); }
+        function isSundayDate(dateKey) {
+            const parts = String(dateKey || '').split('-').map(Number);
+            return parts.length === 3 && new Date(parts[0], parts[1] - 1, parts[2]).getDay() === 0;
+        }
         function normalizeAttendanceFilterValue(value) { return String(value || '').trim().toLowerCase(); }
         function setStudentAttendanceMessage(message = '', type = '') {
             const messageEl = document.getElementById('studentAttendanceSaveMessage');
@@ -395,6 +402,7 @@
             updateAttendanceFilterSummaries();
         }
         function getStudentStatusForDate(studentId, dateKey) {
+            if (isSundayDate(dateKey)) return 'Off Day';
             const records = Array.isArray(getStudentAttendanceStore()[studentId]) ? getStudentAttendanceStore()[studentId] : [];
             const record = records.find(item => item.date === dateKey);
             return record ? record.status : DEFAULT_STUDENT_ATTENDANCE_STATUS;
@@ -430,6 +438,11 @@
 
         function markAllSelectedStudentsPresent() {
             const dateKey = getSelectedStudentDateKey();
+            if (isSundayDate(dateKey)) {
+                setStudentAttendanceMessage('Sunday is an Off Day. Attendance is set automatically.', 'success');
+                renderStudentAttendancePage();
+                return;
+            }
             const students = getStudentsForAttendanceSelection();
             if (!dateKey || !students.length) {
                 alert('Please select date, campus, and class first.');
@@ -451,6 +464,7 @@
         }
         function setStudentAttendance(studentId, status) {
             const dateKey = getSelectedStudentDateKey();
+            if (isSundayDate(dateKey)) return;
             const store = getStudentAttendanceStore();
             const records = Array.isArray(store[studentId]) ? store[studentId] : [];
             store[studentId] = records.filter(item => item.date !== dateKey).concat({ date: dateKey, status });
@@ -460,6 +474,11 @@
         }
         async function saveSelectedStudentAttendance() {
             const dateKey = getSelectedStudentDateKey();
+            if (isSundayDate(dateKey)) {
+                setStudentAttendanceMessage('Sunday is an Off Day. No attendance entry is required.', 'success');
+                renderStudentAttendancePage();
+                return;
+            }
             const students = getStudentsForAttendanceSelection();
             if (!dateKey || !students.length) {
                 alert('Please select date, campus, and class first.');
@@ -650,18 +669,21 @@
 
             students.forEach(student => {
                 const status = getStudentStatusForDate(student.id, dateKey);
-                const statusClass = status === 'Present' ? 'chip-present' : status === 'Absent' ? 'chip-absent' : status === 'Late' ? 'chip-late' : status === 'Leave' ? 'chip-leave' : 'chip-empty';
+                const statusClass = status === 'Present' ? 'chip-present' : status === 'Absent' ? 'chip-absent' : status === 'Late' ? 'chip-late' : status === 'Leave' ? 'chip-leave' : status === 'Off Day' ? 'chip-off-day' : 'chip-empty';
                 const studentIdArg = escapeHtml(JSON.stringify(String(student.id || '')));
                 const tr = document.createElement('tr');
+                if (status === 'Off Day') tr.className = 'attendance-off-day-row';
                 tr.innerHTML = `
                     <td>${escapeHtml(student.fullName || '-')}</td>
                     <td>${escapeHtml(student.classGrade || '-')}</td>
                     <td>${escapeHtml(student.campusName || 'Main Campus')}</td>
                     <td><span class="attendance-chip ${statusClass}">${status}</span></td>
                     <td><div class="attendance-actions">
+                        ${status === 'Off Day' ? '<span class="attendance-chip chip-off-day">Sunday</span>' : `
                         <button class="btn btn-outline" onclick="setStudentAttendance(${studentIdArg}, 'Present')">Present</button>
                         <button class="btn btn-outline" onclick="setStudentAttendance(${studentIdArg}, 'Leave')">Leave</button>
                         <button class="btn btn-outline" onclick="setStudentAttendance(${studentIdArg}, 'Absent')">Absent</button>
+                        `}
                     </div></td>`;
                 tbody.appendChild(tr);
             });

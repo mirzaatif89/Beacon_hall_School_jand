@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Attendance Report - Apexiueum</title>
+    <title>Student Attendance Report - Beacon Light School System</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
-    <link rel="stylesheet" href="style.css?v=20260603-american-lyceum-brand">
+    <link rel="stylesheet" href="style.css?v=20260813-beacon-signature-theme">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .report-toolbar { display:grid; grid-template-columns: 1fr 220px; gap:1rem; margin-bottom:1.5rem; align-items:end; }
@@ -14,6 +14,8 @@
         .month-day { border:1px solid var(--border-color); border-radius:0.75rem; padding:0.8rem; background:#fff; }
         .month-day strong { display:block; margin-bottom:0.25rem; }
         .chip-present { color:#166534; } .chip-absent { color:#991b1b; } .chip-late { color:#92400e; } .chip-empty { color:#64748b; }
+        .chip-off-day { color:#92400e; font-weight:700; }
+        .month-day.off-day { background:#fef3c7; border-color:#facc15; }
         .detail-panel { display:none; margin-top:1.5rem; }
         .detail-panel.active { display:block; }
     </style>
@@ -110,10 +112,12 @@
             grid.innerHTML = '';
             for (let day = 1; day <= totalDays; day += 1) {
                 const dateKey = `${monthKey}-${String(day).padStart(2, '0')}`;
-                const status = recordMap.get(dateKey) || 'Not Marked';
-                const statusClass = status === 'Present' ? 'chip-present' : status === 'Absent' ? 'chip-absent' : status === 'Late' ? 'chip-late' : 'chip-empty';
+                const dateParts = dateKey.split('-').map(Number);
+                const isSunday = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]).getDay() === 0;
+                const status = isSunday ? 'Off Day' : (recordMap.get(dateKey) || 'Not Marked');
+                const statusClass = status === 'Present' ? 'chip-present' : status === 'Absent' ? 'chip-absent' : status === 'Late' ? 'chip-late' : status === 'Off Day' ? 'chip-off-day' : 'chip-empty';
                 const card = document.createElement('div');
-                card.className = 'month-day';
+                card.className = `month-day${isSunday ? ' off-day' : ''}`;
                 card.innerHTML = `<strong>Day ${day}</strong><span class="${statusClass}">${status}</span>`;
                 grid.appendChild(card);
             }

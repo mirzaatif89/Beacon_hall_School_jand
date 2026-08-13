@@ -153,6 +153,36 @@ function defineFeeDueBalanceModel(db) {
     });
 }
 
+function defineClassFeeModel(db) {
+    return db.define('ClassFee', {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        className: { type: DataTypes.STRING, allowNull: false },
+        monthlyFee: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        feeFrequency: { type: DataTypes.STRING, defaultValue: 'Monthly' },
+        feeMonth: DataTypes.STRING,
+        feeYear: DataTypes.STRING,
+        sessionFrom: DataTypes.STRING,
+        sessionTo: DataTypes.STRING,
+        updatedAtLabel: DataTypes.STRING
+    });
+}
+
+function defineClassFeeHistoryModel(db) {
+    return db.define('ClassFeeHistory', {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        className: { type: DataTypes.STRING, allowNull: false },
+        monthlyFee: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        feeFrequency: { type: DataTypes.STRING, defaultValue: 'Monthly' },
+        feeMonth: DataTypes.STRING,
+        feeYear: DataTypes.STRING,
+        sessionFrom: DataTypes.STRING,
+        sessionTo: DataTypes.STRING,
+        updatedAtLabel: DataTypes.STRING
+    });
+}
+
 function defineStudentAttendanceModel(db) {
     return db.define('StudentAttendance', {
         id: { type: DataTypes.STRING, primaryKey: true },
@@ -230,6 +260,14 @@ async function ensureTableColumns(db, tableName, columnDefinitions) {
 }
 
 async function ensureLegacySchema(db) {
+    await ensureTableColumns(db, 'ClassFees', {
+        annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+        feeMonth: { type: DataTypes.STRING, allowNull: true },
+        feeYear: { type: DataTypes.STRING, allowNull: true },
+        sessionFrom: { type: DataTypes.STRING, allowNull: true },
+        sessionTo: { type: DataTypes.STRING, allowNull: true }
+    });
+
     await ensureTableColumns(db, 'Students', {
         studentCode: { type: DataTypes.STRING, allowNull: true },
         fullName: { type: DataTypes.STRING, allowNull: true },
@@ -379,6 +417,8 @@ async function getDb() {
             defineStaffModel(db);
             defineFeePaymentModel(db);
             defineFeeDueBalanceModel(db);
+            defineClassFeeModel(db);
+            defineClassFeeHistoryModel(db);
             defineStudentAttendanceModel(db);
             defineTeacherAttendanceModel(db);
             defineAppSettingModel(db);
