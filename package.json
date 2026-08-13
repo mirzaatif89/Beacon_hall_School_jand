@@ -1,7 +1,7 @@
 {
   "name": "beacon-light-school-system",
   "version": "1.0.0",
-  "description": "Real-time SQL backend for Beacon Light School System Jand",
+  "description": "Real-time SQL backend for Beacon Light School System",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

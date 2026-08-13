@@ -1,12 +1,12 @@
 {
-  "name": "Beacon Light School System Jand Mobile",
+  "name": "Beacon Light School System Mobile",
   "short_name": "BLSS Jand",
   "start_url": "/mobile.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#123d2a",
   "theme_color": "#123d2a",
-  "description": "Role-based mobile ERP for Beacon Light School System Jand.",
+  "description": "Role-based mobile ERP for Beacon Light School System.",
   "icons": [
     {
       "src": "/icons/icon-192.webp",

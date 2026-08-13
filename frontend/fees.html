@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Fees - Beacon Light School System Jand management</title>
+    <title>Student Fees - Beacon Light School System management</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -750,7 +750,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo-section">
-                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System Jand logo">
+                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo">
             </div>
 
             <nav class="nav-links">
@@ -1896,7 +1896,7 @@
             const students = getFeePrintFilteredStudents();
             const branding = typeof getBrandingSettings === 'function' ? getBrandingSettings() : {};
             const rawSchoolName = String(branding.schoolName || branding.schoolTitle || '').trim();
-            const schoolName = rawSchoolName || 'Beacon Light School System Jand';
+            const schoolName = rawSchoolName || 'Beacon Light School System';
             const campusLabel = getSelectedFeeCampus() === 'all' ? 'All Campuses' : getSelectedFeeCampusLabel();
             const classLabel = getFeeClassLabelById(classId);
             const statusLabel = status === 'paid' ? 'Paid Students' : 'Unpaid Students';

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificate - Beacon Light School System Jand</title>
+    <title>Certificate - Beacon Light School System</title>
     <link rel="stylesheet" href="style.css?v=20260520-login-apexiums-brand">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -36,7 +36,7 @@
 <body>
     <div class="dashboard-container">
         <aside class="sidebar">
-            <div class="logo-section"><img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System Jand logo"></div>
+            <div class="logo-section"><img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo"></div>
             <nav class="nav-links">
                 <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
                 <a href="students.html" class="nav-item"><i data-lucide="users"></i><span>Students</span></a>
@@ -90,7 +90,7 @@
         function renderCertificatePreview() {
             const branding = typeof getBrandingSettings === 'function' ? getBrandingSettings() : {};
             const logoSrc = typeof getBrandingLogoSrc === 'function' ? getBrandingLogoSrc() : 'images/logo.jpeg';
-            const schoolName = 'Beacon Light School System Jand';
+            const schoolName = 'Beacon Light School System';
             const dateValue = certificateDate.value ? new Date(certificateDate.value).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
             certificatePreview.innerHTML = `
                 <div class="certificate-head">

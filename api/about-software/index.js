@@ -3,14 +3,14 @@ const { readStore, upsertRecord } = require('../_lib/mobileStore');
 
 const defaultAboutSoftware = {
     id: 'ABOUT-SOFTWARE',
-    appName: 'Beacon Light School System Jand',
-    schoolName: 'Beacon Light School System Jand',
+    appName: 'Beacon Light School System',
+    schoolName: 'Beacon Light School System',
     website: process.env.SCHOOL_WEBSITE || '',
     supportEmail: process.env.SMTP_FROM_EMAIL || '',
     supportPhone: '03174944258',
     schoolAddress: 'Jand',
     principalName: 'Mahmood ul Hassan',
-    description: 'Student and teacher portal APIs for Beacon Light School System Jand.',
+    description: 'Student and teacher portal APIs for Beacon Light School System.',
     version: '1.0.0'
 };
 

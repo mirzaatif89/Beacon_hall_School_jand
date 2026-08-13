@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Beacon Light School System Jand</title>
+    <title>Dashboard - Beacon Light School System</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
     <link rel="stylesheet" href="style.css?v=20260627-welcome-logo">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -286,7 +286,7 @@
     <div class="dashboard-container">
         <aside class="sidebar">
             <div class="logo-section">
-                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System Jand logo">
+                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo">
             </div>
 
             <nav class="nav-links">
@@ -373,7 +373,6 @@
                     <select id="dashboardCampusFilter" class="dashboard-campus-select" aria-label="Select campus">
                         <option value="all">All Campuses</option>
                     </select>
-                    <input id="dashboardRevenueMonthPicker" class="dashboard-campus-select" type="month" aria-label="Select revenue month">
                     <div class="notification-bell" id="notificationBell" aria-label="Notifications" title="Notifications">
                         <i data-lucide="bell" size="24"></i>
                         <span class="notification-badge" id="notifBadge">0</span>
@@ -426,17 +425,6 @@
                     </div>
                 </a>
 
-                <a href="revenue.html" class="card dashboard-revenue-card" data-dashboard-card>
-                    <div class="card-title">Total Revenue</div>
-                    <div class="card-value" id="dashRevenue">...</div>
-                    <div class="card-trend trend-up" id="dashRevenueDetail">
-                        Loading fee payments
-                    </div>
-                    <div class="card-icon">
-                        <i data-lucide="trending-up"></i>
-                    </div>
-                </a>
-
                 <div class="card card-clickable" data-admin-only-card id="activeLoginsCard" title="View active sessions">
                     <div class="card-title">Active Portal Logins</div>
                     <div class="card-value" id="dashActiveLogins">...</div>
@@ -447,17 +435,6 @@
                         <i data-lucide="monitor-up"></i>
                     </div>
                 </div>
-
-                <a href="complain_box.html" class="card" data-dashboard-card>
-                    <div class="card-title">Total Complaints</div>
-                    <div class="card-value" id="dashComplaintCount">...</div>
-                    <div class="card-trend trend-up" id="dashComplaintDetail">
-                        <i data-lucide="message-square" size="16"></i> Complaints received
-                    </div>
-                    <div class="card-icon">
-                        <i data-lucide="message-square"></i>
-                    </div>
-                </a>
 
                 <a href="banners.html" class="card" data-dashboard-card>
                     <div class="card-title">Live Banners</div>

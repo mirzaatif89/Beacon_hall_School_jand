@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Revenue Report - Beacon Light School System Jand management</title>
+    <title>Revenue Report - Beacon Light School System management</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -402,7 +402,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo-section">
-                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System Jand logo">
+                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo">
             </div>
 
             <nav class="nav-links">
@@ -1551,9 +1551,9 @@
             const schoolName = (() => {
                 try {
                     const settings = JSON.parse(localStorage.getItem('eduCore_settings') || '{}') || {};
-                    return String(settings.schoolName || settings.schoolTitle || 'Beacon Light School System Jand').trim() || 'Beacon Light School System Jand';
+                    return String(settings.schoolName || settings.schoolTitle || 'Beacon Light School System').trim() || 'Beacon Light School System';
                 } catch (_error) {
-                    return 'Beacon Light School System Jand';
+                    return 'Beacon Light School System';
                 }
             })();
             const printedAt = new Date().toLocaleString();

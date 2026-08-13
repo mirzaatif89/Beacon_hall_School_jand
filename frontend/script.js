@@ -1392,8 +1392,8 @@ function escapeHtml(value) {
 
 function getBrandingSettings() {
     const fallback = {
-        schoolName: 'Beacon Light School System Jand',
-        schoolTitle: 'Beacon Light School System Jand',
+        schoolName: 'Beacon Light School System',
+        schoolTitle: 'Beacon Light School System',
         session: '',
         phone: '03174944258',
         address: 'Jand',
@@ -1403,7 +1403,8 @@ function getBrandingSettings() {
     try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS) || '{}') || {};
         const settings = { ...fallback, ...saved };
-        if (/american\s+lyceum/i.test(String(settings.schoolName || settings.schoolTitle || ''))) {
+        const savedSchoolName = String(settings.schoolName || settings.schoolTitle || '');
+        if (/american\s+lyceum/i.test(savedSchoolName) || /\bjand\b/i.test(savedSchoolName)) {
             settings.schoolName = fallback.schoolName;
             settings.schoolTitle = fallback.schoolTitle;
             settings.address = fallback.address;
@@ -2411,12 +2412,12 @@ function queueWelcomeAnimationForNextPage(user) {
     try {
         const displayName = user?.fullName || user?.username || user?.role || 'User';
         const role = user?.role || 'User';
-        let schoolName = 'Beacon Light School System Jand';
+        let schoolName = 'Beacon Light School System';
         try {
             const settings = JSON.parse(localStorage.getItem('eduCore_settings') || '{}') || {};
             schoolName = String(settings.schoolName || settings.schoolTitle || schoolName).trim() || schoolName;
         } catch (_error) {
-            schoolName = 'Beacon Light School System Jand';
+            schoolName = 'Beacon Light School System';
         }
         sessionStorage.setItem(
             EDUCORE_WELCOME_SESSION_KEY,
@@ -2462,11 +2463,11 @@ function showWelcomeAnimationIfNeeded() {
     const schoolName = String(payload.schoolName || (() => {
         try {
             const settings = JSON.parse(localStorage.getItem('eduCore_settings') || '{}') || {};
-            return settings.schoolName || settings.schoolTitle || 'Beacon Light School System Jand';
+            return settings.schoolName || settings.schoolTitle || 'Beacon Light School System';
         } catch (_error) {
-            return 'Beacon Light School System Jand';
+            return 'Beacon Light School System';
         }
-    })()).trim() || 'Beacon Light School System Jand';
+    })()).trim() || 'Beacon Light School System';
     const escape = typeof escapeSessionText === 'function' ? escapeSessionText : (value) => String(value ?? '');
 
     overlay.innerHTML = `
@@ -6080,9 +6081,9 @@ function printStudentAdmissionFormFromEncoded(encodedPayload) {
 function getEmailSchoolName() {
     try {
         const branding = typeof getBrandingSettings === 'function' ? getBrandingSettings() : {};
-        return String(branding.schoolName || branding.schoolTitle || 'Beacon Light School System Jand').trim() || 'Beacon Light School System Jand';
+        return String(branding.schoolName || branding.schoolTitle || 'Beacon Light School System').trim() || 'Beacon Light School System';
     } catch (_error) {
-        return 'Beacon Light School System Jand';
+        return 'Beacon Light School System';
     }
 }
 
@@ -7647,7 +7648,7 @@ function printStudentAdmissionForm(student = {}) {
     const legacyPlaceholderNames = new Set(['harward school', 'harvard school']);
     const schoolName = rawSchoolName && !legacyPlaceholderNames.has(rawSchoolName.toLowerCase())
         ? rawSchoolName
-        : 'Beacon Light School System Jand';
+        : 'Beacon Light School System';
     const schoolLogo = new URL('images/logo.jpeg', window.location.href).href;
     const printedAt = new Date().toLocaleString();
     const statusLabel = getStudentStatusLabel(student);
