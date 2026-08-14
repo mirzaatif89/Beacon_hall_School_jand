@@ -1,6 +1,10 @@
 DirectoryIndex index.html frontend/index.html
 Options -Indexes
 
+<FilesMatch "^(?:\.env|package(?:-lock)?\.json|\.cpanel\.yml)$">
+    Require all denied
+</FilesMatch>
+
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
 PassengerAppRoot "/home/apexium2/social-purple-mammoth.37-27-52-96.cpanel.site"
 PassengerBaseURI "/"
