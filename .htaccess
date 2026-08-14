@@ -5,6 +5,14 @@ Options -Indexes
     Require all denied
 </FilesMatch>
 
+<If "%{REQUEST_URI} =~ m#^/(?:backend|data)(?:/|$)#">
+    Require all denied
+</If>
+
+<If "%{REQUEST_URI} =~ m#^/api/.*\.(?:js|json)$#">
+    Require all denied
+</If>
+
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
 PassengerAppRoot "/home/apexium2/social-purple-mammoth.37-27-52-96.cpanel.site"
 PassengerBaseURI "/"
