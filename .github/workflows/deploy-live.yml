@@ -35,7 +35,7 @@ jobs:
             set -eu
 
             APP_PATH=""
-            for configured_path in "$SERVER_APP_PATH" "$LIVE_APP_PATH" "$HOME/my_school_app" "/home/${USER}/my_school_app"; do
+            for configured_path in "$SERVER_APP_PATH" "$LIVE_APP_PATH" "$HOME/social-purple-mammoth.37-27-52-96.cpanel.site" "/home/${USER}/social-purple-mammoth.37-27-52-96.cpanel.site" "$HOME/my_school_app"; do
               if [ -n "$configured_path" ] && [ -d "$configured_path" ]; then
                 APP_PATH="$configured_path"
                 break

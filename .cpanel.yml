@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/apexium2/my_school_app
+    - export DEPLOYPATH=/home/apexium2/social-purple-mammoth.37-27-52-96.cpanel.site
     - /bin/mkdir -p "$DEPLOYPATH/.deploy-backup"
     - /bin/mkdir -p "$DEPLOYPATH/data"
     - for file in .env data/permissions.json data/date_sheet.json data/admin_credentials.json; do if [ -f "$DEPLOYPATH/$file" ]; then /bin/mkdir -p "$DEPLOYPATH/.deploy-backup/$(dirname "$file")"; /bin/cp "$DEPLOYPATH/$file" "$DEPLOYPATH/.deploy-backup/$file"; fi; done
