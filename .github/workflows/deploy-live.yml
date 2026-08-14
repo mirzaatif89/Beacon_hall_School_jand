@@ -15,66 +15,50 @@ env:
   BRANCH: main
 
 jobs:
-  sync:
-    name: 1 - Sync Beacon source
+  deploy:
+    name: Sync source and restart cPanel app
     runs-on: ubuntu-latest
     steps:
-      - name: Verify PM2 is available
+      - name: Locate the live Beacon application
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          LIVE_APP_PATH: ${{ secrets.LIVE_APP_PATH }}
+          SERVER_APP_PATH: ${{ secrets.SERVER_APP_PATH }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: 22
           script_stop: true
+          envs: LIVE_APP_PATH,SERVER_APP_PATH
           script: |
             set -eu
-            command -v pm2
 
-      - name: Verify PM2 process 4 is running
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            test -n "$PM2_PID"
-            test "$PM2_PID" != "0"
+            APP_PATH=""
+            for configured_path in "$SERVER_APP_PATH" "$LIVE_APP_PATH"; do
+              if [ -n "$configured_path" ] && [ -d "$configured_path" ]; then
+                APP_PATH="$configured_path"
+                break
+              fi
+            done
 
-      - name: Verify PM2 working directory
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
+            if [ -z "$APP_PATH" ]; then
+              PACKAGE_FILE="$(find "$HOME" -maxdepth 7 -type f -name package.json 2>/dev/null | while IFS= read -r file; do
+                if grep -q '"name"[[:space:]]*:[[:space:]]*"beacon-light-school-system"' "$file"; then
+                  printf '%s\n' "$file"
+                  break
+                fi
+              done)"
+              if [ -n "$PACKAGE_FILE" ]; then
+                APP_PATH="$(dirname "$PACKAGE_FILE")"
+              fi
+            fi
+
+            test -n "$APP_PATH"
             test -d "$APP_PATH"
+            printf '%s' "$APP_PATH" > "$HOME/.beacon-light-app-path"
 
-      - name: Verify Node application files
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
-            cd "$APP_PATH"
-            test -f package.json
-
-      - name: Configure remote and fetch main
+      - name: Configure Beacon repository and fetch main
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -85,11 +69,10 @@ jobs:
           envs: REPOSITORY,BRANCH
           script: |
             set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
+            APP_PATH="$(cat "$HOME/.beacon-light-app-path")"
             cd "$APP_PATH"
 
-            BACKUP_PATH="$APP_PATH/.deploy-backup"
+            BACKUP_PATH="$HOME/.beacon-light-deploy-backup"
             mkdir -p "$BACKUP_PATH"
             for file in .env data/permissions.json data/date_sheet.json data/admin_credentials.json; do
               if [ -f "$file" ]; then
@@ -109,7 +92,7 @@ jobs:
             fi
             git fetch origin "$BRANCH" --prune
 
-      - name: Checkout main and verify frontend
+      - name: Checkout and verify latest frontend
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -120,10 +103,9 @@ jobs:
           envs: BRANCH
           script: |
             set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
+            APP_PATH="$(cat "$HOME/.beacon-light-app-path")"
+            BACKUP_PATH="$HOME/.beacon-light-deploy-backup"
             cd "$APP_PATH"
-            BACKUP_PATH="$APP_PATH/.deploy-backup"
 
             git checkout -B "$BRANCH" "origin/$BRANCH"
             git reset --hard "origin/$BRANCH"
@@ -139,12 +121,7 @@ jobs:
             grep -q "filters:v4-standard-classes" frontend/script.js
             grep -q "20260814-sidebar-sequence" frontend/students.html
 
-  dependencies:
-    name: 2 - Install production dependencies
-    needs: sync
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Node packages
+      - name: Restart cPanel Passenger application
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -154,30 +131,8 @@ jobs:
           script_stop: true
           script: |
             set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
+            APP_PATH="$(cat "$HOME/.beacon-light-app-path")"
             cd "$APP_PATH"
-            npm install --omit=dev
-
-  restart:
-    name: 3 - Restart Beacon PM2 app
-    needs: dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Restart and verify process
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: 22
-          script_stop: true
-          script: |
-            set -eu
-            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
-            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
-            cd "$APP_PATH"
-            pm2 restart 4 --update-env
-            pm2 save
-            test -n "$(pm2 pid 4)"
+            mkdir -p tmp
+            touch tmp/restart.txt
             echo "Beacon Light deployed successfully: $(git rev-parse HEAD)"
