@@ -1,6 +1,9 @@
 DirectoryIndex index.html frontend/index.html
 Options -Indexes
 
+RedirectMatch 403 ^/(?:backend|data)(?:/|$)
+RedirectMatch 403 ^/api/.*\.(?:js|json)$
+
 <FilesMatch "^(?:\.env|package(?:-lock)?\.json|\.cpanel\.yml)$">
     Require all denied
 </FilesMatch>
