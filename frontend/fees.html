@@ -861,6 +861,7 @@
                                 <option value="all">All Classes</option>
                             </select>
                             <select id="feePrintStatusFilter" class="fee-print-filter" aria-label="Fee status for print">
+                                <option value="all">All</option>
                                 <option value="paid">Paid</option>
                                 <option value="unpaid">Unpaid</option>
                             </select>
@@ -990,7 +991,7 @@
     </div>
 
     <script src="auth.js"></script>
-    <script src="script.js?v=20260730-remaining-charges-sync"></script>
+    <script src="script.js?v=20260814-student-teacher-fee-updates"></script>
     <script>
         const STORAGE_KEY_MONTHLY_FEES = 'eduCore_monthly_fees';
         const STORAGE_KEY_PAYMENT_DETAILS = 'eduCore_payment_details';
@@ -1718,6 +1719,7 @@
         });
 
         const feeClasses = [
+            { id: 'play-group', name: 'Play Group', icon: 'shapes', keywords: ['play', 'pg', 'playgroup', 'play group', 'montessori junior blue'] },
             { id: 'nursery', name: 'Nursarry', icon: 'baby', keywords: ['nursery', 'nursary', 'nursarry', 'nur', 'kg1', 'montessori junior red'] },
             { id: 'prep', name: 'Prep', icon: 'pencil', keywords: ['prep', 'kg2', 'preschool', 'pre', 'montessori junior green'] },
             { id: 'g1', name: 'Class One', icon: 'book', keywords: ['1', 'one', '1st', 'class 1', 'class one', 'grade 1', 'grade 1st'] },
@@ -1804,10 +1806,11 @@
 
         function getFeePrintFilteredStudents() {
             const classId = document.getElementById('feePrintClassFilter')?.value || 'all';
-            const status = String(document.getElementById('feePrintStatusFilter')?.value || 'paid').toLowerCase();
+            const status = String(document.getElementById('feePrintStatusFilter')?.value || 'all').toLowerCase();
             return getCampusFilteredFeeStudents()
                 .filter(student => studentMatchesFeeClass(student, classId))
                 .filter(student => {
+                    if (status === 'all') return true;
                     const paid = isCurrentMonthFeePaid(student);
                     return status === 'paid' ? paid : !paid;
                 })
@@ -1888,14 +1891,14 @@
 
         function printFeeStatusStudentList() {
             const classId = document.getElementById('feePrintClassFilter')?.value || 'all';
-            const status = String(document.getElementById('feePrintStatusFilter')?.value || 'paid').toLowerCase();
+            const status = String(document.getElementById('feePrintStatusFilter')?.value || 'all').toLowerCase();
             const students = getFeePrintFilteredStudents();
             const branding = typeof getBrandingSettings === 'function' ? getBrandingSettings() : {};
             const rawSchoolName = String(branding.schoolName || branding.schoolTitle || '').trim();
             const schoolName = rawSchoolName || 'Beacon Light School System';
             const campusLabel = getSelectedFeeCampus() === 'all' ? 'All Campuses' : getSelectedFeeCampusLabel();
             const classLabel = getFeeClassLabelById(classId);
-            const statusLabel = status === 'paid' ? 'Paid Students' : 'Unpaid Students';
+            const statusLabel = status === 'all' ? 'All Students' : (status === 'paid' ? 'Paid Students' : 'Unpaid Students');
             const printedAt = new Date().toLocaleString();
             const totalMonthlyFee = students.reduce((sum, student) => sum + getFeeStudentMonthlyAmount(student), 0);
             const totalCurrentFine = students.reduce((sum, student) => (

@@ -3505,3 +3505,23 @@ td {
         border-radius: 12px !important;
     }
 }
+
+/* Keep the school name on one line and center "System" beneath it. */
+.login-school-name {
+    width: max-content;
+    max-width: 100%;
+    text-align: center;
+    justify-self: center;
+    white-space: nowrap;
+}
+
+.login-school-name strong {
+    display: inline-block;
+}
+
+.sidebar .logo-section::after {
+    justify-self: center;
+    text-align: center;
+    white-space: pre;
+    font-size: 0.84rem;
+}

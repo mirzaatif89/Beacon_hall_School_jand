@@ -51,6 +51,7 @@ const DASHBOARD_CAMPUS_FILTER_KEY = 'eduCore_dashboard_campus_filter';
 const GLOBAL_CAMPUS_FILTER_KEY = DASHBOARD_CAMPUS_FILTER_KEY;
 const DEFAULT_CAMPUS_NAMES = ['Main Campus'];
 const DEFAULT_STUDENT_CLASS_ORDER = [
+    'Play Group',
     'Nursarry',
     'Prep',
     'Class One',
@@ -1064,7 +1065,6 @@ document.addEventListener('DOMContentLoaded', () => {
         bindStudentFormSubmit();
         const studentSearch = document.getElementById('studentSearchInput');
         const quickFilter = document.getElementById('studentQuickFilter');
-        const printMode = document.getElementById('studentPrintMode');
         const studentProfileImage = document.getElementById('studentProfileImage');
         const studentNameInput = document.getElementById('fullName');
         populateStudentFamilyOptions();
@@ -1094,13 +1094,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (quickFilter) {
             quickFilter.addEventListener('change', renderStudents);
-        }
-        if (printMode) {
-            const saved = String(localStorage.getItem('eduCore_student_print_mode') || '').trim();
-            printMode.value = (saved === 'outer' || saved === 'school') ? saved : 'school';
-            printMode.addEventListener('change', () => {
-                localStorage.setItem('eduCore_student_print_mode', String(printMode.value || 'school'));
-            });
         }
     }
 
@@ -6624,6 +6617,7 @@ function compareStudentClassNames(a, b) {
 
 function getStudentQuickFilterClassLabel(className) {
     const normalized = String(className || '').trim().toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+    if (['play', 'pg', 'playgroup', 'play group', 'montessori junior blue'].includes(normalized)) return 'Play Group';
     if (['nursery', 'nursary', 'nursarry', 'kg1', 'montessori junior red'].includes(normalized)) return 'Nursarry';
     if (['prep', 'kg2', 'montessori junior green'].includes(normalized)) return 'Prep';
     const classAliases = {
@@ -7406,7 +7400,6 @@ function printStudentsList() {
 
     const searchInput = document.getElementById('studentSearchInput');
     const quickFilter = document.getElementById('studentQuickFilter');
-    const printModeEl = document.getElementById('studentPrintMode');
     const loggedInUser = getLoggedInUser();
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -7423,11 +7416,7 @@ function printStudentsList() {
     const selectedQuickValues = getStudentQuickFilterSelectedValues(quickFilter);
     const parsedFilters = parseStudentQuickFilterValues(selectedQuickValues);
 
-    const printModeRaw = String(printModeEl ? printModeEl.value : (localStorage.getItem('eduCore_student_print_mode') || 'school')).trim().toLowerCase();
-    let printMode = (printModeRaw === 'outer' || printModeRaw === 'school') ? printModeRaw : 'school';
-    if (parsedFilters.polioList) printMode = 'polio';
-    if (printModeEl && printMode !== 'polio' && printModeEl.value !== printMode) printModeEl.value = printMode;
-    if (printMode !== 'polio') localStorage.setItem('eduCore_student_print_mode', printMode);
+    const printMode = parsedFilters.polioList ? 'polio' : 'school';
 
     const genderSet = new Set(parsedFilters.genders.map((gender) => String(gender || '').toLowerCase()));
     let campusSet = new Set(parsedFilters.campuses.map((campus) => String(campus || '').toLowerCase()));
@@ -8390,11 +8379,11 @@ async function saveTeacherSchedule() {
     renderTeachers((document.getElementById('teacherSearchInput')?.value || '').toLowerCase());
 }
 
-function renderTeachers(term = '') {
+function renderTeachers(term = null) {
     const tbody = document.getElementById('teacherTableBody');
     if (!tbody) return;
 
-    if (typeof term !== 'string') term = '';
+    if (typeof term !== 'string') term = document.getElementById('teacherSearchInput')?.value || '';
     term = term.toLowerCase().trim();
 
     const campusFilter = document.getElementById('teacherCampusFilter');

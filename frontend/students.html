@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Students - Beacon Light School System</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
-    <link rel="stylesheet" href="style.css?v=20260813-beacon-signature-theme">
+    <link rel="stylesheet" href="style.css?v=20260814-centered-school-name">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -217,6 +217,11 @@
             display: inline-flex;
         }
 
+        .student-add-btn {
+            margin-left: auto;
+            flex: 0 0 auto;
+        }
+
         .student-print-btn {
             min-height: 42px !important;
             height: 42px !important;
@@ -234,11 +239,15 @@
         }
 
         .student-filter-group label {
-            display: block;
-            margin-bottom: 0.45rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-secondary);
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .student-filter-group input,
@@ -251,13 +260,6 @@
             border-radius: var(--radius-md);
             background: white;
             font: inherit;
-        }
-
-        #studentPrintMode {
-            min-height: 42px !important;
-            height: 42px !important;
-            padding: 0.58rem 0.85rem !important;
-            border-radius: var(--radius-md) !important;
         }
 
         .student-filter-group .student-multifilter {
@@ -1165,19 +1167,11 @@
                             <select id="studentQuickFilter" multiple style="display:none;"></select>
                         </div>
                     </div>
-                    <div class="student-filter-group">
-                        <label for="studentPrintMode">Print List</label>
-                        <select id="studentPrintMode"
-                            style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: #ffffff; font-weight: 700;">
-                            <option value="school">School Student List</option>
-                            <option value="outer">Outer Student List</option>
-                        </select>
-                    </div>
                     <button class="btn btn-outline student-print-btn" type="button" onclick="printStudentsList()">
-                        <i data-lucide="printer"></i> Print Students
+                        <i data-lucide="printer"></i> Print
                     </button>
                 </div>
-                <button class="btn btn-primary" onclick="toggleStudentForm()">
+                <button class="btn btn-primary student-add-btn" onclick="toggleStudentForm()">
                     <i data-lucide="plus"></i> Add New Student
                 </button>
             </div>
@@ -1456,7 +1450,7 @@
     </div>
 
     <script src="auth.js?v=20260520-sidebar-requested-order"></script>
-    <script src="script.js?v=20260730-remaining-charges-sync"></script>
+    <script src="script.js?v=20260814-student-teacher-fee-updates"></script>
     <script>
         window.togglePasswordVisibility = window.togglePasswordVisibility || function (targetId, toggleBtn) {
             const input = document.getElementById(targetId);
