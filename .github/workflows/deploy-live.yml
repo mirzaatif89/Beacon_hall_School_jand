@@ -11,7 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  APP_PATH: /home/ehsan/projects/American_lyceum
   REPOSITORY: https://github.com/mirzaatif89/Beacon_hall_School_jand.git
   BRANCH: main
 
@@ -28,11 +27,16 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: 22
           script_stop: true
-          envs: APP_PATH,REPOSITORY,BRANCH
+          envs: REPOSITORY,BRANCH
           script: |
             set -eu
+            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
+            test -n "$PM2_PID"
+            test "$PM2_PID" != "0"
+            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
+            test -d "$APP_PATH"
             cd "$APP_PATH"
-            test -d .git
+            test -f package.json
 
       - name: Configure remote and fetch main
         uses: appleboy/ssh-action@v1.2.0
@@ -42,9 +46,11 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: 22
           script_stop: true
-          envs: APP_PATH,REPOSITORY,BRANCH
+          envs: REPOSITORY,BRANCH
           script: |
             set -eu
+            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
+            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
             cd "$APP_PATH"
 
             BACKUP_PATH="$APP_PATH/.deploy-backup"
@@ -56,8 +62,15 @@ jobs:
               fi
             done
 
+            if [ ! -d .git ]; then
+              git init
+            fi
             git config --global --add safe.directory "$APP_PATH"
-            git remote set-url origin "$REPOSITORY"
+            if git remote get-url origin >/dev/null 2>&1; then
+              git remote set-url origin "$REPOSITORY"
+            else
+              git remote add origin "$REPOSITORY"
+            fi
             git fetch origin "$BRANCH" --prune
 
       - name: Checkout main and verify frontend
@@ -68,9 +81,11 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: 22
           script_stop: true
-          envs: APP_PATH,BRANCH
+          envs: BRANCH
           script: |
             set -eu
+            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
+            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
             cd "$APP_PATH"
             BACKUP_PATH="$APP_PATH/.deploy-backup"
 
@@ -101,9 +116,10 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: 22
           script_stop: true
-          envs: APP_PATH
           script: |
             set -eu
+            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
+            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
             cd "$APP_PATH"
             npm install --omit=dev
 
@@ -120,9 +136,10 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: 22
           script_stop: true
-          envs: APP_PATH
           script: |
             set -eu
+            PM2_PID="$(pm2 pid 4 | tr -d '[:space:]')"
+            APP_PATH="$(readlink -f "/proc/$PM2_PID/cwd")"
             cd "$APP_PATH"
             pm2 restart 4 --update-env
             pm2 save
