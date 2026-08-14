@@ -1,7 +1,9 @@
 name: Auto Deploy Live (cPanel FTP)
 
 on:
-  # Emergency/manual fallback only. Production is deployed by deploy-live.yml.
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
