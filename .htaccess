@@ -1,6 +1,14 @@
 DirectoryIndex index.html frontend/index.html
 Options -Indexes
 
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/apexium2/social-purple-mammoth.37-27-52-96.cpanel.site"
+PassengerBaseURI "/"
+PassengerNodejs "/home/apexium2/nodevenv/social-purple-mammoth.37-27-52-96.cpanel.site/20/bin/node"
+PassengerAppType node
+PassengerStartupFile app.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
