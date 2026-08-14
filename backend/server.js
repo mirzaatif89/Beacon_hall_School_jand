@@ -161,7 +161,7 @@ app.get(['/api/health', '/api/ping'], async (_req, res) => {
             user: Boolean(process.env.DB_USER),
             password: Boolean(process.env.DB_PASSWORD)
         },
-        message: isInitialized ? 'API and database are ready.' : 'Database schema could not be initialized. Check database user privileges and restart the application.',
+        message: isInitialized ? 'API and database are ready.' : getDatabaseStatusMessage(startupErrorCode),
         timestamp: new Date().toISOString()
     });
 });
@@ -183,7 +183,8 @@ app.use('/api', async (req, res, next) => {
     } catch (_error) {
         return res.status(503).json({
             success: false,
-            message: 'Database initialization failed. Confirm the cPanel database user has ALL PRIVILEGES and restart the Node.js application.'
+            databaseErrorCode: startupErrorCode || 'DATABASE_STARTUP_FAILED',
+            message: getDatabaseStatusMessage(startupErrorCode)
         });
     }
 });
@@ -204,6 +205,15 @@ function classifyDatabaseError(error) {
     if (rawCode === 'ENOTFOUND' || message.includes('getaddrinfo')) return 'DATABASE_HOST_NOT_FOUND';
     if (rawCode === 'ER_NO_SUCH_TABLE' || message.includes("doesn't exist")) return 'DATABASE_SCHEMA_MISSING';
     return rawCode || 'DATABASE_STARTUP_FAILED';
+}
+
+function getDatabaseStatusMessage(code) {
+    if (code === 'ER_TOO_BIG_ROWSIZE') return 'The database schema is incompatible with the server row-size limit. Deploy the optimized schema and restart the Node.js application.';
+    if (code === 'INVALID_DATABASE_CREDENTIALS') return 'Database login failed. Verify DB_USER and DB_PASSWORD in the application .env file.';
+    if (code === 'DATABASE_PRIVILEGES_MISSING') return 'The database user needs ALL PRIVILEGES for the configured database.';
+    if (code === 'DATABASE_NOT_FOUND') return 'The configured database does not exist.';
+    if (code === 'DATABASE_CONNECTION_REFUSED' || code === 'DATABASE_HOST_NOT_FOUND') return 'The database host could not be reached.';
+    return 'Database initialization failed. Check the health endpoint for the diagnostic code and restart the Node.js application.';
 }
 const ACTIVE_SESSION_TTL_MS = 90000;
 const activeSessions = new Map();
@@ -3682,45 +3692,45 @@ app.use((err, req, res, next) => {
 
 function defineStudentModel(db) {
     return db.define('Student', {
-        id: { type: DataTypes.STRING, primaryKey: true },
-        studentCode: DataTypes.STRING,
-        fullName: DataTypes.STRING,
+        id: { type: DataTypes.STRING(100), primaryKey: true },
+        studentCode: DataTypes.STRING(50),
+        fullName: DataTypes.STRING(100),
         profileImage: DataTypes.TEXT('long'),
-        fatherName: DataTypes.STRING,
-        dob: DataTypes.STRING,
-        admissionDate: DataTypes.STRING,
-        classGrade: DataTypes.STRING,
-        campusName: DataTypes.STRING,
-        gender: DataTypes.STRING,
-        parentPhone: DataTypes.STRING,
-        email: { type: DataTypes.STRING, unique: true, allowNull: true },
-        rollNo: DataTypes.STRING,
-        formB: DataTypes.STRING,
-        monthlyFee: DataTypes.STRING,
+        fatherName: DataTypes.STRING(100),
+        dob: DataTypes.STRING(20),
+        admissionDate: DataTypes.STRING(20),
+        classGrade: DataTypes.STRING(50),
+        campusName: DataTypes.STRING(80),
+        gender: DataTypes.STRING(20),
+        parentPhone: DataTypes.STRING(30),
+        email: { type: DataTypes.STRING(191), unique: true, allowNull: true },
+        rollNo: DataTypes.STRING(30),
+        formB: DataTypes.STRING(50),
+        monthlyFee: DataTypes.STRING(20),
         monthlyFeeCustom: DataTypes.BOOLEAN,
         freeStudy: DataTypes.BOOLEAN,
         zeroFeeReason: DataTypes.TEXT,
-        remainingAmount: DataTypes.STRING,
-        dueBalance: DataTypes.STRING,
-        balance: DataTypes.STRING,
-        feeFrequency: DataTypes.STRING,
-        feesStatus: { type: DataTypes.STRING, defaultValue: 'Pending' },
-        enrollmentStatus: DataTypes.STRING,
-        paymentDate: DataTypes.STRING,
+        remainingAmount: DataTypes.STRING(20),
+        dueBalance: DataTypes.STRING(20),
+        balance: DataTypes.STRING(20),
+        feeFrequency: DataTypes.STRING(30),
+        feesStatus: { type: DataTypes.STRING(30), defaultValue: 'Pending' },
+        enrollmentStatus: DataTypes.STRING(30),
+        paymentDate: DataTypes.STRING(30),
         address: DataTypes.TEXT,
-        guardianName: DataTypes.STRING,
-        guardianContact: DataTypes.STRING,
+        guardianName: DataTypes.STRING(100),
+        guardianContact: DataTypes.STRING(30),
         fingerprintData: DataTypes.TEXT('long'),
-        familyId: DataTypes.STRING,
-        familyName: DataTypes.STRING,
-        familyNo: DataTypes.STRING,
-        familyContact: DataTypes.STRING,
-        familyAddedAt: DataTypes.STRING,
-        username: { type: DataTypes.STRING, unique: true },
-        password: DataTypes.STRING,
-        plainPassword: DataTypes.STRING,
-        role: { type: DataTypes.STRING, defaultValue: 'Student' }
-    });
+        familyId: DataTypes.STRING(60),
+        familyName: DataTypes.STRING(100),
+        familyNo: DataTypes.STRING(50),
+        familyContact: DataTypes.STRING(30),
+        familyAddedAt: DataTypes.STRING(30),
+        username: { type: DataTypes.STRING(100), unique: true },
+        password: DataTypes.STRING(255),
+        plainPassword: DataTypes.TEXT,
+        role: { type: DataTypes.STRING(30), defaultValue: 'Student' }
+    }, { engine: 'InnoDB', rowFormat: 'DYNAMIC' });
 }
 
 function defineTeacherModel(db) {
@@ -3754,7 +3764,7 @@ function defineTeacherModel(db) {
         plainPassword: DataTypes.STRING,
         groupKey: DataTypes.STRING,
         role: { type: DataTypes.STRING, defaultValue: 'Teacher' }
-    });
+    }, { engine: 'InnoDB', rowFormat: 'DYNAMIC' });
 }
 
 function defineUserModel(db) {
@@ -3770,7 +3780,7 @@ function defineUserModel(db) {
         groupKey: DataTypes.STRING,
         role: { type: DataTypes.STRING, allowNull: false },
         isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
-    });
+    }, { engine: 'InnoDB', rowFormat: 'DYNAMIC' });
 }
 
 function defineStaffModel(db) {
@@ -3798,7 +3808,7 @@ function defineStaffModel(db) {
         plainPassword: DataTypes.STRING,
         groupKey: DataTypes.STRING,
         role: { type: DataTypes.STRING, defaultValue: 'Staff' }
-    });
+    }, { engine: 'InnoDB', rowFormat: 'DYNAMIC' });
 }
 
 function defineFeePaymentModel(db) {
