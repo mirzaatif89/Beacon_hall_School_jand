@@ -139,12 +139,20 @@ app.get('/health', (_req, res) => {
     });
 });
 
-app.get(['/api/health', '/api/ping'], (_req, res) => {
-    res.json({
-        success: true,
+app.get(['/api/health', '/api/ping'], async (_req, res) => {
+    if (!isInitialized) {
+        try {
+            await startServer();
+        } catch (_error) {
+            // The response below exposes only a safe status, never credentials.
+        }
+    }
+    res.status(isInitialized ? 200 : 503).json({
+        success: isInitialized,
         online: true,
         initialized: isInitialized,
-        databaseStatus: isInitialized ? 'ready' : (startupError ? 'error' : 'initializing'),
+        databaseStatus: isInitialized ? 'ready' : 'error',
+        message: isInitialized ? 'API and database are ready.' : 'Database schema could not be initialized. Check database user privileges and restart the application.',
         timestamp: new Date().toISOString()
     });
 });
@@ -1269,7 +1277,9 @@ app.get('/api/students', async (req, res) => {
     if (!sequelize) return res.status(503).json({ error: 'Database offline' });
 
     try {
-        const students = await sequelize.models.Student.findAll();
+        const Student = sequelize.models.Student;
+        await Student.sync();
+        const students = await Student.findAll();
         res.json(students);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -3218,6 +3228,7 @@ registerMobileCollectionRoutes({ route: 'teacher-assigned-classes', storeName: '
 
 app.get('/api/student-performance', authenticateToken, async (req, res) => {
     try {
+        await sequelize.models.StudentPerformance.sync();
         const studentId = String(req.query.studentId || '').trim();
         const where = studentId ? { studentId } : {};
         const performances = await sequelize.models.StudentPerformance.findAll({
@@ -3232,6 +3243,7 @@ app.get('/api/student-performance', authenticateToken, async (req, res) => {
 
 app.post('/api/student-performance', authenticateToken, async (req, res) => {
     try {
+        await sequelize.models.StudentPerformance.sync();
         const items = Array.isArray(req.body) ? req.body : [req.body];
         if (!items.length) return res.status(400).json({ success: false, message: 'Performance records are required.' });
 
