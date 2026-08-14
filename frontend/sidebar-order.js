@@ -16,6 +16,7 @@
             'student_diary',
             'student_leave_requests',
             'student_courses',
+            'student_performance',
             'quiz_uploading',
             'lecture_uploading',
             'exam_schedule',
@@ -86,16 +87,6 @@
         },
         {
             type: 'dropdown',
-            label: 'Examination',
-            icon: 'clipboard-list',
-            children: [
-                { type: 'link', page: 'exam_result', label: 'Results', icon: 'file-badge' },
-                { type: 'link', page: 'exam_result_history', label: 'Result History', icon: 'history' },
-                { type: 'link', page: 'exams', label: 'Result Cards', icon: 'badge-check' }
-            ]
-        },
-        {
-            type: 'dropdown',
             label: 'Permissions',
             icon: 'shield',
             children: [
@@ -118,7 +109,7 @@
     }
 
     function buildItem(item, nested = false) {
-        if (item.type === 'link') return buildLink(item, nested ? 'nav-subitem' : 'nav-item');
+        if (item.type === 'link' || item.page) return buildLink(item, nested ? 'nav-subitem' : 'nav-item');
         if (item.type === 'logout') {
             return `
                 <a href="#" class="nav-item" onclick="logoutUser(event)">

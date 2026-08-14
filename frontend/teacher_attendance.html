@@ -13,14 +13,17 @@
         .header p { font-size: 0.95rem; }
         .attendance-toolbar { width: 100%; display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; align-items: flex-end; }
         .attendance-toolbar .search-bar { width: 100%; max-width: 100%; min-height: 40px; }
-        .attendance-filter { width: 160px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem 0.75rem; box-shadow: var(--shadow-sm); }
+        .attendance-filter { width: 170px; min-width: 0; box-sizing: border-box; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem 0.75rem; box-shadow: var(--shadow-sm); }
+        .attendance-filter.date-filter { width: 170px; }
         .attendance-filter.campus-filter { width: 190px; }
         .attendance-filter.status-filter { width: 190px; }
         .attendance-filter label { display:block; margin-bottom:0.3rem; font-size:0.8rem; font-weight:600; color:var(--text-secondary); }
         .attendance-filter input,
-        .attendance-filter select { width:100%; min-height:40px; padding:0.55rem 1.9rem 0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:8px; background:#fff; }
-        .attendance-dropdown { position: relative; }
-        .attendance-dropdown-btn { width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.55rem 0.7rem; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; color: #0f172a; font: inherit; text-align: left; cursor: pointer; }
+        .attendance-filter select { width:100%; min-width:0; box-sizing:border-box; min-height:40px; padding:0.55rem 2.15rem 0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:8px; background:#fff; font:inherit; }
+        .attendance-filter input { width:100%; min-width:0; box-sizing:border-box; min-height:40px; padding:0.55rem 0.65rem; border:1px solid var(--border-color); border-radius:8px; background:#fff; font:inherit; }
+        .attendance-filter input[type="date"] { padding-right: 0.5rem; }
+        .attendance-dropdown { position: relative; min-width: 0; }
+        .attendance-dropdown-btn { width: 100%; min-width: 0; box-sizing: border-box; min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.55rem 0.7rem; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; color: #0f172a; font: inherit; text-align: left; cursor: pointer; }
         .attendance-dropdown-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .attendance-dropdown-btn i { flex: 0 0 auto; color: var(--text-secondary); }
         .attendance-dropdown-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; width: 100%; min-width: 190px; display: none; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16); }
@@ -32,7 +35,7 @@
         .attendance-check span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .attendance-bulk-actions { display: flex; align-items: stretch; }
         .attendance-bulk-actions .btn { min-width: 145px; min-height: 40px; justify-content: center; white-space: nowrap; }
-        .attendance-action-stack { width: 330px; max-width: 100%; display: grid; gap: 0.7rem; margin-left: auto; }
+        .attendance-action-stack { width: 330px; max-width: 100%; min-width: 0; box-sizing: border-box; display: grid; gap: 0.7rem; margin-left: auto; }
         .attendance-action-stack .attendance-action-row { display: flex; gap: 0.75rem; justify-content: flex-end; }
         .attendance-action-stack .attendance-bulk-actions { flex: 1 1 0; }
         .attendance-action-stack .attendance-bulk-actions .btn { width: 100%; min-width: 0; }
@@ -124,7 +127,7 @@
                 </div>
             </header>
             <div class="attendance-toolbar">
-                <div class="attendance-filter">
+                <div class="attendance-filter date-filter">
                     <label for="teacherAttendanceDate">Attendance Date</label>
                     <input type="date" id="teacherAttendanceDate">
                 </div>
@@ -175,8 +178,8 @@
             </div>
         </main>
     </div>
-    <script src="auth.js?v=20260814-sidebar-sequence"></script>
-    <script src="script.js?v=20260814-sidebar-sequence"></script>
+    <script src="auth.js?v=20260814-local-runtime-fix6"></script>
+    <script src="script.js?v=20260814-local-runtime-fix6"></script>
     <script>
         const TEACHER_ATTENDANCE_KEY = 'eduCore_teacher_attendance';
 

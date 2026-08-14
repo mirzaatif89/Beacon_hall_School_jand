@@ -51,7 +51,11 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', req.path.startsWith('/api') ? 'no-store' : 'public, max-age=60');
+    // This is a live admin system, so pages and JavaScript must never be served
+    // from an older browser/proxy cache after a local restart or deployment.
+    res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     next();
 });
 app.use(express.json({ limit: '25mb' }));
@@ -140,6 +144,7 @@ app.get(['/api/health', '/api/ping'], (_req, res) => {
         success: true,
         online: true,
         initialized: isInitialized,
+        databaseStatus: isInitialized ? 'ready' : (startupError ? 'error' : 'initializing'),
         timestamp: new Date().toISOString()
     });
 });
@@ -148,9 +153,28 @@ app.get(['/api/catalog', '/api/mobile-api-list'], (_req, res) => {
     res.json({ success: true, ...apiCatalog });
 });
 
+// The HTTP listener can become available before asynchronous database startup
+// finishes on cPanel. Hold database-backed routes until their tables are ready.
+app.use('/api', async (req, res, next) => {
+    if (['/health', '/ping', '/catalog', '/mobile-api-list'].includes(req.path)) {
+        return next();
+    }
+
+    try {
+        await startServer();
+        return next();
+    } catch (_error) {
+        return res.status(503).json({
+            success: false,
+            message: 'Database initialization failed. Confirm the cPanel database user has ALL PRIVILEGES and restart the Node.js application.'
+        });
+    }
+});
+
 let sequelize;
 let startupPromise = null;
 let isInitialized = false;
+let startupError = null;
 const ACTIVE_SESSION_TTL_MS = 90000;
 const activeSessions = new Map();
 
@@ -3192,6 +3216,69 @@ registerMobileCollectionRoutes({ route: 'student-results', storeName: 'student_r
 registerMobileCollectionRoutes({ route: 'student-syllabus', storeName: 'student_syllabus', recordsKey: 'syllabus', itemKey: 'syllabusItem', prefix: 'SYL' });
 registerMobileCollectionRoutes({ route: 'teacher-assigned-classes', storeName: 'teacher_assigned_classes', recordsKey: 'assignedClasses', itemKey: 'assignedClass', prefix: 'TCLASS' });
 
+app.get('/api/student-performance', authenticateToken, async (req, res) => {
+    try {
+        const studentId = String(req.query.studentId || '').trim();
+        const where = studentId ? { studentId } : {};
+        const performances = await sequelize.models.StudentPerformance.findAll({
+            where,
+            order: [['subject', 'ASC']]
+        });
+        return res.json({ success: true, performances });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.post('/api/student-performance', authenticateToken, async (req, res) => {
+    try {
+        const items = Array.isArray(req.body) ? req.body : [req.body];
+        if (!items.length) return res.status(400).json({ success: false, message: 'Performance records are required.' });
+
+        for (const item of items) {
+            const studentId = String(item.studentId || '').trim();
+            const subject = String(item.subject || '').trim();
+            const percentage = Number(item.percentage);
+            if (!studentId || !subject || !Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+                return res.status(400).json({ success: false, message: 'Student, subject, and a percentage from 0 to 100 are required.' });
+            }
+            const id = `PERF-${studentId}-${subject}`.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
+            const grade = percentage >= 90 ? 'A+' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : percentage >= 60 ? 'C' : percentage >= 50 ? 'D' : 'F';
+            await sequelize.models.StudentPerformance.upsert({
+                id,
+                studentId,
+                studentName: String(item.studentName || '').trim(),
+                classGrade: String(item.classGrade || '').trim(),
+                subject,
+                percentage,
+                grade,
+                remarks: String(item.remarks || '').trim(),
+                updatedAtLabel: new Date().toISOString()
+            });
+        }
+
+        const studentId = String(items[0]?.studentId || '').trim();
+        const performances = await sequelize.models.StudentPerformance.findAll({
+            where: studentId ? { studentId } : {},
+            order: [['subject', 'ASC']]
+        });
+        io.emit('student_performance_update', { studentId, performances });
+        return res.json({ success: true, performances });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.delete('/api/student-performance/:studentId', authenticateToken, async (req, res) => {
+    try {
+        const studentId = String(req.params.studentId || '').trim();
+        await sequelize.models.StudentPerformance.destroy({ where: { studentId } });
+        return res.json({ success: true, message: 'Student performance records deleted.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.get('/api/about-software', (_req, res) => {
     const records = readMobileStore('about_software');
     res.json({
@@ -3752,6 +3839,22 @@ function defineStudentDiaryModel(db) {
     });
 }
 
+function defineStudentPerformanceModel(db) {
+    return db.define('StudentPerformance', {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        studentId: { type: DataTypes.STRING, allowNull: false },
+        studentName: { type: DataTypes.STRING, allowNull: false },
+        classGrade: { type: DataTypes.STRING, allowNull: false },
+        subject: { type: DataTypes.STRING, allowNull: false },
+        percentage: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
+        grade: { type: DataTypes.STRING, allowNull: true },
+        remarks: { type: DataTypes.TEXT, allowNull: true },
+        updatedAtLabel: { type: DataTypes.STRING, allowNull: true }
+    }, {
+        indexes: [{ unique: true, fields: ['studentId', 'subject'] }]
+    });
+}
+
 function defineStudentAttendanceModel(db) {
     return db.define('StudentAttendance', {
         id: { type: DataTypes.STRING, primaryKey: true },
@@ -4173,6 +4276,7 @@ async function startServer() {
 
     startupPromise = (async () => {
     try {
+        startupError = null;
         console.log('Initializing database...');
         await initializeDatabase();
 
@@ -4197,10 +4301,16 @@ async function startServer() {
         defineClassFeeModel(sequelize);
         defineClassFeeHistoryModel(sequelize);
         defineStudentDiaryModel(sequelize);
+        defineStudentPerformanceModel(sequelize);
         defineStudentAttendanceModel(sequelize);
         defineTeacherAttendanceModel(sequelize);
         defineSpecialNoticeModel(sequelize);
         defineMessageModel(sequelize);
+
+        await sequelize.authenticate();
+        // The Students screen is the first database-backed admin view. Ensure
+        // its table exists before the remainder of the schema is synchronized.
+        await sequelize.models.Student.sync();
 
         // Avoid Sequelize's repeated ALTER-based index churn on MySQL.
         // Missing legacy columns are handled separately in ensureLegacySchema().
@@ -4210,8 +4320,11 @@ async function startServer() {
         console.log('✅ Database synced successfully');
 
         isInitialized = true;
+        startupError = null;
     } catch (err) {
         startupPromise = null;
+        isInitialized = false;
+        startupError = err?.message || 'Database initialization failed.';
         console.error('Database connection error:', err.message);
         console.log('Ensure MySQL is running and .env credentials are correct.');
         throw err;

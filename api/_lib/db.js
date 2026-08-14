@@ -213,6 +213,22 @@ function defineSpecialNoticeModel(db) {
     });
 }
 
+function defineStudentPerformanceModel(db) {
+    return db.define('StudentPerformance', {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        studentId: { type: DataTypes.STRING, allowNull: false },
+        studentName: { type: DataTypes.STRING, allowNull: false },
+        classGrade: { type: DataTypes.STRING, allowNull: false },
+        subject: { type: DataTypes.STRING, allowNull: false },
+        percentage: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
+        grade: { type: DataTypes.STRING, allowNull: true },
+        remarks: { type: DataTypes.TEXT, allowNull: true },
+        updatedAtLabel: { type: DataTypes.STRING, allowNull: true }
+    }, {
+        indexes: [{ unique: true, fields: ['studentId', 'subject'] }]
+    });
+}
+
 function defineMessageModel(db) {
     return db.define('Message', {
         id: { type: DataTypes.STRING, primaryKey: true },
@@ -420,6 +436,7 @@ async function getDb() {
             defineClassFeeModel(db);
             defineClassFeeHistoryModel(db);
             defineStudentAttendanceModel(db);
+            defineStudentPerformanceModel(db);
             defineTeacherAttendanceModel(db);
             defineAppSettingModel(db);
             defineSpecialNoticeModel(db);

@@ -132,6 +132,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
         'student_diary.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Class Diary', icon: 'book-open' },
         'student_leave_requests.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Leave Requests', icon: 'calendar-check' },
         'student_courses.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Class Course', icon: 'library' },
+        'student_performance.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Student Performance', icon: 'trending-up' },
         'quiz_uploading.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Quiz Uploading', icon: 'circle-help' },
         'lecture_uploading.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Lecture Uploading', icon: 'presentation' },
         'banners.html': { moduleKey: 'banners', defaultHome: 'dashboard.html', label: 'Banners', icon: 'image' },
@@ -706,6 +707,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                     'student_diary.html',
                     'student_leave_requests.html',
                     'student_courses.html',
+                    'student_performance.html',
                     'quiz_uploading.html',
                     'lecture_uploading.html',
                     'exam_schedule.html',
@@ -774,16 +776,6 @@ if (window.Capacitor?.isNativePlatform?.()) {
                         { page: 'student_attendance.html', label: 'Student Attendance', icon: 'users' },
                         { page: 'teacher_attendance.html', hash: '#teacher', label: 'Teacher Attendance', icon: 'user-check' },
                         { page: 'teacher_attendance.html', hash: '#staff', label: 'Staff Attendance', icon: 'briefcase-business' }
-                    ]
-                },
-                {
-                    type: 'dropdown',
-                    label: 'Examination',
-                    icon: 'clipboard-list',
-                    children: [
-                        { page: 'exam_result.html', label: 'Results', icon: 'file-badge' },
-                        { page: 'exam_result_history.html', label: 'Result History', icon: 'history' },
-                        { page: 'exams.html', label: 'Result Cards', icon: 'badge-check' }
                     ]
                 },
                 {

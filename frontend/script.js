@@ -87,6 +87,7 @@ const FALLBACK_ROUTE_TO_PAGE = {
     student_diary: 'student_diary.html',
     student_leave_requests: 'student_leave_requests.html',
     student_courses: 'student_courses.html',
+    student_performance: 'student_performance.html',
     quiz_uploading: 'quiz_uploading.html',
     lecture_uploading: 'lecture_uploading.html',
     banners: 'banners.html',
@@ -3345,6 +3346,7 @@ function renderAdminSidebarSequence() {
             'student_diary.html',
             'student_leave_requests.html',
             'student_courses.html',
+            'student_performance.html',
             'quiz_uploading.html',
             'lecture_uploading.html',
             'exam_schedule.html',
@@ -3415,16 +3417,6 @@ function renderAdminSidebarSequence() {
         },
         {
             type: 'dropdown',
-            label: 'Examination',
-            icon: 'clipboard-list',
-            children: [
-                { page: 'exam_result.html', label: 'Results', icon: 'file-badge' },
-                { page: 'exam_result_history.html', label: 'Result History', icon: 'history' },
-                { page: 'exams.html', label: 'Result Cards', icon: 'badge-check' }
-            ]
-        },
-        {
-            type: 'dropdown',
             label: 'Permissions',
             icon: 'shield',
             children: [
@@ -3464,7 +3456,7 @@ function renderAdminSidebarSequence() {
     };
 
     const buildItem = (item, nested = false) => {
-        if (item.type === 'link') return buildLink(item, nested ? 'nav-subitem' : 'nav-item');
+        if (item.type === 'link' || item.page) return buildLink(item, nested ? 'nav-subitem' : 'nav-item');
         if (item.type === 'logout') {
             return `
                 <a href="#" class="nav-item" onclick="logoutUser(event)">
@@ -3496,7 +3488,7 @@ function ensureSchedulingNav() {
     if (navLinks.querySelector('[data-scheduling-nav]')) return;
 
     const currentPage = getCurrentPageName();
-    const studentSchedulingPages = ['student_scheduling.html', 'assignments.html', 'assignment_uploading.html', 'student_timetable.html', 'student_diary.html', 'student_leave_requests.html', 'student_courses.html', 'quiz_uploading.html', 'lecture_uploading.html', 'exam_schedule.html', 'stuck_off.html'];
+    const studentSchedulingPages = ['student_scheduling.html', 'assignments.html', 'assignment_uploading.html', 'student_timetable.html', 'student_diary.html', 'student_leave_requests.html', 'student_courses.html', 'student_performance.html', 'quiz_uploading.html', 'lecture_uploading.html', 'exam_schedule.html', 'stuck_off.html'];
     const isStudentSchedulingPage = studentSchedulingPages.includes(currentPage);
     const teacherSchedulingPages = ['teacher_scheduling.html', 'teacher_timetable.html', 'teacher_assigned_classes.html', 'teacher_leave_requests.html'];
     const isTeacherSchedulingPage = teacherSchedulingPages.includes(currentPage);
@@ -7761,18 +7753,7 @@ function populateStudentQuickFilterOptions() {
     const loggedInUser = getLoggedInUser();
 
     const students = getArrayData(STORAGE_KEY_STUDENTS);
-    const campusMap = new Map();
     const classMap = new Map();
-    [...DEFAULT_CAMPUS_NAMES,
-        ...studentQuickFilterBranchCampuses,
-        ...students.map((student) => String(student.campusName || '').trim())
-    ]
-        .forEach((campusName) => {
-            const normalized = String(campusName || '').trim();
-            if (!normalized) return;
-            const key = normalized.toLowerCase();
-            if (!campusMap.has(key)) campusMap.set(key, normalized);
-        });
 
     [
         ...DEFAULT_STUDENT_CLASS_ORDER,
@@ -7786,19 +7767,9 @@ function populateStudentQuickFilterOptions() {
             if (!classMap.has(key)) classMap.set(key, normalized);
         });
 
-    if (loggedInUser?.role === 'Branch' && loggedInUser.campusName) {
-        const normalizedBranchCampus = String(loggedInUser.campusName || '').trim();
-        if (normalizedBranchCampus) {
-            const key = normalizedBranchCampus.toLowerCase();
-            if (!campusMap.has(key)) campusMap.set(key, normalizedBranchCampus);
-        }
-    }
-
-    const campuses = Array.from(campusMap.values()).sort((a, b) => a.localeCompare(b));
     const classes = Array.from(classMap.values()).sort(compareStudentClassNames);
     const signature = [
-        'filters:v4-standard-classes',
-        `campuses:${campuses.map((name) => String(name || '').toLowerCase()).join('|')}`,
+        'filters:v5-simple-student-lists',
         `classes:${classes.map((name) => String(name || '').toLowerCase()).join('|')}`
     ].join('||');
     const needsRebuild = quickFilter.dataset.signature !== signature || !quickFilter.options.length;
@@ -7806,31 +7777,15 @@ function populateStudentQuickFilterOptions() {
     if (needsRebuild) {
         quickFilter.innerHTML = `
             <option value="all">All Students</option>
-            <option value="list:polio">Polio List</option>
-            <option value="gender:Male">Male Student List</option>
-            <option value="gender:Female">Female Student List</option>
-            <option value="gender:Other">Other Gender</option>
-            <option value="age:below5">Below 5 Years Students</option>
-            <option value="fee:Paid">All Fee Paid Students</option>
-            <option value="fee:Unpaid">All Fee Unpaid Students</option>
+            <option value="gender:Male">Male Students</option>
+            <option value="gender:Female">Female Students</option>
             <option value="zero-fee">Zero Fee Students</option>
+            <option value="age:below5">Below 5 Years Students</option>
         `;
-
-        if (campuses.length) {
-            const campusGroup = document.createElement('optgroup');
-            campusGroup.label = 'Campus';
-            campuses.forEach((campusName) => {
-                const option = document.createElement('option');
-                option.value = `campus:${campusName}`;
-                option.textContent = campusName;
-                campusGroup.appendChild(option);
-            });
-            quickFilter.appendChild(campusGroup);
-        }
 
         if (classes.length) {
             const classGroup = document.createElement('optgroup');
-            classGroup.label = 'Class Wise Student List';
+            classGroup.label = 'Class Wise List';
             classes.forEach((className) => {
                 const option = document.createElement('option');
                 option.value = `class:${className}`;
@@ -7838,26 +7793,6 @@ function populateStudentQuickFilterOptions() {
                 classGroup.appendChild(option);
             });
             quickFilter.appendChild(classGroup);
-
-            const paidClassGroup = document.createElement('optgroup');
-            paidClassGroup.label = 'Fee Paid Student List (Class Wise)';
-            classes.forEach((className) => {
-                const option = document.createElement('option');
-                option.value = `fee-paid-class:${className}`;
-                option.textContent = `${getStudentQuickFilterClassLabel(className)} - Fee Paid`;
-                paidClassGroup.appendChild(option);
-            });
-            quickFilter.appendChild(paidClassGroup);
-
-            const unpaidClassGroup = document.createElement('optgroup');
-            unpaidClassGroup.label = 'Fee Unpaid Student List (Class Wise)';
-            classes.forEach((className) => {
-                const option = document.createElement('option');
-                option.value = `fee-unpaid-class:${className}`;
-                option.textContent = `${getStudentQuickFilterClassLabel(className)} - Fee Unpaid`;
-                unpaidClassGroup.appendChild(option);
-            });
-            quickFilter.appendChild(unpaidClassGroup);
         }
 
         quickFilter.dataset.signature = signature;
@@ -7867,8 +7802,7 @@ function populateStudentQuickFilterOptions() {
     const trigger = document.getElementById('studentQuickFilterTrigger');
 
     if (loggedInUser?.role === 'Branch' && loggedInUser.campusName) {
-        const campusValue = `campus:${loggedInUser.campusName}`;
-        setStudentQuickFilterSelectedValues([campusValue]);
+        setStudentQuickFilterSelectedValues(['all']);
         quickFilter.disabled = true;
         if (trigger) trigger.disabled = true;
         if (container) container.classList.add('disabled');
@@ -7880,12 +7814,7 @@ function populateStudentQuickFilterOptions() {
     if (trigger) trigger.disabled = false;
     if (container) container.classList.remove('disabled');
 
-    const globalCampus = getGlobalCampusFilterForCurrentUser();
-    if (globalCampus && globalCampus !== 'all') {
-        setStudentQuickFilterSelectedValues([`campus:${globalCampus}`]);
-    } else {
-        setStudentQuickFilterSelectedValues(previousSelected);
-    }
+    setStudentQuickFilterSelectedValues(previousSelected);
     buildStudentQuickFilterMultiMenu(needsRebuild);
 }
 
