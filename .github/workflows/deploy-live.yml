@@ -1,4 +1,4 @@
-name: Deploy to server
+name: Deploy Beacon Light to production
 
 on:
   push:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Pull code and restart PM2
+    name: Sync main and restart PM2
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,51 @@ jobs:
           port: 22
           script_stop: true
           script: |
-            set -e
-            cd /home/ehsan/projects/American_lyceum
-            git pull
-            pm2 restart 4
+            set -eu
+
+            APP_PATH="/home/ehsan/projects/American_lyceum"
+            REPOSITORY="https://github.com/mirzaatif89/Beacon_hall_School_jand.git"
+            BRANCH="main"
+
+            cd "$APP_PATH"
+
+            if [ ! -d .git ]; then
+              echo "No Git repository found at $APP_PATH"
+              exit 1
+            fi
+
+            # Keep server-only configuration and mutable local data safe while
+            # making the application source exactly match origin/main.
+            BACKUP_PATH="$(mktemp -d)"
+            for file in .env data/permissions.json data/date_sheet.json data/admin_credentials.json; do
+              if [ -f "$file" ]; then
+                mkdir -p "$BACKUP_PATH/$(dirname "$file")"
+                cp "$file" "$BACKUP_PATH/$file"
+              fi
+            done
+
+            git remote set-url origin "$REPOSITORY"
+            git fetch origin "$BRANCH" --prune
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            for file in .env data/permissions.json data/date_sheet.json data/admin_credentials.json; do
+              if [ -f "$BACKUP_PATH/$file" ]; then
+                mkdir -p "$(dirname "$file")"
+                cp "$BACKUP_PATH/$file" "$file"
+              fi
+            done
+            rm -rf "$BACKUP_PATH"
+
+            npm install --omit=dev
+
+            DEPLOYED_COMMIT="$(git rev-parse HEAD)"
+            EXPECTED_COMMIT="$(git rev-parse origin/$BRANCH)"
+            test "$DEPLOYED_COMMIT" = "$EXPECTED_COMMIT"
+            grep -q "filters:v4-standard-classes" frontend/script.js
+            grep -q "20260814-sidebar-sequence" frontend/students.html
+
+            pm2 restart 4 --update-env
+            pm2 save
+
+            echo "Beacon Light deployed successfully: $DEPLOYED_COMMIT"
