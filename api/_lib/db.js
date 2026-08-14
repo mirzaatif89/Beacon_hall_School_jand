@@ -1,8 +1,9 @@
 const mysql = require('mysql2/promise');
 const { Sequelize, DataTypes, Op } = require('sequelize');
 const { syncAuthUsers } = require('./services');
+const path = require('path');
 
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 let startupPromise = null;
 let sequelize = null;

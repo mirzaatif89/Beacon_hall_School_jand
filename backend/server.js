@@ -14,7 +14,9 @@ const { buildFeeReminderEmail } = require('../api/_lib/emailTemplate');
 const apiCatalog = require('../api/_lib/apiCatalog');
 const { normalizeJsonUpload, parseMultipart, saveUploadedFile } = require('../api/_lib/uploadFile');
 
-require('dotenv').config();
+// Passenger/cPanel may start Node with the account home as its working
+// directory. Always load the .env that belongs to this application root.
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 const server = http.createServer(app);
@@ -152,6 +154,13 @@ app.get(['/api/health', '/api/ping'], async (_req, res) => {
         online: true,
         initialized: isInitialized,
         databaseStatus: isInitialized ? 'ready' : 'error',
+        databaseErrorCode: isInitialized ? null : (startupErrorCode || 'DATABASE_STARTUP_FAILED'),
+        databaseConfigLoaded: {
+            host: Boolean(process.env.DB_HOST),
+            name: Boolean(process.env.DB_NAME),
+            user: Boolean(process.env.DB_USER),
+            password: Boolean(process.env.DB_PASSWORD)
+        },
         message: isInitialized ? 'API and database are ready.' : 'Database schema could not be initialized. Check database user privileges and restart the application.',
         timestamp: new Date().toISOString()
     });
@@ -183,6 +192,19 @@ let sequelize;
 let startupPromise = null;
 let isInitialized = false;
 let startupError = null;
+let startupErrorCode = null;
+
+function classifyDatabaseError(error) {
+    const rawCode = String(error?.original?.code || error?.parent?.code || error?.code || '').toUpperCase();
+    const message = String(error?.message || '').toLowerCase();
+    if (rawCode === 'ER_ACCESS_DENIED_ERROR' || message.includes('access denied')) return 'INVALID_DATABASE_CREDENTIALS';
+    if (rawCode.includes('DBACCESS_DENIED') || message.includes('command denied') || message.includes('permission denied')) return 'DATABASE_PRIVILEGES_MISSING';
+    if (rawCode === 'ER_BAD_DB_ERROR' || message.includes('unknown database')) return 'DATABASE_NOT_FOUND';
+    if (rawCode === 'ECONNREFUSED' || message.includes('connect econnrefused')) return 'DATABASE_CONNECTION_REFUSED';
+    if (rawCode === 'ENOTFOUND' || message.includes('getaddrinfo')) return 'DATABASE_HOST_NOT_FOUND';
+    if (rawCode === 'ER_NO_SUCH_TABLE' || message.includes("doesn't exist")) return 'DATABASE_SCHEMA_MISSING';
+    return rawCode || 'DATABASE_STARTUP_FAILED';
+}
 const ACTIVE_SESSION_TTL_MS = 90000;
 const activeSessions = new Map();
 
@@ -4289,6 +4311,7 @@ async function startServer() {
     startupPromise = (async () => {
     try {
         startupError = null;
+        startupErrorCode = null;
         console.log('Initializing database...');
         await initializeDatabase();
 
@@ -4333,10 +4356,12 @@ async function startServer() {
 
         isInitialized = true;
         startupError = null;
+        startupErrorCode = null;
     } catch (err) {
         startupPromise = null;
         isInitialized = false;
         startupError = err?.message || 'Database initialization failed.';
+        startupErrorCode = classifyDatabaseError(err);
         console.error('Database connection error:', err.message);
         console.log('Ensure MySQL is running and .env credentials are correct.');
         throw err;
