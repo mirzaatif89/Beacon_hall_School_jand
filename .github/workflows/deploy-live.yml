@@ -20,7 +20,7 @@ jobs:
     name: 1 - Sync Beacon source
     runs-on: ubuntu-latest
     steps:
-      - name: Force server source to origin/main
+      - name: Verify production app path
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -34,7 +34,21 @@ jobs:
             cd "$APP_PATH"
             test -d .git
 
-            BACKUP_PATH="$(mktemp -d)"
+      - name: Configure remote and fetch main
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: 22
+          script_stop: true
+          envs: APP_PATH,REPOSITORY,BRANCH
+          script: |
+            set -eu
+            cd "$APP_PATH"
+
+            BACKUP_PATH="$APP_PATH/.deploy-backup"
+            mkdir -p "$BACKUP_PATH"
             for file in .env data/permissions.json data/date_sheet.json data/admin_credentials.json; do
               if [ -f "$file" ]; then
                 mkdir -p "$BACKUP_PATH/$(dirname "$file")"
@@ -45,6 +59,21 @@ jobs:
             git config --global --add safe.directory "$APP_PATH"
             git remote set-url origin "$REPOSITORY"
             git fetch origin "$BRANCH" --prune
+
+      - name: Checkout main and verify frontend
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: 22
+          script_stop: true
+          envs: APP_PATH,BRANCH
+          script: |
+            set -eu
+            cd "$APP_PATH"
+            BACKUP_PATH="$APP_PATH/.deploy-backup"
+
             git checkout -B "$BRANCH" "origin/$BRANCH"
             git reset --hard "origin/$BRANCH"
 
@@ -54,7 +83,6 @@ jobs:
                 cp "$BACKUP_PATH/$file" "$file"
               fi
             done
-            rm -rf "$BACKUP_PATH"
 
             test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$BRANCH)"
             grep -q "filters:v4-standard-classes" frontend/script.js
