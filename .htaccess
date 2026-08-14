@@ -1,42 +1,8 @@
 DirectoryIndex index.html frontend/index.html
 Options -Indexes
 
-RedirectMatch 403 ^/(?:backend|data)(?:/|$)
-RedirectMatch 403 ^/api/.*\.(?:js|json)$
-SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
-
-<FilesMatch "^(?:\.env|package(?:-lock)?\.json|\.cpanel\.yml)$">
-    Require all denied
-</FilesMatch>
-
-<If "%{REQUEST_URI} =~ m#^/(?:backend|data)(?:/|$)#">
-    Require all denied
-</If>
-
-<If "%{REQUEST_URI} =~ m#^/api/.*\.(?:js|json)$#">
-    Require all denied
-</If>
-
-# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
-PassengerAppRoot "/home/apexium2/social-purple-mammoth.37-27-52-96.cpanel.site"
-PassengerBaseURI "/"
-PassengerNodejs "/home/apexium2/nodevenv/social-purple-mammoth.37-27-52-96.cpanel.site/20/bin/node"
-PassengerAppType node
-PassengerStartupFile app.js
-# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
-
 <IfModule mod_rewrite.c>
     RewriteEngine On
-
-    # Preserve bearer tokens when LiteSpeed proxies requests to Passenger.
-    RewriteCond %{HTTP:Authorization} ^(.+)$
-    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
-
-    # Never expose application source, credentials, local data, or dependencies.
-    RewriteRule ^backend(?:/|$) - [F,L,NC]
-    RewriteRule ^api/.*\.(?:js|json)$ - [F,L,NC]
-    RewriteRule ^(?:data|node_modules|\.git|\.github)(?:/|$) - [F,L,NC]
-    RewriteRule ^(?:\.env|package(?:-lock)?\.json|\.cpanel\.yml)$ - [F,L,NC]
 
     RewriteRule ^$ frontend/index.html [L]
 
