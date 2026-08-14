@@ -3,6 +3,7 @@ Options -Indexes
 
 RedirectMatch 403 ^/(?:backend|data)(?:/|$)
 RedirectMatch 403 ^/api/.*\.(?:js|json)$
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
 
 <FilesMatch "^(?:\.env|package(?:-lock)?\.json|\.cpanel\.yml)$">
     Require all denied
@@ -26,6 +27,10 @@ PassengerStartupFile app.js
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Preserve bearer tokens when LiteSpeed proxies requests to Passenger.
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
 
     # Never expose application source, credentials, local data, or dependencies.
     RewriteRule ^backend(?:/|$) - [F,L,NC]
