@@ -42,7 +42,7 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const corsOptions = {
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token', 'X-Requested-With'],
     credentials: false,
     maxAge: 86400
 };
@@ -559,7 +559,9 @@ async function initializeDatabase() {
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const token = authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : String(req.headers['x-auth-token'] || '').trim() || null;
 
     if (!token) {
         return res.status(401).json({ success: false, message: 'Authentication token required.' });

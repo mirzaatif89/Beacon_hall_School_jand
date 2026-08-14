@@ -357,6 +357,25 @@ if (window.Capacitor?.isNativePlatform?.()) {
     const authToken = sessionStorage.getItem('eduCore_token');
     let loggedInUser = null;
 
+    // LiteSpeed may remove the standard Authorization header before a request
+    // reaches Passenger. Mirror the token into an application-specific header
+    // for every same-origin API request.
+    if (!window.__eduCoreAuthenticatedFetchInstalled && window.fetch) {
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init = {}) => {
+            const requestUrl = typeof input === 'string' ? input : String(input?.url || '');
+            const absoluteUrl = new URL(requestUrl || window.location.href, window.location.href);
+            const currentToken = sessionStorage.getItem('eduCore_token');
+            if (currentToken && absoluteUrl.origin === window.location.origin && absoluteUrl.pathname.startsWith('/api/')) {
+                const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+                headers.set('X-Auth-Token', currentToken);
+                return originalFetch(input, { ...init, headers });
+            }
+            return originalFetch(input, init);
+        };
+        window.__eduCoreAuthenticatedFetchInstalled = true;
+    }
+
     try {
         loggedInUser = rawUser ? JSON.parse(rawUser) : null;
     } catch (error) {
