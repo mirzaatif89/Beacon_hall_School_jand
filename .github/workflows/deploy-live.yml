@@ -43,14 +43,19 @@ jobs:
             done
 
             if [ -z "$APP_PATH" ]; then
-              PACKAGE_FILE="$(find "$HOME" -maxdepth 7 -type f -name package.json 2>/dev/null | while IFS= read -r file; do
-                if grep -q '"name"[[:space:]]*:[[:space:]]*"beacon-light-school-system"' "$file"; then
-                  printf '%s\n' "$file"
+              for pid in $(ps -eo pid=,comm= | awk '$2 == "node" { print $1 }'); do
+                process_path="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+                if [ -n "$process_path" ] && [ -f "$process_path/package.json" ] && [ -f "$process_path/frontend/students.html" ]; then
+                  APP_PATH="$process_path"
                   break
                 fi
-              done)"
-              if [ -n "$PACKAGE_FILE" ]; then
-                APP_PATH="$(dirname "$PACKAGE_FILE")"
+              done
+            fi
+
+            if [ -z "$APP_PATH" ]; then
+              STUDENTS_FILE="$(find "$HOME" /home /var/www /srv /opt -maxdepth 9 -type f -path '*/frontend/students.html' 2>/dev/null | head -n 1 || true)"
+              if [ -n "$STUDENTS_FILE" ]; then
+                APP_PATH="$(dirname "$(dirname "$STUDENTS_FILE")")"
               fi
             fi
 
