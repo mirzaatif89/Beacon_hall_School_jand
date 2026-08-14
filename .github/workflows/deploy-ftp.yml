@@ -56,7 +56,7 @@ jobs:
           port: ${{ secrets.FTP_PORT }}
           protocol: ftp
           local-dir: ./
-          server-dir: ./
+          server-dir: ./social-purple-mammoth.37-27-52-96.cpanel.site/
           dangerous-clean-slate: false
           exclude: |
             **/.git*
