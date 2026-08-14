@@ -3370,13 +3370,39 @@ function renderAdminSidebarSequence() {
     const navItems = [
         { type: 'link', page: 'dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
         { type: 'link', page: 'banners.html', label: 'Banners', icon: 'image' },
+        { type: 'link', page: 'online_admissions.html', label: 'Online Admissions', icon: 'clipboard-list' },
+        { type: 'link', page: 'notifications.html', label: 'Notification', icon: 'bell-ring' },
         { type: 'link', page: 'classes.html', label: 'Classes', icon: 'school' },
         { type: 'link', page: 'students.html', label: 'Students', icon: 'users' },
-        { type: 'link', page: 'student_scheduling.html', label: 'Students Scheduling', icon: 'calendar-clock' },
-        { type: 'link', page: 'families.html', label: 'Families', icon: 'home' },
         { type: 'link', page: 'teachers.html', label: 'Teachers', icon: 'book-open' },
-        { type: 'link', page: 'teacher_scheduling.html', label: 'Teachers Scheduling', icon: 'calendar-days' },
         { type: 'link', page: 'staff.html', label: 'Staff', icon: 'briefcase' },
+        { type: 'link', page: 'families.html', label: 'Families', icon: 'home' },
+        {
+            type: 'dropdown',
+            label: 'Fees Structure',
+            icon: 'credit-card',
+            children: [
+                { page: 'set_fee.html', label: 'Set Fees', icon: 'badge-dollar-sign' },
+                { page: 'fees.html', label: 'Fees', icon: 'credit-card' },
+                { page: 'fee_challan.html', label: 'Fee Challan', icon: 'file-text' },
+                { page: 'remaining_charges.html', label: 'Remaining Charges', icon: 'circle-dollar-sign' },
+                { page: 'payment_history.html', label: 'Payment Statement', icon: 'receipt-text' },
+                { page: 'annual_charges.html', label: 'Annual Charges', icon: 'receipt' }
+            ]
+        },
+        { type: 'link', page: 'special_notices.html', label: 'Notices', icon: 'megaphone' },
+        {
+            type: 'dropdown',
+            label: 'Finance',
+            icon: 'landmark',
+            children: [
+                { page: 'revenue.html', label: 'Revenue', icon: 'trending-up' },
+                { page: 'teacher_salaries.html', label: 'Salaries', icon: 'wallet' },
+                { page: 'bills.html', label: 'Bills', icon: 'receipt' }
+            ]
+        },
+        { type: 'link', page: 'student_scheduling.html', label: 'Students Scheduling', icon: 'calendar-clock' },
+        { type: 'link', page: 'teacher_scheduling.html', label: 'Teachers Scheduling', icon: 'calendar-days' },
         {
             type: 'dropdown',
             label: 'Attendance',
@@ -3389,19 +3415,6 @@ function renderAdminSidebarSequence() {
         },
         {
             type: 'dropdown',
-            label: 'Fee Structure',
-            icon: 'credit-card',
-            children: [
-                { page: 'set_fee.html', label: 'Set Fees', icon: 'badge-dollar-sign' },
-                { page: 'fees.html', label: 'Fees', icon: 'credit-card' },
-                { page: 'fee_challan.html', label: 'Fee Challan', icon: 'file-text' },
-                { page: 'remaining_charges.html', label: 'Remaining Charges', icon: 'circle-dollar-sign' },
-                { page: 'payment_history.html', label: 'Payment Statement', icon: 'receipt-text' },
-                { page: 'annual_charges.html', label: 'Annual Charges', icon: 'receipt' }
-            ]
-        },
-        {
-            type: 'dropdown',
             label: 'Examination',
             icon: 'clipboard-list',
             children: [
@@ -3410,17 +3423,6 @@ function renderAdminSidebarSequence() {
                 { page: 'exams.html', label: 'Result Cards', icon: 'badge-check' }
             ]
         },
-        {
-            type: 'dropdown',
-            label: 'Finance',
-            icon: 'landmark',
-            children: [
-                { page: 'revenue.html', label: 'Revenue', icon: 'trending-up' },
-                { page: 'teacher_salaries.html', label: 'Salaries', icon: 'wallet' },
-                { page: 'bills.html', label: 'Bills', icon: 'receipt' }
-            ]
-        },
-        { type: 'link', page: 'notifications.html', label: 'Notifications', icon: 'bell-ring' },
         {
             type: 'dropdown',
             label: 'Permissions',

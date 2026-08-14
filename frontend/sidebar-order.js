@@ -42,13 +42,38 @@
         { type: 'link', page: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
         { type: 'link', page: 'banners', label: 'Banners', icon: 'image' },
         { type: 'link', page: 'online_admissions', label: 'Online Admissions', icon: 'clipboard-list' },
+        { type: 'link', page: 'notifications', label: 'Notification', icon: 'bell-ring' },
         { type: 'link', page: 'classes', label: 'Classes', icon: 'school' },
         { type: 'link', page: 'students', label: 'Students', icon: 'users' },
-        { type: 'link', page: 'student_scheduling', label: 'Students Scheduling', icon: 'calendar-clock' },
-        { type: 'link', page: 'families', label: 'Families', icon: 'home' },
         { type: 'link', page: 'teachers', label: 'Teachers', icon: 'book-open' },
-        { type: 'link', page: 'teacher_scheduling', label: 'Teachers Scheduling', icon: 'calendar-days' },
         { type: 'link', page: 'staff', label: 'Staff', icon: 'briefcase' },
+        { type: 'link', page: 'families', label: 'Families', icon: 'home' },
+        {
+            type: 'dropdown',
+            label: 'Fees Structure',
+            icon: 'credit-card',
+            children: [
+                { type: 'link', page: 'set_fee', label: 'Set Fees', icon: 'badge-dollar-sign' },
+                { type: 'link', page: 'fees', label: 'Fees', icon: 'credit-card' },
+                { type: 'link', page: 'fee_challan', label: 'Fee Challan', icon: 'file-text' },
+                { type: 'link', page: 'remaining_charges', label: 'Remaining Charges', icon: 'circle-dollar-sign' },
+                { type: 'link', page: 'payment_history', label: 'Payment Statement', icon: 'receipt-text' },
+                { type: 'link', page: 'annual_charges', label: 'Annual Charges', icon: 'receipt' }
+            ]
+        },
+        { type: 'link', page: 'special_notices', label: 'Notices', icon: 'megaphone' },
+        {
+            type: 'dropdown',
+            label: 'Finance',
+            icon: 'landmark',
+            children: [
+                { type: 'link', page: 'revenue', label: 'Revenue', icon: 'trending-up' },
+                { type: 'link', page: 'teacher_salaries', label: 'Salaries', icon: 'wallet' },
+                { type: 'link', page: 'bills', label: 'Bills', icon: 'receipt' }
+            ]
+        },
+        { type: 'link', page: 'student_scheduling', label: 'Students Scheduling', icon: 'calendar-clock' },
+        { type: 'link', page: 'teacher_scheduling', label: 'Teachers Scheduling', icon: 'calendar-days' },
         {
             type: 'dropdown',
             label: 'Attendance',
@@ -61,19 +86,6 @@
         },
         {
             type: 'dropdown',
-            label: 'Fee Structure',
-            icon: 'credit-card',
-            children: [
-                { type: 'link', page: 'set_fee', label: 'Set Fees', icon: 'badge-dollar-sign' },
-                { type: 'link', page: 'fees', label: 'Fees', icon: 'credit-card' },
-                { type: 'link', page: 'fee_challan', label: 'Fee Challan', icon: 'file-text' },
-                { type: 'link', page: 'remaining_charges', label: 'Remaining Charges', icon: 'circle-dollar-sign' },
-                { type: 'link', page: 'payment_history', label: 'Payment Statement', icon: 'receipt-text' },
-                { type: 'link', page: 'annual_charges', label: 'Annual Charges', icon: 'receipt' }
-            ]
-        },
-        {
-            type: 'dropdown',
             label: 'Examination',
             icon: 'clipboard-list',
             children: [
@@ -82,17 +94,6 @@
                 { type: 'link', page: 'exams', label: 'Result Cards', icon: 'badge-check' }
             ]
         },
-        {
-            type: 'dropdown',
-            label: 'Finance',
-            icon: 'landmark',
-            children: [
-                { type: 'link', page: 'revenue', label: 'Revenue', icon: 'trending-up' },
-                { type: 'link', page: 'teacher_salaries', label: 'Salaries', icon: 'wallet' },
-                { type: 'link', page: 'bills', label: 'Bills', icon: 'receipt' }
-            ]
-        },
-        { type: 'link', page: 'notifications', label: 'Notifications', icon: 'bell-ring' },
         {
             type: 'dropdown',
             label: 'Permissions',
