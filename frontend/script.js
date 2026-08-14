@@ -7773,6 +7773,7 @@ function populateStudentQuickFilterOptions() {
         });
 
     [
+        ...DEFAULT_STUDENT_CLASS_ORDER,
         ...getData(STORAGE_KEY_CLASSES).map((item) => String(item?.name || '').trim()),
         ...students.map((student) => String(student.classGrade || '').trim())
     ]
@@ -7794,7 +7795,7 @@ function populateStudentQuickFilterOptions() {
     const campuses = Array.from(campusMap.values()).sort((a, b) => a.localeCompare(b));
     const classes = Array.from(classMap.values()).sort(compareStudentClassNames);
     const signature = [
-        'filters:v3',
+        'filters:v4-standard-classes',
         `campuses:${campuses.map((name) => String(name || '').toLowerCase()).join('|')}`,
         `classes:${classes.map((name) => String(name || '').toLowerCase()).join('|')}`
     ].join('||');
