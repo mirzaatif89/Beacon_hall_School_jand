@@ -559,9 +559,14 @@ async function initializeDatabase() {
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization || '';
+    const cookieToken = String(req.headers.cookie || '')
+        .split(';')
+        .map((part) => part.trim())
+        .find((part) => part.startsWith('eduCore_token='))
+        ?.slice('eduCore_token='.length);
     const token = authHeader.startsWith('Bearer ')
         ? authHeader.slice(7)
-        : String(req.headers['x-auth-token'] || '').trim() || null;
+        : String(req.headers['x-auth-token'] || '').trim() || (cookieToken ? decodeURIComponent(cookieToken) : null);
 
     if (!token) {
         return res.status(401).json({ success: false, message: 'Authentication token required.' });
@@ -581,6 +586,17 @@ function authenticateToken(req, res, next) {
     } catch (error) {
         return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
     }
+}
+
+function setAuthenticationCookie(req, res, token) {
+    const forwardedProtocol = String(req.get('x-forwarded-proto') || '').toLowerCase();
+    res.cookie('eduCore_token', token, {
+        httpOnly: true,
+        secure: req.secure || forwardedProtocol === 'https',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000
+    });
 }
 
 function restoreActiveSessionFromToken(req) {
@@ -1127,6 +1143,7 @@ app.post('/api/login', async (req, res) => {
             const token = jwt.sign({ id: 'admin', role: 'Admin', sessionId }, JWT_SECRET, { expiresIn: '1d' });
             const user = { id: 'admin', fullName: 'Administrator', role: 'Admin', username: adminUsername, groupKey };
             registerActiveSession(req, sessionId, user);
+            setAuthenticationCookie(req, res, token);
             return res.json({
                 success: true,
                 token,
@@ -1146,6 +1163,7 @@ app.post('/api/login', async (req, res) => {
             const token = jwt.sign({ id: 'principal', role: 'Principal', sessionId }, JWT_SECRET, { expiresIn: '1d' });
             const user = { id: 'principal', fullName: 'Principal', role: 'Principal', username: PRINCIPAL_USERNAME, groupKey };
             registerActiveSession(req, sessionId, user);
+            setAuthenticationCookie(req, res, token);
             return res.json({
                 success: true,
                 token,
@@ -1213,6 +1231,7 @@ app.post('/api/login', async (req, res) => {
                     ...(designationKey ? { designation: designationKey } : {})
                 };
                 registerActiveSession(req, sessionId, responseUser);
+                setAuthenticationCookie(req, res, token);
                 return res.json({
                     success: true,
                     token,
@@ -1256,6 +1275,7 @@ app.post('/api/session/end', authenticateToken, (req, res) => {
         activeSessions.delete(req.user.sessionId);
     }
 
+    res.clearCookie('eduCore_token', { path: '/' });
     res.json({ success: true });
 });
 
