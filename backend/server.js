@@ -3423,10 +3423,14 @@ app.get('/api/student-performance', authenticateToken, async (req, res) => {
     try {
         await sequelize.models.StudentPerformance.sync();
         const studentId = String(req.query.studentId || '').trim();
-        const where = studentId ? { studentId } : {};
+        const subject = String(req.query.subject || '').trim();
+        const where = {
+            ...(studentId ? { studentId } : {}),
+            ...(subject ? { subject } : {})
+        };
         const performances = await sequelize.models.StudentPerformance.findAll({
             where,
-            order: [['subject', 'ASC']]
+            order: [['performanceDate', 'DESC'], ['subject', 'ASC'], ['skill', 'ASC']]
         });
         return res.json({ success: true, performances });
     } catch (error) {
@@ -3443,11 +3447,28 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
         for (const item of items) {
             const studentId = String(item.studentId || '').trim();
             const subject = String(item.subject || '').trim();
-            const percentage = Number(item.percentage);
-            if (!studentId || !subject || !Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
-                return res.status(400).json({ success: false, message: 'Student, subject, and a percentage from 0 to 100 are required.' });
+            const skill = String(item.skill || '').trim();
+            const learningOutcome = String(item.learningOutcome || '').trim();
+            const excellentDescription = String(item.excellentDescription || '').trim();
+            const satisfactoryDescription = String(item.satisfactoryDescription || '').trim();
+            const needsPracticeDescription = String(item.needsPracticeDescription || '').trim();
+            const rating = String(item.rating || '').trim();
+            const performanceDate = String(item.performanceDate || item.date || new Date().toISOString().slice(0, 10)).trim();
+            const performanceMonth = String(item.performanceMonth || performanceDate.slice(0, 7)).trim();
+            const percentage = Number(item.percentage ?? 0);
+            if (!studentId || !subject) {
+                return res.status(400).json({ success: false, message: 'Student and subject are required.' });
             }
-            const id = `PERF-${studentId}-${subject}`.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
+            if (skill && (!learningOutcome || !['Excellent', 'Satisfactory', 'Needs Practice'].includes(rating))) {
+                return res.status(400).json({ success: false, message: 'Skill, learning outcome, and rating are required.' });
+            }
+            if (skill && (!excellentDescription || !satisfactoryDescription || !needsPracticeDescription)) {
+                return res.status(400).json({ success: false, message: 'Descriptions for Excellent, Satisfactory, and Needs Practice are required.' });
+            }
+            if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+                return res.status(400).json({ success: false, message: 'Percentage must be from 0 to 100.' });
+            }
+            const id = String(item.id || `PERF-${studentId}-${subject}-${performanceDate}-${skill || 'summary'}`).replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
             const grade = percentage >= 90 ? 'A+' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : percentage >= 60 ? 'C' : percentage >= 50 ? 'D' : 'F';
             await sequelize.models.StudentPerformance.upsert({
                 id,
@@ -3457,6 +3478,14 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
                 subject,
                 percentage,
                 grade,
+                skill,
+                learningOutcome,
+                rating,
+                excellentDescription,
+                satisfactoryDescription,
+                needsPracticeDescription,
+                performanceDate,
+                performanceMonth,
                 remarks: String(item.remarks || '').trim(),
                 updatedAtLabel: new Date().toISOString()
             });
@@ -3465,10 +3494,21 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
         const studentId = String(items[0]?.studentId || '').trim();
         const performances = await sequelize.models.StudentPerformance.findAll({
             where: studentId ? { studentId } : {},
-            order: [['subject', 'ASC']]
+            order: [['performanceDate', 'DESC'], ['subject', 'ASC'], ['skill', 'ASC']]
         });
         io.emit('student_performance_update', { studentId, performances });
         return res.json({ success: true, performances });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.delete('/api/student-performance', authenticateToken, async (req, res) => {
+    try {
+        const recordId = String(req.query.recordId || '').trim();
+        if (!recordId) return res.status(400).json({ success: false, message: 'Performance record id is required.' });
+        await sequelize.models.StudentPerformance.destroy({ where: { id: recordId } });
+        return res.json({ success: true, message: 'Performance record deleted.' });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -4053,10 +4093,16 @@ function defineStudentPerformanceModel(db) {
         subject: { type: DataTypes.STRING, allowNull: false },
         percentage: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
         grade: { type: DataTypes.STRING, allowNull: true },
+        skill: { type: DataTypes.STRING, allowNull: true },
+        learningOutcome: { type: DataTypes.TEXT, allowNull: true },
+        rating: { type: DataTypes.STRING, allowNull: true },
+        excellentDescription: { type: DataTypes.TEXT, allowNull: true },
+        satisfactoryDescription: { type: DataTypes.TEXT, allowNull: true },
+        needsPracticeDescription: { type: DataTypes.TEXT, allowNull: true },
+        performanceDate: { type: DataTypes.STRING, allowNull: true },
+        performanceMonth: { type: DataTypes.STRING, allowNull: true },
         remarks: { type: DataTypes.TEXT, allowNull: true },
         updatedAtLabel: { type: DataTypes.STRING, allowNull: true }
-    }, {
-        indexes: [{ unique: true, fields: ['studentId', 'subject'] }]
     });
 }
 
@@ -4345,6 +4391,21 @@ async function ensureTableColumns(tableName, columnDefinitions) {
     }
 }
 
+async function removeLegacyStudentPerformanceUniqueIndex() {
+    const queryInterface = sequelize.getQueryInterface();
+    try {
+        const indexes = await queryInterface.showIndex('StudentPerformances');
+        for (const index of indexes) {
+            const fields = (index.fields || []).map((field) => field.attribute || field.name).filter(Boolean);
+            if (index.unique && fields.length === 2 && fields.includes('studentId') && fields.includes('subject')) {
+                await queryInterface.removeIndex('StudentPerformances', index.name);
+            }
+        }
+    } catch (_error) {
+        // The table may not exist yet on first startup; sync will create it.
+    }
+}
+
 async function ensureLegacySchema() {
     await ensureTableColumns('ClassFees', {
         annualCharges: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -4479,6 +4540,18 @@ async function ensureLegacySchema() {
         audienceType: { type: DataTypes.STRING, allowNull: true },
         targetClassGrade: { type: DataTypes.STRING, allowNull: true }
     });
+
+    await ensureTableColumns('StudentPerformances', {
+        skill: { type: DataTypes.STRING, allowNull: true },
+        learningOutcome: { type: DataTypes.TEXT, allowNull: true },
+        rating: { type: DataTypes.STRING, allowNull: true },
+        excellentDescription: { type: DataTypes.TEXT, allowNull: true },
+        satisfactoryDescription: { type: DataTypes.TEXT, allowNull: true },
+        needsPracticeDescription: { type: DataTypes.TEXT, allowNull: true },
+        performanceDate: { type: DataTypes.STRING, allowNull: true },
+        performanceMonth: { type: DataTypes.STRING, allowNull: true }
+    });
+    await removeLegacyStudentPerformanceUniqueIndex();
 }
 
 async function startServer() {

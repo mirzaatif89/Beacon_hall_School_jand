@@ -225,10 +225,16 @@ function defineStudentPerformanceModel(db) {
         subject: { type: DataTypes.STRING, allowNull: false },
         percentage: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
         grade: { type: DataTypes.STRING, allowNull: true },
+        skill: { type: DataTypes.STRING, allowNull: true },
+        learningOutcome: { type: DataTypes.TEXT, allowNull: true },
+        rating: { type: DataTypes.STRING, allowNull: true },
+        excellentDescription: { type: DataTypes.TEXT, allowNull: true },
+        satisfactoryDescription: { type: DataTypes.TEXT, allowNull: true },
+        needsPracticeDescription: { type: DataTypes.TEXT, allowNull: true },
+        performanceDate: { type: DataTypes.STRING, allowNull: true },
+        performanceMonth: { type: DataTypes.STRING, allowNull: true },
         remarks: { type: DataTypes.TEXT, allowNull: true },
         updatedAtLabel: { type: DataTypes.STRING, allowNull: true }
-    }, {
-        indexes: [{ unique: true, fields: ['studentId', 'subject'] }]
     });
 }
 
@@ -275,6 +281,21 @@ async function ensureTableColumns(db, tableName, columnDefinitions) {
         if (!table[columnName]) {
             await queryInterface.addColumn(tableName, columnName, definition);
         }
+    }
+}
+
+async function removeLegacyStudentPerformanceUniqueIndex(db) {
+    const queryInterface = db.getQueryInterface();
+    try {
+        const indexes = await queryInterface.showIndex('StudentPerformances');
+        for (const index of indexes) {
+            const fields = (index.fields || []).map((field) => field.attribute || field.name).filter(Boolean);
+            if (index.unique && fields.length === 2 && fields.includes('studentId') && fields.includes('subject')) {
+                await queryInterface.removeIndex('StudentPerformances', index.name);
+            }
+        }
+    } catch (_error) {
+        // The table may not exist yet on first startup; sync will create it.
     }
 }
 
@@ -412,6 +433,18 @@ async function ensureLegacySchema(db) {
         audienceType: { type: DataTypes.STRING, allowNull: true },
         targetClassGrade: { type: DataTypes.STRING, allowNull: true }
     });
+
+    await ensureTableColumns(db, 'StudentPerformances', {
+        skill: { type: DataTypes.STRING, allowNull: true },
+        learningOutcome: { type: DataTypes.TEXT, allowNull: true },
+        rating: { type: DataTypes.STRING, allowNull: true },
+        excellentDescription: { type: DataTypes.TEXT, allowNull: true },
+        satisfactoryDescription: { type: DataTypes.TEXT, allowNull: true },
+        needsPracticeDescription: { type: DataTypes.TEXT, allowNull: true },
+        performanceDate: { type: DataTypes.STRING, allowNull: true },
+        performanceMonth: { type: DataTypes.STRING, allowNull: true }
+    });
+    await removeLegacyStudentPerformanceUniqueIndex(db);
 }
 
 async function getDb() {

@@ -2924,6 +2924,9 @@
                     <div class="mini-stat-value" id="performanceTerm">-</div>
                 </div>
             </div>
+            <h4>Subject Skill Performance</h4>
+            <div class="portal-content-list" id="studentSkillPerformanceList"></div>
+            <div class="empty-note" id="studentSkillPerformanceEmpty">No skill performance has been added yet.</div>
         </section>
     </div>
 
@@ -2957,6 +2960,7 @@
         const STUDENT_UPLOADED_LECTURE_KEY = 'eduCore_uploaded_lectures';
         const STUDENT_UPLOADED_ASSIGNMENT_KEY = 'eduCore_uploaded_assignments';
         const STUDENT_ASSIGNMENT_SUBMISSION_KEY = 'eduCore_student_assignment_submissions';
+        const STUDENT_SKILL_PERFORMANCE_KEY = 'eduCore_student_skill_performance';
         const COMPLAINT_KEY = 'eduCore_complaints';
         const STUDENT_MONTHLY_FEES_KEY = 'eduCore_monthly_fees';
         const STUDENT_PAYMENT_DETAILS_KEY = 'eduCore_payment_details';
@@ -2972,6 +2976,7 @@
         let studentResultHistory = [];
         let editingStudentLeaveId = '';
         let currentStudentNotifications = [];
+        let studentPerformanceRecords = [];
 
         if (!loggedInUser || loggedInUser.role !== 'Student' || !authToken) {
             window.location.href = '/login';
@@ -2989,6 +2994,29 @@
                 '"': '&quot;',
                 "'": '&#39;'
             }[char]));
+        }
+
+        function getLocalDateInputValue() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getLocalStudentSkillPerformance(studentId = '') {
+            const records = JSON.parse(localStorage.getItem(STUDENT_SKILL_PERFORMANCE_KEY) || '[]');
+            return records.filter((record) => !studentId || String(record.studentId || '') === String(studentId));
+        }
+
+        function mergeStudentSkillPerformance(primary = [], fallback = []) {
+            const merged = new Map();
+            [...fallback, ...primary].forEach((record) => {
+                if (!record || !record.skill) return;
+                const id = String(record.id || `PERF-${record.studentId}-${record.subject}-${record.performanceDate}-${record.skill || 'summary'}`).replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
+                merged.set(id, { ...record, id });
+            });
+            return [...merged.values()].sort((a, b) => String(b.performanceDate || '').localeCompare(String(a.performanceDate || '')));
         }
 
         function getPortalBrandingSettings() {
@@ -5412,6 +5440,143 @@
             setText('performanceResult', latestResult ? `${formatMark(percentage)}%` : '-');
             setText('performanceStatus', status);
             setText('performanceTerm', latestResult?.termTitle || '-');
+            renderStudentSkillPerformance(student);
+        }
+
+        async function loadStudentPerformanceForPortal(student) {
+            if (!student?.id) {
+                studentPerformanceRecords = [];
+                return [];
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/student-performance?studentId=${encodeURIComponent(student.id)}`, {
+                    headers: { Authorization: `Bearer ${authToken}` },
+                    cache: 'no-store'
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result?.success) throw new Error(result?.message || 'Performance unavailable.');
+                studentPerformanceRecords = mergeStudentSkillPerformance(result.performances || [], getLocalStudentSkillPerformance(student.id));
+                return studentPerformanceRecords;
+            } catch (error) {
+                console.warn('Student performance could not be loaded:', error.message);
+                studentPerformanceRecords = getLocalStudentSkillPerformance(student.id);
+                return studentPerformanceRecords;
+            }
+        }
+
+        function groupPerformanceBySubject(records = []) {
+            return records.reduce((groups, record) => {
+                const subject = String(record.subject || 'General').trim() || 'General';
+                if (!groups[subject]) groups[subject] = [];
+                groups[subject].push(record);
+                return groups;
+            }, {});
+        }
+
+        function renderStudentSkillPerformance(student) {
+            const list = document.getElementById('studentSkillPerformanceList');
+            const empty = document.getElementById('studentSkillPerformanceEmpty');
+            if (!list || !empty) return;
+            const records = studentPerformanceRecords.filter((record) => String(record.studentId || '') === String(student.id || '') && record.skill);
+            if (!records.length) {
+                list.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            const groups = groupPerformanceBySubject(records);
+            list.innerHTML = Object.entries(groups).map(([subject, items]) => `
+                <article class="portal-content-card">
+                    <div class="portal-content-meta">${escapeHtml(items.length)} skill record${items.length === 1 ? '' : 's'}</div>
+                    <div class="portal-content-title">${escapeHtml(subject)}</div>
+                    <div class="portal-content-meta">Latest: ${escapeHtml(items[0]?.performanceDate || '-')}</div>
+                    <button type="button" class="portal-download-btn" onclick="openStudentSubjectPerformance('${encodeURIComponent(subject)}')"><i data-lucide="book-open" width="16"></i> Open Subject</button>
+                </article>
+            `).join('');
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        function showStudentPerformanceSubjects() {
+            const student = JSON.parse(sessionStorage.getItem(STUDENT_PROFILE_CACHE_KEY) || 'null') || getStudentFromLocalFallback() || {};
+            renderStudentSkillPerformance(student);
+        }
+
+        function openStudentSubjectPerformance(encodedSubject) {
+            const subject = decodeURIComponent(encodedSubject || '');
+            const list = document.getElementById('studentSkillPerformanceList');
+            const records = studentPerformanceRecords.filter((record) => String(record.subject || '') === subject && record.skill);
+            if (!list || !records.length) return;
+            list.innerHTML = `
+                <article class="portal-content-card">
+                    <div class="portal-action-row">
+                        <button type="button" class="portal-screen-back" onclick="showStudentPerformanceSubjects()"><i data-lucide="arrow-left" width="16"></i> Subjects</button>
+                        <button type="button" class="portal-download-btn" onclick="downloadStudentSubjectPerformance('${encodeURIComponent(subject)}')"><i data-lucide="download" width="16"></i> Download Report</button>
+                    </div>
+                    <div class="portal-content-title">${escapeHtml(subject)} Performance</div>
+                    ${records.map((item) => `
+                        <div class="empty-note">
+                            <strong>${escapeHtml(item.skill || '-')}</strong>
+                            <div class="portal-content-meta">${escapeHtml(item.performanceDate || '')}</div>
+                            <p><strong>Learning Outcome:</strong> ${escapeHtml(item.learningOutcome || '-')}</p>
+                            <p><strong>Excellent:</strong> ${escapeHtml(item.excellentDescription || '-')}</p>
+                            <p><strong>Satisfactory:</strong> ${escapeHtml(item.satisfactoryDescription || '-')}</p>
+                            <p><strong>Needs Practice:</strong> ${escapeHtml(item.needsPracticeDescription || '-')}</p>
+                        </div>
+                    `).join('')}
+                </article>
+            `;
+            document.getElementById('studentSkillPerformanceEmpty').style.display = 'none';
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        function buildStudentPerformancePrintHtml(subject, records) {
+            const student = JSON.parse(sessionStorage.getItem(STUDENT_PROFILE_CACHE_KEY) || 'null') || getStudentFromLocalFallback() || {};
+            const branding = getPortalBrandingSettings();
+            const logoSrc = branding.logoDataUrl || new URL(getPortalBrandingLogoSrc(), window.location.origin).href;
+            return `
+                <html>
+                    <head>
+                        <title>${escapeHtml(subject)} Performance<\/title>
+                        <style>
+                            body { font-family: Arial, sans-serif; color: #111827; padding: 24px; }
+                            .print-header { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 14px; text-align: center; border-bottom: 2px solid #0f766e; padding-bottom: 14px; margin-bottom: 16px; }
+                            .print-logo { width: 68px; height: 68px; object-fit: contain; margin: 0 auto; }
+                            h2, h3 { margin: 0; color: #0f766e; }
+                            .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+                            .box { border: 1px solid #cbd5e1; padding: 8px; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+                            th, td { border: 1px solid #94a3b8; padding: 8px; font-size: 12px; vertical-align: top; }
+                            th { background: #e6f3ed; }
+                        <\/style>
+                    <\/head>
+                    <body>
+                        <div class="print-header">
+                            <img class="print-logo" src="${escapeHtml(logoSrc)}" alt="School logo">
+                            <div><h2>${escapeHtml(branding.schoolName || 'Beacon Light School System')}</h2><p>${escapeHtml(subject)} Performance</p></div>
+                        </div>
+                        <div class="meta">
+                            <div class="box"><strong>Name:</strong> ${escapeHtml(student.fullName || loggedInUser.fullName || '-')}</div>
+                            <div class="box"><strong>Class:</strong> ${escapeHtml(student.classGrade || '-')}</div>
+                            <div class="box"><strong>Roll No:</strong> ${escapeHtml(student.rollNo || student.studentCode || '-')}</div>
+                        </div>
+                        <table>
+                            <thead><tr><th>Skills</th><th>Learning Outcome</th><th>Excellent</th><th>Satisfactory</th><th>Needs Practice</th><th>Date</th></tr></thead>
+                            <tbody>${records.map((record) => `<tr><td>${escapeHtml(record.skill || '-')}</td><td>${escapeHtml(record.learningOutcome || '-')}</td><td>${escapeHtml(record.excellentDescription || '-')}</td><td>${escapeHtml(record.satisfactoryDescription || '-')}</td><td>${escapeHtml(record.needsPracticeDescription || '-')}</td><td>${escapeHtml(record.performanceDate || '-')}</td></tr>`).join('')}</tbody>
+                        </table>
+                    </body>
+                </html>
+            `;
+        }
+
+        function downloadStudentSubjectPerformance(encodedSubject) {
+            const subject = decodeURIComponent(encodedSubject || '');
+            const records = studentPerformanceRecords.filter((record) => String(record.subject || '') === subject && record.skill);
+            if (!records.length) {
+                showAppAlert('No performance record is available for this subject.', 'Download Failed');
+                return;
+            }
+            const html = buildStudentPerformancePrintHtml(subject, records);
+            downloadPortalBlob(html, `${subject}-performance.html`, 'text/html');
         }
 
         async function loadStudentAttendanceForPortal() {
@@ -5887,6 +6052,7 @@
                 await loadStudentCoursesForPortal(student);
                 await loadStudentUploadedLecturesForPortal(student);
                 await loadStudentResultsFromApi();
+                await loadStudentPerformanceForPortal(student);
                 await mergeStudentFeePaymentsIntoMonthlyStore();
                 applyStudentData(student);
                 await loadStudentMessages();
@@ -5904,6 +6070,7 @@
                     await loadStudentCoursesForPortal(fallbackStudent);
                     await loadStudentUploadedLecturesForPortal(fallbackStudent);
                     await loadStudentResultsFromApi();
+                    await loadStudentPerformanceForPortal(fallbackStudent);
                     await mergeStudentFeePaymentsIntoMonthlyStore();
                     applyStudentData(fallbackStudent);
                     await loadStudentMessages();
