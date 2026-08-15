@@ -409,10 +409,15 @@ async function syncToSQL(endpoint, data) {
 
 async function syncToSQLDetailed(endpoint, data) {
     try {
+        const normalizedEndpoint = String(endpoint || '').replace(/^\/+|\/+$/g, '');
         const token = sessionStorage.getItem('eduCore_token') || '';
-        console.log(`Syncing ${endpoint}: Sending ${Array.isArray(data) ? data.length : 1} items`);
+        console.log(`Syncing ${normalizedEndpoint}: Sending ${Array.isArray(data) ? data.length : 1} items`);
 
-        const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+        // cPanel/LiteSpeed redirects URLs that match physical API directories
+        // (for example /api/students -> /api/students/). A 301/302 redirect can
+        // turn a POST into a GET, so collection mutations must use the canonical
+        // trailing-slash URL from the start.
+        const response = await fetch(`${API_BASE_URL}/${normalizedEndpoint}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -421,17 +426,21 @@ async function syncToSQLDetailed(endpoint, data) {
             body: JSON.stringify(data)
         });
 
-        console.log(`API response status for ${endpoint}: ${response.status}`);
+        console.log(`API response status for ${normalizedEndpoint}: ${response.status}`);
 
         const result = await parseJsonResponse(response, 'Server sync failed.');
 
-        if (!response.ok || result?.success === false) {
+        // Students must receive an explicit mutation acknowledgement. This
+        // prevents a redirected GET response such as [] from being treated as
+        // a successful registration.
+        const missingMutationAck = normalizedEndpoint === 'students' && result?.success !== true;
+        if (!response.ok || result?.success === false || missingMutationAck) {
             const errorMsg = result?.message || result?.error || 'Server sync failed.';
-            console.error(`Sync failed for ${endpoint}:`, errorMsg);
+            console.error(`Sync failed for ${normalizedEndpoint}:`, errorMsg);
             throw new Error(errorMsg);
         }
 
-        console.log(`Sync successful for ${endpoint}:`, result);
+        console.log(`Sync successful for ${normalizedEndpoint}:`, result);
         return { success: true, result };
     } catch (e) {
         console.error(`SQL sync failed for ${endpoint}: ${e.message}`);
@@ -5917,9 +5926,16 @@ async function handleStudentFormSubmit(e) {
     await syncStudentDueBalance(localSaveResult.student.id, localSaveResult.student.remainingAmount);
 
     try {
-        await refreshStudentsFromSQL();
+        const refreshedStudents = await refreshStudentsFromSQL();
+        const savedStudentExists = refreshedStudents.some((student) => String(student?.id) === String(localSaveResult.student.id));
+        if (!savedStudentExists) {
+            throw new Error('The database did not return the newly saved student. Please try again.');
+        }
     } catch (error) {
-        console.warn('Student list refresh failed:', error.message);
+        saveData(STORAGE_KEY_STUDENTS, previousStudents, { skipSync: true });
+        renderStudents();
+        await showAppAlert(error.message || 'Student was not confirmed in the database.', 'Student Save Failed');
+        return;
     }
 
     pushNotification('Student Updated', `Account for "${newStudent.fullName}" saved and activated.`, 'user');

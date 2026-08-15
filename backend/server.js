@@ -2087,7 +2087,11 @@ app.post('/api/students', authenticateToken, async (req, res) => {
 
         const allStudents = await Student.findAll();
         io.emit('students_update', allStudents);
-        res.json({ success: true });
+        res.json({
+            success: true,
+            savedIds: data.map((item) => String(item.id || '')).filter(Boolean),
+            total: allStudents.length
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
