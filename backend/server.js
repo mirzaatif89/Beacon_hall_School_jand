@@ -1839,14 +1839,46 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     }
 });
 
+const SPECIAL_NOTICE_PORTALS = ['student', 'teacher', 'staff'];
+const SPECIAL_NOTICE_AUDIENCES = new Set(['portal', 'school', 'class']);
+
 function normalizeNoticeTargets(targetPortals) {
-    const allowedTargets = new Set(['student', 'teacher', 'staff']);
+    const allowedTargets = new Set(SPECIAL_NOTICE_PORTALS);
     const targets = Array.isArray(targetPortals) ? targetPortals : [];
     return [...new Set(targets.map((target) => String(target || '').toLowerCase()).filter((target) => allowedTargets.has(target)))];
 }
 
+function normalizeNoticeClassGrade(classGrade) {
+    return String(classGrade || '').trim();
+}
+
+function normalizeNoticeAudienceType(audienceType, targetPortals = [], targetClassGrade = '') {
+    const value = String(audienceType || '').trim().toLowerCase();
+    if (SPECIAL_NOTICE_AUDIENCES.has(value)) return value;
+    if (normalizeNoticeClassGrade(targetClassGrade)) return 'class';
+    const targets = normalizeNoticeTargets(targetPortals);
+    if (targets.length === SPECIAL_NOTICE_PORTALS.length && SPECIAL_NOTICE_PORTALS.every((target) => targets.includes(target))) {
+        return 'school';
+    }
+    return 'portal';
+}
+
 function serializeNoticeTargets(targets) {
     return JSON.stringify(normalizeNoticeTargets(targets));
+}
+
+function shouldDeliverSpecialNotice(notice, portal, classGrade = '') {
+    const audienceType = normalizeNoticeAudienceType(notice.audienceType, notice.targetPortals, notice.targetClassGrade);
+    const normalizedPortal = String(portal || '').toLowerCase();
+    if (!normalizedPortal) return true;
+    if (audienceType === 'school') {
+        return SPECIAL_NOTICE_PORTALS.includes(normalizedPortal);
+    }
+    if (audienceType === 'class') {
+        if (normalizedPortal !== 'student') return false;
+        return normalizeNoticeClassGrade(notice.targetClassGrade).toLowerCase() === normalizeNoticeClassGrade(classGrade).toLowerCase();
+    }
+    return normalizeNoticeTargets(notice.targetPortals).includes(normalizedPortal);
 }
 
 function formatSpecialNotice(record) {
@@ -1861,9 +1893,12 @@ function formatSpecialNotice(record) {
             targetPortals = [];
         }
     }
+    const targetClassGrade = normalizeNoticeClassGrade(raw.targetClassGrade || raw.classGrade || '');
     return {
         ...raw,
-        targetPortals: normalizeNoticeTargets(targetPortals)
+        audienceType: normalizeNoticeAudienceType(raw.audienceType, targetPortals, targetClassGrade),
+        targetPortals: normalizeNoticeTargets(targetPortals),
+        targetClassGrade: targetClassGrade || null
     };
 }
 
@@ -1872,13 +1907,14 @@ app.get('/api/special-notices', async (req, res) => {
 
     try {
         const portal = String(req.query.portal || '').toLowerCase();
+        const classGrade = String(req.query.classGrade || req.query.class || '').trim();
         const where = portal ? { status: 'executed' } : {};
         const records = await sequelize.models.SpecialNotice.findAll({
             where,
             order: [['updatedAt', 'DESC']]
         });
         const notices = records.map(formatSpecialNotice)
-            .filter((notice) => !portal || notice.targetPortals.includes(portal));
+            .filter((notice) => !portal || shouldDeliverSpecialNotice(notice, portal, classGrade));
         res.json({ success: true, notices });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -1893,22 +1929,39 @@ app.post('/api/special-notices', async (req, res) => {
         const title = String(payload.title || '').trim();
         const message = String(payload.message || '').trim();
         const targetPortals = normalizeNoticeTargets(payload.targetPortals);
+        const targetClassGrade = normalizeNoticeClassGrade(payload.targetClassGrade || payload.classGrade || '');
+        const audienceType = normalizeNoticeAudienceType(payload.audienceType, targetPortals, targetClassGrade);
         const status = payload.status === 'executed' ? 'executed' : 'draft';
 
         if (!title || !message) {
             return res.status(400).json({ success: false, message: 'Notice title and message are required.' });
         }
 
-        if (status === 'executed' && !targetPortals.length) {
+        if (audienceType === 'portal' && !targetPortals.length) {
+            return res.status(400).json({ success: false, message: 'Select at least one portal before saving this notice.' });
+        }
+
+        if (audienceType === 'class' && !targetClassGrade) {
+            return res.status(400).json({ success: false, message: 'Select a class before saving this notice.' });
+        }
+
+        if (status === 'executed' && audienceType === 'portal' && !targetPortals.length) {
             return res.status(400).json({ success: false, message: 'Select at least one portal before executing.' });
         }
 
         const id = payload.id || `NOTICE-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const storedTargets = audienceType === 'school'
+            ? SPECIAL_NOTICE_PORTALS
+            : audienceType === 'class'
+                ? ['student']
+                : targetPortals;
         const notice = {
             id,
             title,
             message,
-            targetPortals: serializeNoticeTargets(targetPortals),
+            audienceType,
+            targetPortals: serializeNoticeTargets(storedTargets),
+            targetClassGrade: audienceType === 'class' ? targetClassGrade : null,
             status,
             executedAt: status === 'executed' ? (payload.executedAt || new Date()) : null,
             createdAtLabel: payload.createdAtLabel || new Date().toLocaleString('en-GB')
@@ -4031,6 +4084,8 @@ function defineSpecialNoticeModel(db) {
         title: { type: DataTypes.STRING, allowNull: false },
         message: { type: DataTypes.TEXT('long'), allowNull: false },
         targetPortals: { type: DataTypes.TEXT('long'), allowNull: false },
+        audienceType: { type: DataTypes.STRING, allowNull: true, defaultValue: 'portal' },
+        targetClassGrade: { type: DataTypes.STRING, allowNull: true },
         status: { type: DataTypes.STRING, defaultValue: 'draft' },
         executedAt: { type: DataTypes.DATE, allowNull: true },
         createdAtLabel: DataTypes.STRING
@@ -4418,6 +4473,11 @@ async function ensureLegacySchema() {
         recipientName: { type: DataTypes.STRING, allowNull: true },
         senderName: { type: DataTypes.STRING, allowNull: true },
         createdAtLabel: { type: DataTypes.STRING, allowNull: true }
+    });
+
+    await ensureTableColumns('SpecialNotices', {
+        audienceType: { type: DataTypes.STRING, allowNull: true },
+        targetClassGrade: { type: DataTypes.STRING, allowNull: true }
     });
 }
 

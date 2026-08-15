@@ -208,6 +208,8 @@ function defineSpecialNoticeModel(db) {
         title: { type: DataTypes.STRING, allowNull: false },
         message: { type: DataTypes.TEXT('long'), allowNull: false },
         targetPortals: { type: DataTypes.TEXT('long'), allowNull: false },
+        audienceType: { type: DataTypes.STRING, allowNull: true, defaultValue: 'portal' },
+        targetClassGrade: { type: DataTypes.STRING, allowNull: true },
         status: { type: DataTypes.STRING, defaultValue: 'draft' },
         executedAt: { type: DataTypes.DATE, allowNull: true },
         createdAtLabel: DataTypes.STRING
@@ -404,6 +406,11 @@ async function ensureLegacySchema(db) {
         recipientName: { type: DataTypes.STRING, allowNull: true },
         senderName: { type: DataTypes.STRING, allowNull: true },
         createdAtLabel: { type: DataTypes.STRING, allowNull: true }
+    });
+
+    await ensureTableColumns(db, 'SpecialNotices', {
+        audienceType: { type: DataTypes.STRING, allowNull: true },
+        targetClassGrade: { type: DataTypes.STRING, allowNull: true }
     });
 }
 

@@ -4389,7 +4389,23 @@
             const section = document.getElementById('specialNoticeSection');
             const list = document.getElementById('specialNoticeList');
             if (!section || !list) return;
-            const visibleNotices = notices.filter((notice) => notice.status === 'executed' && (notice.targetPortals || []).includes('student'));
+            const student = getCurrentPortalStudent();
+            const studentClassGrade = String(student?.classGrade || '').trim().toLowerCase();
+            const visibleNotices = notices.filter((notice) => {
+                if (notice.status !== 'executed') return false;
+                const audienceType = String(notice.audienceType || '').toLowerCase();
+                if (audienceType === 'school') return true;
+                if (audienceType === 'class') {
+                    return String(notice.targetClassGrade || '').trim().toLowerCase() === studentClassGrade;
+                }
+                if (audienceType === 'portal') {
+                    return (notice.targetPortals || []).includes('student');
+                }
+                if (notice.targetClassGrade) {
+                    return String(notice.targetClassGrade || '').trim().toLowerCase() === studentClassGrade;
+                }
+                return (notice.targetPortals || []).includes('student');
+            });
 
             if (!visibleNotices.length) {
                 section.style.display = 'none';
@@ -4523,7 +4539,9 @@
 
         async function loadSpecialNoticesForPortal() {
             try {
-                const response = await fetch(`${API_BASE_URL}/special-notices?portal=student`);
+                const student = getCurrentPortalStudent();
+                const classGrade = encodeURIComponent(String(student?.classGrade || '').trim());
+                const response = await fetch(`${API_BASE_URL}/special-notices?portal=student&classGrade=${classGrade}`);
                 if (!response.ok) throw new Error('Notices unavailable.');
                 const result = await response.json();
                 const notices = result.notices || [];

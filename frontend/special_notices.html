@@ -13,13 +13,13 @@
         .notice-layout {
             display: grid;
             grid-template-columns: minmax(320px, 0.85fr) minmax(420px, 1.15fr);
-            gap: 1.25rem;
+            gap: 1.5rem;
             align-items: start;
         }
 
         .notice-form-grid {
             display: grid;
-            gap: 1rem;
+            gap: 1.25rem;
         }
 
         .notice-field label,
@@ -31,12 +31,18 @@
             color: var(--text-secondary);
         }
 
+        .notice-field {
+            display: grid;
+            gap: 0.45rem;
+        }
+
         .notice-field input,
-        .notice-field textarea {
+        .notice-field textarea,
+        .notice-field select {
             width: 100%;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 0.85rem 0.95rem;
+            border-radius: 10px;
+            padding: 0.95rem 1rem;
             font: inherit;
             color: var(--text-primary);
             background: #fff;
@@ -47,10 +53,23 @@
             resize: vertical;
         }
 
+        .notice-audience-box,
         .target-picker {
-            border: 0;
-            padding: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
             margin: 0;
+            background: #f8fafc;
+        }
+
+        .notice-audience-box {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .notice-audience-row {
+            display: grid;
+            gap: 0.45rem;
         }
 
         .target-options {
@@ -65,10 +84,20 @@
             gap: 0.55rem;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 0.85rem;
+            padding: 0.85rem 0.95rem;
             background: #f8fafc;
             font-weight: 700;
             cursor: pointer;
+        }
+
+        .notice-helper {
+            color: var(--text-secondary);
+            font-size: 0.86rem;
+            line-height: 1.55;
+        }
+
+        .notice-hidden {
+            display: none !important;
         }
 
         .notice-actions {
@@ -260,14 +289,33 @@
                             <textarea id="noticeMessage" placeholder="Write the official school notice here..." required></textarea>
                         </div>
 
-                        <fieldset class="target-picker">
-                            <legend>Show On Portal</legend>
-                            <div class="target-options">
-                                <label class="target-option"><input type="checkbox" name="targetPortal" value="student"> Student</label>
-                                <label class="target-option"><input type="checkbox" name="targetPortal" value="teacher"> Teacher</label>
-                                <label class="target-option"><input type="checkbox" name="targetPortal" value="staff"> Staff</label>
+                        <div class="notice-audience-box">
+                            <div class="notice-audience-row">
+                                <label for="noticeAudienceType">Notice Audience</label>
+                                <select id="noticeAudienceType">
+                                    <option value="school">Whole School</option>
+                                    <option value="class">Specific Class</option>
+                                    <option value="portal">Portal Selection</option>
+                                </select>
                             </div>
-                        </fieldset>
+
+                            <div class="notice-field notice-hidden" id="noticeClassField">
+                                <label for="noticeTargetClass">Target Class</label>
+                                <select id="noticeTargetClass">
+                                    <option value="">Select class</option>
+                                </select>
+                            </div>
+
+                            <fieldset class="target-picker notice-hidden" id="noticePortalPicker">
+                                <legend>Show On Portal</legend>
+                                <div class="target-options">
+                                    <label class="target-option"><input type="checkbox" name="targetPortal" value="student"> Student</label>
+                                    <label class="target-option"><input type="checkbox" name="targetPortal" value="teacher"> Teacher</label>
+                                    <label class="target-option"><input type="checkbox" name="targetPortal" value="staff"> Staff</label>
+                                </div>
+                            </fieldset>
+                            <div class="notice-helper">Whole School will publish for every portal. Specific Class will show for only that class in the student portal.</div>
+                        </div>
 
                         <div class="notice-actions">
                             <button type="button" class="btn btn-outline" onclick="printCurrentNotice()"><i data-lucide="printer"></i> Print</button>
@@ -313,6 +361,8 @@
     <script src="script.js?v=20260814-local-runtime-fix6"></script>
     <script>
         let specialNotices = [];
+        const SPECIAL_NOTICE_CLASS_OPTIONS = ['Play Group', 'Nursery', 'Prep', 'Class One', 'Class Two', 'Class Three', 'Class Four', 'Class Five', 'Class Six', 'Class Seven', 'Class Eight', 'Class Nine', 'Class Ten'];
+        const SPECIAL_NOTICE_PORTAL_OPTIONS = ['student', 'teacher', 'staff'];
 
         function escapeHtml(value) {
             return String(value || '').replace(/[&<>"']/g, (char) => ({
@@ -326,6 +376,46 @@
 
         function getSelectedNoticeTargets() {
             return Array.from(document.querySelectorAll('input[name="targetPortal"]:checked')).map((input) => input.value);
+        }
+
+        function getNoticeAudienceType() {
+            return document.getElementById('noticeAudienceType').value || 'school';
+        }
+
+        function getNoticeTargetClassGrade() {
+            return document.getElementById('noticeTargetClass').value || '';
+        }
+
+        function populateNoticeClassOptions() {
+            const classSelect = document.getElementById('noticeTargetClass');
+            if (!classSelect) return;
+            classSelect.innerHTML = ['<option value="">Select class</option>']
+                .concat(SPECIAL_NOTICE_CLASS_OPTIONS.map((className) => `<option value="${escapeHtml(className)}">${escapeHtml(className)}</option>`))
+                .join('');
+        }
+
+        function updateNoticeAudienceControls() {
+            const audienceType = getNoticeAudienceType();
+            const classField = document.getElementById('noticeClassField');
+            const portalPicker = document.getElementById('noticePortalPicker');
+            if (classField) classField.classList.toggle('notice-hidden', audienceType !== 'class');
+            if (portalPicker) portalPicker.classList.toggle('notice-hidden', audienceType !== 'portal');
+        }
+
+        function getSpecialNoticeAudienceLabel(notice = {}) {
+            const audienceType = String(notice.audienceType || '').toLowerCase();
+            if (audienceType === 'school') return 'Whole School';
+            if (audienceType === 'class') return `Class: ${notice.targetClassGrade || '-'}`;
+            if (audienceType === 'portal') {
+                const targets = Array.isArray(notice.targetPortals) ? notice.targetPortals : [];
+                return targets.length ? targets.map((target) => String(target).toUpperCase()).join(', ') : 'Portal Selection';
+            }
+            const targets = Array.isArray(notice.targetPortals) ? notice.targetPortals : [];
+            if (targets.length === SPECIAL_NOTICE_PORTAL_OPTIONS.length && SPECIAL_NOTICE_PORTAL_OPTIONS.every((target) => targets.includes(target))) {
+                return 'Whole School';
+            }
+            if (notice.targetClassGrade) return `Class: ${notice.targetClassGrade}`;
+            return 'Portal Selection';
         }
 
         function getTodayDateInputValue() {
@@ -347,11 +437,20 @@
             const noticeDate = document.getElementById('noticePrintDate').value || getTodayDateInputValue();
             const showSignature = document.getElementById('noticeShowSignature').checked;
             const signatureLabel = document.getElementById('noticeSignatureLabel').value.trim() || 'Authorized Signature';
+            const audienceType = getNoticeAudienceType();
+            const selectedClass = getNoticeTargetClassGrade();
+            const targetPortals = audienceType === 'school'
+                ? [...SPECIAL_NOTICE_PORTAL_OPTIONS]
+                : audienceType === 'class'
+                    ? ['student']
+                    : getSelectedNoticeTargets();
             return {
                 id: document.getElementById('noticeId').value || `NOTICE-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                 title: document.getElementById('noticeTitle').value.trim(),
                 message: document.getElementById('noticeMessage').value.trim(),
-                targetPortals: getSelectedNoticeTargets(),
+                audienceType,
+                targetPortals,
+                targetClassGrade: audienceType === 'class' ? selectedClass : '',
                 noticeDate,
                 noticeDateLabel: formatNoticeDate(noticeDate),
                 showSignature,
@@ -372,6 +471,7 @@
             document.getElementById('previewSignature').textContent = showSignature ? `${signatureLabel}: __________` : '';
             document.getElementById('previewSignature').style.display = showSignature ? 'inline' : 'none';
             document.getElementById('noticeSignatureField').style.display = showSignature ? 'block' : 'none';
+            updateNoticeAudienceControls();
         }
 
         function validateNotice(draft, requireTargets = false) {
@@ -379,7 +479,11 @@
                 alert('Please add notice title and message.');
                 return false;
             }
-            if (requireTargets && draft.targetPortals.length === 0) {
+            if (draft.audienceType === 'class' && !draft.targetClassGrade) {
+                alert('Please select a class before executing this notice.');
+                return false;
+            }
+            if (draft.audienceType === 'portal' && requireTargets && draft.targetPortals.length === 0) {
                 alert('Please select Student, Teacher, or Staff portal before executing.');
                 return false;
             }
@@ -470,7 +574,9 @@
         async function sendSpecialNoticeEmail(id) {
             const notice = specialNotices.find((item) => String(item.id) === String(id));
             if (!notice) return;
-            if (!(notice.targetPortals || []).includes('student')) {
+            const audienceType = String(notice.audienceType || '').toLowerCase();
+            const canReachStudents = audienceType === 'school' || audienceType === 'class' || (notice.targetPortals || []).includes('student');
+            if (!canReachStudents) {
                 alert('Select Student portal for this notice before sending student emails.');
                 return;
             }
@@ -533,10 +639,14 @@
             document.getElementById('noticePrintDate').value = notice.noticeDate || getTodayDateInputValue();
             document.getElementById('noticeShowSignature').checked = notice.showSignature !== false;
             document.getElementById('noticeSignatureLabel').value = notice.signatureLabel || 'Authorized Signature';
+            document.getElementById('noticeAudienceType').value = notice.audienceType || ((notice.targetClassGrade || '').trim() ? 'class' : ((notice.targetPortals || []).length === SPECIAL_NOTICE_PORTAL_OPTIONS.length ? 'school' : 'portal'));
+            populateNoticeClassOptions();
+            document.getElementById('noticeTargetClass').value = notice.targetClassGrade || '';
             document.querySelectorAll('input[name="targetPortal"]').forEach((input) => {
                 input.checked = (notice.targetPortals || []).includes(input.value);
             });
             updateNoticePreview();
+            updateNoticeAudienceControls();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -548,8 +658,11 @@
             }
 
             container.innerHTML = specialNotices.map((notice) => {
-                const targets = (notice.targetPortals || []).map((target) => `<span class="notice-pill">${escapeHtml(target)}</span>`).join('');
-                const canEmailStudents = (notice.targetPortals || []).includes('student') && notice.status === 'executed';
+                const audienceLabel = getSpecialNoticeAudienceLabel(notice);
+                const targets = (notice.audienceType === 'portal' || !notice.audienceType)
+                    ? (notice.targetPortals || []).map((target) => `<span class="notice-pill">${escapeHtml(target)}</span>`).join('')
+                    : `<span class="notice-pill">${escapeHtml(audienceLabel)}</span>`;
+                const canEmailStudents = notice.status === 'executed' && (String(notice.audienceType || '').toLowerCase() === 'school' || String(notice.audienceType || '').toLowerCase() === 'class' || (notice.targetPortals || []).includes('student'));
                 return `
                     <article class="notice-card">
                         <div class="notice-card-top">
@@ -579,17 +692,35 @@
             document.getElementById('noticePrintDate').value = getTodayDateInputValue();
             document.getElementById('noticeShowSignature').checked = true;
             document.getElementById('noticeSignatureLabel').value = 'Authorized Signature';
+            document.getElementById('noticeAudienceType').value = 'school';
+            populateNoticeClassOptions();
+            document.getElementById('noticeTargetClass').value = '';
+            document.querySelectorAll('input[name="targetPortal"]').forEach((input) => {
+                input.checked = false;
+            });
             updateNoticePreview();
+            updateNoticeAudienceControls();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            populateNoticeClassOptions();
+            document.getElementById('noticeAudienceType').value = 'school';
             document.getElementById('noticeTitle').addEventListener('input', updateNoticePreview);
             document.getElementById('noticeMessage').addEventListener('input', updateNoticePreview);
             document.getElementById('noticePrintDate').value = getTodayDateInputValue();
             document.getElementById('noticePrintDate').addEventListener('change', updateNoticePreview);
             document.getElementById('noticeShowSignature').addEventListener('change', updateNoticePreview);
             document.getElementById('noticeSignatureLabel').addEventListener('input', updateNoticePreview);
+            document.getElementById('noticeAudienceType').addEventListener('change', () => {
+                updateNoticeAudienceControls();
+                updateNoticePreview();
+            });
+            document.getElementById('noticeTargetClass').addEventListener('change', updateNoticePreview);
+            document.querySelectorAll('input[name="targetPortal"]').forEach((input) => {
+                input.addEventListener('change', updateNoticePreview);
+            });
             updateNoticePreview();
+            updateNoticeAudienceControls();
             loadSpecialNotices();
         });
     </script>
