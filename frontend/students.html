@@ -805,12 +805,28 @@
             width: 100%;
             margin: 0;
             padding: 0;
+            scrollbar-width: thin;
+            scrollbar-color: #9bc9ae #eef8f2;
+        }
+
+        .student-table-container::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        .student-table-container::-webkit-scrollbar-thumb {
+            background: #9bc9ae;
+            border: 2px solid #eef8f2;
+            border-radius: 999px;
+        }
+
+        .student-table-container::-webkit-scrollbar-track {
+            background: #eef8f2;
         }
 
         #studentsTable {
-            width: 100% !important;
-            min-width: 980px !important;
-            table-layout: fixed !important;
+            width: max-content !important;
+            min-width: 1200px !important;
+            table-layout: auto !important;
             border-collapse: collapse;
             margin: 0;
             padding: 0;
@@ -820,9 +836,10 @@
             padding: 0.7rem 0.75rem !important;
             vertical-align: middle;
             white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            overflow-wrap: unset !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -835,52 +852,78 @@
         #studentsTable td {
             padding: 0.9rem 0.75rem !important;
             vertical-align: middle;
+            white-space: nowrap !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
         }
 
         #studentsTable th:nth-child(1),
         #studentsTable td:nth-child(1) {
-            width: 9%;
+            width: 110px;
+            min-width: 110px;
         }
 
         #studentsTable th:nth-child(2),
         #studentsTable td:nth-child(2) {
-            width: 18%;
+            width: 200px;
+            min-width: 200px;
         }
 
         #studentsTable th:nth-child(3),
         #studentsTable td:nth-child(3) {
-            width: 14%;
+            width: 165px;
+            min-width: 165px;
         }
 
         #studentsTable th:nth-child(4),
         #studentsTable td:nth-child(4) {
-            width: 12%;
+            width: 120px;
+            min-width: 120px;
         }
 
         #studentsTable th:nth-child(5),
         #studentsTable td:nth-child(5) {
-            width: 11%;
+            width: 130px;
+            min-width: 130px;
         }
 
         #studentsTable th:nth-child(6),
         #studentsTable td:nth-child(6) {
-            width: 9%;
+            width: 130px;
+            min-width: 130px;
         }
 
         #studentsTable th:nth-child(7),
         #studentsTable td:nth-child(7) {
-            width: 8%;
+            width: 95px;
+            min-width: 95px;
         }
 
         #studentsTable th:nth-child(8),
         #studentsTable td:nth-child(8) {
-            width: 8%;
+            width: 130px;
+            min-width: 130px;
         }
 
         #studentsTable th:nth-child(9),
         #studentsTable td:nth-child(9) {
-            width: 11%;
+            width: 120px;
+            min-width: 120px;
             text-align: center;
+        }
+
+        #studentsTable .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap !important;
+            min-width: max-content;
+            line-height: 1.2;
+        }
+
+        #studentsTable .student-name-cell {
+            min-width: 0;
+            flex-wrap: nowrap;
         }
 
         #studentsTable .table-action-wrap {
