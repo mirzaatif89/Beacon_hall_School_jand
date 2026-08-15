@@ -239,6 +239,11 @@
             transform: translateX(22px);
         }
 
+        .permission-section:has(#roleGroupMappingList),
+        #designationPermissionsSection {
+            display: none !important;
+        }
+
         @media (max-width: 1080px) {
             .permissions-panel {
                 grid-template-columns: 1fr;
@@ -320,17 +325,7 @@
             <header class="header">
                 <div>
                     <h1>Permissions</h1>
-                    <p style="color: var(--text-secondary); margin-top: 0.25rem;">Manage role groups (module access) and designation actions (Add/Edit/Delete).</p>
-                    <div class="permission-tabs">
-                        <button class="tab-btn active" type="button" id="tabRoleBtn">
-                            <i data-lucide="layout-panel-left"></i>
-                            Role Modules
-                        </button>
-                        <button class="tab-btn" type="button" id="tabDesignationBtn">
-                            <i data-lucide="shield-check"></i>
-                            Designation Actions
-                        </button>
-                    </div>
+                    <p style="color: var(--text-secondary); margin-top: 0.25rem;">Professional role and action-level access control managed by the administrator.</p>
                 </div>
             </header>
 
@@ -339,14 +334,13 @@
                     <div class="permission-card">
                         <div class="permission-card-header">
                             <div>
-                                <h2>Role-based permission editor</h2>
-                                <p>Assign module access to a role group and save for everyone.</p>
+                                <h2>Permission profile</h2>
+                                <p>Select a role and configure every allowed system action.</p>
                             </div>
                         </div>
 
-                        <label for="roleGroupSelect">Select role group</label>
+                        <label for="roleGroupSelect">Select role</label>
                         <select id="roleGroupSelect" class="form-control"></select>
-                        <button id="addRoleBtn" class="btn btn-outline" type="button">Add Role Group</button>
 
                         <div class="permission-group-details">
                             <label for="roleGroupName">Group display name</label>
@@ -359,10 +353,8 @@
                             <select id="roleHomePage" class="form-control"></select>
                         </div>
 
-                        <div class="permission-section">
-                            <h3>Login access</h3>
-                            <p>Enable or disable login by role.</p>
-                            <div id="loginAccessList" class="login-access-list"></div>
+                        <div class="permission-section" hidden>
+                            <div id="loginAccessList"></div>
                         </div>
 
                         <div class="permission-section">
@@ -379,8 +371,8 @@
                     <div class="permission-card">
                         <div class="permission-card-header">
                             <div>
-                                <h2>Role actions matrix</h2>
-                                <p>Toggle what this role group can do per module.</p>
+                                <h2>Advanced permissions matrix</h2>
+                                <p>Each checkbox controls one precise action for the selected role.</p>
                             </div>
                         </div>
 
@@ -405,9 +397,20 @@
                                         <th>Add</th>
                                         <th>Edit</th>
                                         <th>Delete</th>
+                                        <th>Approve</th>
+                                        <th>Reject</th>
+                                        <th>Print</th>
                                         <th>Export</th>
                                         <th>Import</th>
-                                        <th>Bulk</th>
+                                        <th>Upload</th>
+                                        <th>Download</th>
+                                        <th>Assign</th>
+                                        <th>Unassign</th>
+                                        <th>Send</th>
+                                        <th>Mark Paid</th>
+                                        <th>Waive Fee</th>
+                                        <th>Bulk Action</th>
+                                        <th>Settings</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -490,8 +493,8 @@
         </main>
     </div>
 
-    <script src="auth.js?v=20260814-live-auth-fix1"></script>
-    <script src="script.js?v=20260814-local-runtime-fix6"></script>
+    <script src="auth.js?v=20260815-professional-permissions1"></script>
+    <script src="script.js?v=20260815-professional-permissions1"></script>
     <script>
         if (window.lucide) window.lucide.createIcons();
 
@@ -499,9 +502,11 @@
             config: null,
             moduleKeys: [],
             selectedGroupKey: null,
-            actionKeys: ['view', 'add', 'edit', 'delete', 'export', 'import', 'bulk_action'],
+            actionKeys: ['view', 'add', 'edit', 'delete', 'approve', 'reject', 'print', 'export', 'import', 'upload', 'download', 'assign', 'unassign', 'send', 'mark_paid', 'waive_fee', 'bulk_action', 'manage_settings'],
             filter: ''
         };
+
+        const PROFESSIONAL_GROUP_KEYS = ['teacher', 'admin', 'accountant', 'office_assistant'];
 
         const designationState = {
             payload: null,
@@ -787,11 +792,11 @@
             if (!select) return;
             select.innerHTML = '';
             const config = getPermissionsConfig();
-            const groupKeys = Object.keys(config.groups || {});
+            const groupKeys = PROFESSIONAL_GROUP_KEYS.filter((groupKey) => config.groups?.[groupKey]);
             groupKeys.forEach((groupKey) => {
                 const opt = document.createElement('option');
                 opt.value = groupKey;
-                opt.textContent = `${config.groups[groupKey].name || groupKey} (${groupKey})`;
+                opt.textContent = config.groups[groupKey].name || toLabel(groupKey);
                 select.appendChild(opt);
             });
             if (!permissionState.selectedGroupKey || !groupKeys.includes(permissionState.selectedGroupKey)) {
@@ -948,16 +953,25 @@
 
         function deriveRoleActionsFromAccess(accessLevel) {
             const level = String(accessLevel || 'none').toLowerCase();
+            const actions = permissionState.actionKeys.reduce((result, key) => {
+                result[key] = false;
+                return result;
+            }, {});
             if (level === 'manage') {
-                return { view: true, add: true, edit: true, delete: true, export: true, import: true, bulk_action: true };
+                permissionState.actionKeys.forEach((key) => { actions[key] = true; });
+                return actions;
             }
             if (level === 'edit') {
-                return { view: true, add: true, edit: true, delete: false, export: false, import: false, bulk_action: false };
+                ['view', 'add', 'edit', 'print', 'upload', 'download', 'send'].forEach((key) => { actions[key] = true; });
+                return actions;
             }
             if (level === 'view') {
-                return { view: true, add: false, edit: false, delete: false, export: false, import: false, bulk_action: false };
+                actions.view = true;
+                actions.print = true;
+                actions.download = true;
+                return actions;
             }
-            return { view: false, add: false, edit: false, delete: false, export: false, import: false, bulk_action: false };
+            return actions;
         }
 
         function deriveAccessFromRoleActions(actions = {}) {
@@ -1022,6 +1036,24 @@
         }
 
         function initializePermissionEditor(config) {
+            const profileDefaults = {
+                teacher: { name: 'Teacher', homePage: 'teacher_portal.html' },
+                admin: { name: 'Admin', homePage: 'dashboard.html' },
+                accountant: { name: 'Accountant', homePage: 'fees.html' },
+                office_assistant: { name: 'Office Assistant', homePage: 'dashboard.html' }
+            };
+            config.groups = config.groups && typeof config.groups === 'object' ? config.groups : {};
+            const knownModuleKeys = buildModuleKeys(config);
+            PROFESSIONAL_GROUP_KEYS.forEach((groupKey) => {
+                if (config.groups[groupKey]) return;
+                const permissions = {};
+                knownModuleKeys.forEach((moduleKey) => { permissions[moduleKey] = 'none'; });
+                config.groups[groupKey] = {
+                    ...profileDefaults[groupKey],
+                    permissions,
+                    actionPermissions: {}
+                };
+            });
             permissionState.config = config;
             permissionState.moduleKeys = buildModuleKeys(config);
             permissionState.selectedGroupKey = permissionState.selectedGroupKey || Object.keys(config.groups || {})[0];
@@ -1130,7 +1162,7 @@
                         saveBtn.disabled = true;
                         saveBtn.textContent = 'Saving...';
                         const token = sessionStorage.getItem('eduCore_token') || '';
-                        const response = await fetch(`${API_BASE_URL}/permissions`, {
+                        const response = await fetch(`${API_BASE_URL}/permissions/`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1160,7 +1192,7 @@
 
         async function loadPermissionConfigFromServer() {
             try {
-                const response = await fetch(`${API_BASE_URL}/permissions`);
+                const response = await fetch(`${API_BASE_URL}/permissions/`);
                 if (!response.ok) throw new Error('Server returned an error while loading permissions.');
                 const config = await response.json();
                 permissionState.config = config;
@@ -1284,11 +1316,6 @@
                 });
             }
 
-            try {
-                await loadDesignationPermissionsFromServer();
-            } catch (error) {
-                console.warn('Designation permissions load failed:', error.message);
-            }
         });
     </script>
 </body>

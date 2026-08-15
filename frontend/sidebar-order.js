@@ -85,15 +85,7 @@
                 { type: 'link', page: 'teacher_attendance', hash: '#staff', label: 'Staff Attendance', icon: 'briefcase-business' }
             ]
         },
-        {
-            type: 'dropdown',
-            label: 'Permissions',
-            icon: 'shield',
-            children: [
-                { type: 'link', page: 'permissions', label: 'Permissions', icon: 'shield' },
-                { type: 'link', page: 'designation-permissions', label: 'Designation Permissions', icon: 'shield-check' }
-            ]
-        },
+        { type: 'link', page: 'permissions', label: 'Permissions', icon: 'shield' },
         { type: 'link', page: 'branch_registration', label: 'Branch Registration', icon: 'building-2' },
         { type: 'link', page: 'aboutme', label: 'About', icon: 'info' },
         { type: 'logout', label: 'Logout', icon: 'log-out' }

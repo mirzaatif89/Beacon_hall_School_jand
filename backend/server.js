@@ -84,6 +84,7 @@ app.get('/', (_req, res) => {
 app.get('/:pageName([a-zA-Z0-9_-]+).html', (req, res, next) => {
     const pageName = String(req.params.pageName || '').toLowerCase();
     if (RESERVED_ROUTE_NAMES.has(pageName)) return next();
+    if (pageName === 'designation-permissions') return res.redirect(302, '/permissions');
 
     const targetRoute = pageName === 'index' || pageName === 'website' ? '' : pageName;
     const targetFile = resolvePageFileByRoute(targetRoute);
@@ -93,6 +94,9 @@ app.get('/:pageName([a-zA-Z0-9_-]+).html', (req, res, next) => {
 });
 
 app.get('/:routeName([a-zA-Z0-9_-]+)', (req, res, next) => {
+    if (String(req.params.routeName || '').toLowerCase() === 'designation-permissions') {
+        return res.redirect(302, '/permissions');
+    }
     const pageFile = resolvePageFileByRoute(req.params.routeName);
     if (!pageFile) return next();
     return res.sendFile(path.join(FRONTEND_DIR, pageFile));
@@ -220,18 +224,28 @@ const activeSessions = new Map();
 
 const MODULE_KEYS = [
     'dashboard',
+    'banners',
+    'online_admissions',
+    'notifications',
+    'families',
     'students',
+    'student_scheduling',
     'teachers',
+    'teacher_scheduling',
     'staff',
     'classes',
+    'set_fee',
     'fees',
     'fee_challan',
+    'remaining_charges',
+    'payment_history',
+    'annual_charges',
     'teacher_salaries',
+    'bills',
     'student_attendance',
     'teacher_attendance',
     'student_attendance_report',
     'teacher_attendance_report',
-    'notifications',
     'messages',
     'special_notices',
     'exams',
@@ -240,7 +254,8 @@ const MODULE_KEYS = [
     'permissions',
     'branch_registration',
     'aboutme',
-    'student_portal'
+    'student_portal',
+    'teacher_portal'
 ];
 const ACCESS_LEVELS = ['none', 'view', 'edit', 'manage'];
 const ALLOWED_HOME_PAGES = new Set([
@@ -266,7 +281,8 @@ const ALLOWED_HOME_PAGES = new Set([
     'permissions.html',
     'branch_registration.html',
     'aboutme.html',
-    'student_portal.html'
+    'student_portal.html',
+    'teacher_portal.html'
 ]);
 
 function buildModuleSet(defaultAccess = 'none', overrides = {}) {
@@ -288,15 +304,15 @@ const defaultPermissions = {
         branch: true,
         teacher: true,
         student: true,
-        staff: false
+        staff: true
     },
     roleGroups: {
-        Admin: 'superadmin',
+        Admin: 'admin',
         Principal: 'admin',
         Branch: 'computer_operator',
-        Teacher: 'computer_operator',
+        Teacher: 'teacher',
         Student: 'computer_operator',
-        Staff: 'computer_operator'
+        Staff: 'office_assistant'
     },
     groups: {
         superadmin: {
@@ -307,29 +323,7 @@ const defaultPermissions = {
         admin: {
             name: 'Admin',
             homePage: 'dashboard.html',
-            permissions: buildModuleSet('none', {
-                dashboard: 'manage',
-                students: 'manage',
-                teachers: 'manage',
-                staff: 'manage',
-                classes: 'manage',
-                fees: 'manage',
-                fee_challan: 'manage',
-                teacher_salaries: 'manage',
-                student_attendance: 'manage',
-                teacher_attendance: 'manage',
-                student_attendance_report: 'view',
-                teacher_attendance_report: 'view',
-                notifications: 'manage',
-                messages: 'manage',
-                special_notices: 'manage',
-                exams: 'manage',
-                revenue: 'view',
-                settings: 'view',
-                branch_registration: 'view',
-                permissions: 'view',
-                aboutme: 'view'
-            })
+            permissions: buildModuleSet('manage')
         },
         computer_operator: {
             name: 'Computer Operator',
@@ -346,6 +340,58 @@ const defaultPermissions = {
                 exams: 'view',
                 notifications: 'view',
                 messages: 'view',
+                aboutme: 'view'
+            })
+        },
+        teacher: {
+            name: 'Teacher',
+            homePage: 'teacher_portal.html',
+            permissions: buildModuleSet('none', {
+                dashboard: 'view',
+                students: 'view',
+                classes: 'view',
+                student_scheduling: 'edit',
+                student_attendance: 'edit',
+                student_attendance_report: 'view',
+                teacher_scheduling: 'view',
+                messages: 'edit',
+                special_notices: 'view',
+                aboutme: 'view'
+            })
+        },
+        accountant: {
+            name: 'Accountant',
+            homePage: 'fees.html',
+            permissions: buildModuleSet('none', {
+                dashboard: 'view',
+                students: 'view',
+                set_fee: 'edit',
+                fees: 'manage',
+                fee_challan: 'manage',
+                remaining_charges: 'manage',
+                payment_history: 'manage',
+                annual_charges: 'manage',
+                revenue: 'manage',
+                teacher_salaries: 'edit',
+                bills: 'manage',
+                messages: 'view',
+                aboutme: 'view'
+            })
+        },
+        office_assistant: {
+            name: 'Office Assistant',
+            homePage: 'dashboard.html',
+            permissions: buildModuleSet('none', {
+                dashboard: 'view',
+                online_admissions: 'edit',
+                students: 'edit',
+                teachers: 'view',
+                staff: 'view',
+                classes: 'view',
+                families: 'edit',
+                notifications: 'edit',
+                messages: 'edit',
+                special_notices: 'view',
                 aboutme: 'view'
             })
         }
@@ -390,11 +436,17 @@ function normalizePermissionsConfig(input = {}) {
     return {
         loginAccess: {
             ...defaultPermissions.loginAccess,
-            ...(raw.loginAccess || {})
+            ...(raw.loginAccess || {}),
+            admin: true,
+            teacher: true,
+            staff: true
         },
         roleGroups: {
             ...defaultPermissions.roleGroups,
-            ...(raw.roleGroups || {})
+            ...(raw.roleGroups || {}),
+            Admin: 'admin',
+            Teacher: 'teacher',
+            Staff: 'office_assistant'
         },
         customModules,
         groups
@@ -850,7 +902,8 @@ async function resolveUserDesignationKey(user = {}) {
 async function enforceActionPermission(req, res, moduleKey, actionKey) {
     const role = String(req.user?.role || '').trim();
 
-    if (role === 'Admin' || role === 'Principal') return true;
+    if (role === 'Principal') return true;
+    if (role === 'Admin' && moduleKey === 'permissions') return true;
     if (role === 'Branch') {
         res.status(403).json({ success: false, message: 'Branch access denied.' });
         return false;
@@ -860,18 +913,33 @@ async function enforceActionPermission(req, res, moduleKey, actionKey) {
         return false;
     }
 
-    if (role === 'Teacher' || role === 'Staff') {
-        const designationKey = await resolveUserDesignationKey(req.user);
-        if (!designationKey) {
-            res.status(403).json({ success: false, message: 'Designation not set. Ask admin to assign a designation.' });
+    if (role === 'Admin' || role === 'Teacher' || role === 'Staff') {
+        const permissions = readPermissions();
+        const designationKey = role === 'Staff' ? await resolveUserDesignationKey(req.user) : '';
+        const groupKey = role === 'Admin'
+            ? 'admin'
+            : (role === 'Teacher' ? 'teacher' : (designationKey || permissions.roleGroups?.[role] || ''));
+        const group = permissions.groups?.[groupKey];
+        if (!group) {
+            res.status(403).json({ success: false, message: 'Permission profile is not configured. Ask admin to assign one.' });
             return false;
         }
 
-        const allowed = checkDesignationActionPermission(designationKey, moduleKey, actionKey);
+        const explicitPermission = group.actionPermissions?.[moduleKey]?.[actionKey];
+        const accessLevel = String(group.permissions?.[moduleKey] || 'none').toLowerCase();
+        const allowed = typeof explicitPermission === 'boolean'
+            ? explicitPermission
+            : (
+                actionKey === 'view'
+                    ? accessLevel !== 'none'
+                    : (actionKey === 'add' || actionKey === 'edit')
+                        ? accessLevel === 'edit' || accessLevel === 'manage'
+                        : accessLevel === 'manage'
+            );
         if (!allowed) {
             res.status(403).json({
                 success: false,
-                message: `Permission denied: ${designationKey} cannot ${actionKey} in ${moduleKey}.`
+                message: `Permission denied: ${group.name || groupKey} cannot ${actionKey} in ${moduleKey}.`
             });
             return false;
         }
@@ -935,7 +1003,14 @@ function writeAdminCredentials(data = {}) {
 
 function verifyAdminAccessToken(req) {
     const authHeader = req.headers.authorization || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const cookieToken = String(req.headers.cookie || '')
+        .split(';')
+        .map((part) => part.trim())
+        .find((part) => part.startsWith('eduCore_token='))
+        ?.slice('eduCore_token='.length);
+    const token = authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : String(req.headers['x-auth-token'] || '').trim() || (cookieToken ? decodeURIComponent(cookieToken) : '');
 
     if (!token) {
         const error = new Error('Admin access required.');
@@ -1227,7 +1302,11 @@ app.post('/api/login', async (req, res) => {
                     role: user.role,
                     username: user.username,
                     campusName: user.campusName || '',
-                    groupKey: user.groupKey || permissions.roleGroups[user.role] || roleKey,
+                    groupKey: user.role === 'Teacher'
+                        ? 'teacher'
+                        : (user.role === 'Staff' && designationKey
+                            ? designationKey
+                            : (user.groupKey || permissions.roleGroups[user.role] || roleKey)),
                     ...(designationKey ? { designation: designationKey } : {})
                 };
                 registerActiveSession(req, sessionId, responseUser);
@@ -3040,6 +3119,9 @@ app.post('/api/staff', authenticateToken, async (req, res) => {
             item.plainPassword = rawPassword;
 
             await Staff.upsert(item);
+            const staffPermissionGroup = ['accountant', 'office_assistant'].includes(normalizeDesignationKey(item.designation))
+                ? normalizeDesignationKey(item.designation)
+                : (item.groupKey || 'office_assistant');
             await upsertAuthUser(User, {
                 id: `staff_${item.id}`,
                 profileId: item.id,
@@ -3049,7 +3131,7 @@ app.post('/api/staff', authenticateToken, async (req, res) => {
                 password: item.password,
                 fullName: item.fullName,
                 plainPassword: item.plainPassword,
-                groupKey: item.groupKey || 'staff'
+                groupKey: staffPermissionGroup
             });
         }
 

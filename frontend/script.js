@@ -2580,7 +2580,8 @@ function getCurrentUserDesignationKey() {
     const user = getLoggedInUser();
     if (!user) return '';
     if (user.role !== 'Teacher' && user.role !== 'Staff') return '';
-    return normalizeDesignationKey(user.designation || user.role);
+    if (user.role === 'Teacher') return 'teacher';
+    return normalizeDesignationKey(user.designation || user.groupKey || 'office_assistant');
 }
 
 function getCachedDesignationPermissions(designationKey) {
@@ -2605,40 +2606,58 @@ function cacheDesignationPermissions(designationKey, payload) {
 }
 
 async function loadDesignationPermissionsForCurrentUser() {
-    const designationKey = getCurrentUserDesignationKey();
-    if (!designationKey) return null;
+    const groupKey = getCurrentUserDesignationKey();
+    if (!groupKey) return null;
 
-    const cached = getCachedDesignationPermissions(designationKey);
-    if (cached) return cached;
-
-    const token = sessionStorage.getItem('eduCore_token') || '';
-    if (!token) return null;
-
-    const response = await fetch(`${API_BASE_URL}/designation-permissions?designation=${encodeURIComponent(designationKey)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-    });
-    const result = await parseJsonResponse(response, 'Failed to load designation permissions.');
-    if (!response.ok) {
-        throw new Error(result?.message || 'Failed to load designation permissions.');
+    let config = null;
+    try {
+        config = JSON.parse(sessionStorage.getItem('eduCore_permissions_config') || 'null');
+    } catch (_error) {
+        config = null;
     }
 
-    cacheDesignationPermissions(designationKey, result);
-    return result;
+    if (!config) {
+        const response = await fetch(`${API_BASE_URL}/permissions/`);
+        const result = await parseJsonResponse(response, 'Failed to load permissions.');
+        if (!response.ok) throw new Error(result?.message || 'Failed to load permissions.');
+        config = result;
+        sessionStorage.setItem('eduCore_permissions_config', JSON.stringify(config));
+    }
+
+    const group = config?.groups?.[groupKey] || null;
+    cacheDesignationPermissions(groupKey, group);
+    return group;
 }
 
 function canCurrentUserPerformAction(moduleKey, actionKey) {
     const user = getLoggedInUser();
     if (!user) return false;
 
-    if (user.role === 'Admin' || user.role === 'Principal') return true;
+    if (user.role === 'Principal') return true;
+    if (user.role === 'Admin' && moduleKey === 'permissions') return true;
 
     // Branch is handled separately (hard-restricted in UI).
     if (user.role === 'Branch') return false;
 
-    if (user.role === 'Teacher' || user.role === 'Staff') {
-        const designationKey = getCurrentUserDesignationKey();
-        const designationPerms = getCachedDesignationPermissions(designationKey);
-        return designationPerms?.actionPermissions?.[moduleKey]?.[actionKey] === true;
+    if (user.role === 'Admin' || user.role === 'Teacher' || user.role === 'Staff') {
+        const groupKey = user.role === 'Admin' ? 'admin' : getCurrentUserDesignationKey();
+        let group = getCachedDesignationPermissions(groupKey);
+        if (!group) {
+            try {
+                const config = JSON.parse(sessionStorage.getItem('eduCore_permissions_config') || 'null');
+                group = config?.groups?.[groupKey] || null;
+            } catch (_error) {
+                group = null;
+            }
+        }
+        if (!group && user.role === 'Admin') return true;
+        const explicitAction = group?.actionPermissions?.[moduleKey]?.[actionKey];
+        if (typeof explicitAction === 'boolean') return explicitAction;
+
+        const access = String(group?.permissions?.[moduleKey] || 'none').toLowerCase();
+        if (actionKey === 'view') return access !== 'none';
+        if (['add', 'edit'].includes(actionKey)) return access === 'edit' || access === 'manage';
+        return access === 'manage';
     }
 
     return false;
@@ -2845,29 +2864,8 @@ function initializeSidebarScrollMemory() {
 }
 
 function ensureDesignationPermissionsNav() {
-    const navLinks = document.querySelector('.nav-links');
-    const loggedInUser = getLoggedInUser();
-    if (!navLinks || !loggedInUser || loggedInUser.role !== 'Admin') return;
-    if (navLinks.querySelector('[data-designation-permissions-link]')) return;
-
-    const visitorBooksLink = Array.from(navLinks.querySelectorAll('a[href]'))
-        .find((link) => normalizeClientPageName(link.getAttribute('href') || '') === 'visitor_books.html');
-    const permissionsLink = Array.from(navLinks.querySelectorAll('a[href]'))
-        .find((link) => normalizeClientPageName(link.getAttribute('href') || '') === 'permissions.html');
-
-    const designationLink = document.createElement('a');
-    designationLink.href = toRoutePath('designation-permissions.html');
-    designationLink.className = 'nav-item';
-    designationLink.dataset.designationPermissionsLink = 'true';
-    designationLink.innerHTML = '<i data-lucide="shield-check"></i><span>Designation Permissions</span>';
-
-    if (permissionsLink) {
-        permissionsLink.insertAdjacentElement('afterend', designationLink);
-    } else {
-        navLinks.appendChild(designationLink);
-    }
-
-    if (window.lucide) window.lucide.createIcons();
+    // Detailed role controls now live on the single Permissions page.
+    return;
 }
 
 function ensureBranchRegistrationNav() {
@@ -3308,7 +3306,6 @@ function ensureAdminSidebarCompleteness() {
         { page: 'bills.html', label: 'Bills', icon: 'receipt' },
         { page: 'notifications.html', label: 'Notifications', icon: 'bell-ring' },
         { page: 'permissions.html', label: 'Permissions', icon: 'shield' },
-        { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' },
         { page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
         { page: 'aboutme.html', label: 'About', icon: 'info' }
     ];
@@ -3424,15 +3421,7 @@ function renderAdminSidebarSequence() {
                 { page: 'teacher_attendance.html', hash: '#staff', label: 'Staff Attendance', icon: 'briefcase-business' }
             ]
         },
-        {
-            type: 'dropdown',
-            label: 'Permissions',
-            icon: 'shield',
-            children: [
-                { page: 'permissions.html', label: 'Permissions', icon: 'shield' },
-                { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' }
-            ]
-        },
+        { type: 'link', page: 'permissions.html', label: 'Permissions', icon: 'shield' },
         { type: 'link', page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
         { type: 'link', page: 'aboutme.html', label: 'About', icon: 'info' },
         { type: 'logout', label: 'Logout', icon: 'log-out' }

@@ -176,7 +176,6 @@ if (window.Capacitor?.isNativePlatform?.()) {
         'revenue.html': { moduleKey: 'revenue', defaultHome: 'dashboard.html', label: 'Revenue', icon: 'trending-up' },
         'settings.html': { moduleKey: 'settings', defaultHome: 'dashboard.html', label: 'Settings', icon: 'settings' },
         'permissions.html': { moduleKey: 'permissions', defaultHome: 'dashboard.html', label: 'Permissions', icon: 'shield' },
-        'designation-permissions.html': { moduleKey: 'permissions', defaultHome: 'dashboard.html', label: 'Designation Permissions', icon: 'shield-check' },
         'branch_registration.html': { moduleKey: 'branch_registration', defaultHome: 'dashboard.html', label: 'Branch Registration', icon: 'building-2' },
         'aboutme.html': { moduleKey: 'aboutme', defaultHome: 'dashboard.html', label: 'About Us', icon: 'info' },
         'student_portal.html': { moduleKey: 'student_portal', defaultHome: 'student_portal.html', label: 'Student Portal', icon: 'graduation-cap' },
@@ -232,15 +231,15 @@ if (window.Capacitor?.isNativePlatform?.()) {
             branch: true,
             teacher: true,
             student: true,
-            staff: false
+            staff: true
         },
         roleGroups: {
-            Admin: 'superadmin',
+            Admin: 'admin',
             Principal: 'admin',
             Branch: 'computer_operator',
             Teacher: 'teacher',
             Student: 'student',
-            Staff: 'computer_operator'
+            Staff: 'office_assistant'
         },
         groups: {
             superadmin: {
@@ -334,6 +333,40 @@ if (window.Capacitor?.isNativePlatform?.()) {
                     exams: 'view',
                     special_notices: 'view',
                     messages: 'view',
+                    aboutme: 'view'
+                }
+            },
+            accountant: {
+                name: 'Accountant',
+                homePage: 'fees.html',
+                permissions: {
+                    dashboard: 'view',
+                    students: 'view',
+                    set_fee: 'edit',
+                    fees: 'manage',
+                    fee_challan: 'manage',
+                    annual_charges: 'manage',
+                    teacher_salaries: 'edit',
+                    bills: 'manage',
+                    revenue: 'manage',
+                    messages: 'view',
+                    aboutme: 'view'
+                }
+            },
+            office_assistant: {
+                name: 'Office Assistant',
+                homePage: 'dashboard.html',
+                permissions: {
+                    dashboard: 'view',
+                    online_admissions: 'edit',
+                    students: 'edit',
+                    teachers: 'view',
+                    staff: 'view',
+                    classes: 'view',
+                    families: 'edit',
+                    notifications: 'edit',
+                    messages: 'edit',
+                    special_notices: 'view',
                     aboutme: 'view'
                 }
             },
@@ -435,7 +468,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
             const nextGroup = groupValue && typeof groupValue === 'object' ? groupValue : {};
             const permissions = { ...(baseGroup.permissions || {}), ...(nextGroup.permissions || {}) };
             moduleKeys.forEach((moduleKey) => {
-                if (!permissions[moduleKey]) permissions[moduleKey] = groupKey === 'superadmin' ? 'manage' : 'none';
+                if (!permissions[moduleKey]) permissions[moduleKey] = (groupKey === 'superadmin' || groupKey === 'admin') ? 'manage' : 'none';
             });
             acc[groupKey] = {
                 ...nextGroup,
@@ -449,11 +482,17 @@ if (window.Capacitor?.isNativePlatform?.()) {
         return {
             loginAccess: {
                 ...defaultPermissions.loginAccess,
-                ...(raw.loginAccess || {})
+                ...(raw.loginAccess || {}),
+                admin: true,
+                teacher: true,
+                staff: true
             },
             roleGroups: {
                 ...defaultPermissions.roleGroups,
-                ...(raw.roleGroups || {})
+                ...(raw.roleGroups || {}),
+                Admin: 'admin',
+                Teacher: 'teacher',
+                Staff: 'office_assistant'
             },
             customModules: normalizeCustomModules(raw.customModules || []),
             groups
@@ -622,9 +661,9 @@ if (window.Capacitor?.isNativePlatform?.()) {
     }
 
     function getModuleAccess(user, permissions, pageName = currentPage) {
-        if (user?.role === 'Admin') return 'manage';
         const registryEntry = pageRegistry[pageName];
         if (!registryEntry) return 'view';
+        if (user?.role === 'Admin' && registryEntry.moduleKey === 'permissions') return 'manage';
         const group = getGroupConfig(user, permissions);
         return group?.permissions?.[registryEntry.moduleKey] || 'none';
     }
@@ -648,7 +687,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
             return false;
         }
 
-        if (user.role === 'Admin') return true;
+        if (user.role === 'Admin' && pageName === 'permissions.html') return true;
         if (user.role === 'Student' && pageName === 'student_portal.html') return true;
         if (user.role === 'Teacher' && pageName === 'teacher_portal.html') return true;
         return getModuleAccess(user, permissions, pageName) !== 'none';
@@ -797,15 +836,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                         { page: 'teacher_attendance.html', hash: '#staff', label: 'Staff Attendance', icon: 'briefcase-business' }
                     ]
                 },
-                {
-                    type: 'dropdown',
-                    label: 'Permissions',
-                    icon: 'shield',
-                    children: [
-                        { page: 'permissions.html', label: 'Permissions', icon: 'shield' },
-                        { page: 'designation-permissions.html', label: 'Designation Permissions', icon: 'shield-check' }
-                    ]
-                },
+                { type: 'link', page: 'permissions.html', label: 'Permissions', icon: 'shield' },
                 { type: 'link', page: 'branch_registration.html', label: 'Branch Registration', icon: 'building-2' },
                 { type: 'link', page: 'aboutme.html', label: 'About', icon: 'info' },
                 { type: 'logout', label: 'Logout', icon: 'log-out' }
