@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ALLOWED_CATEGORIES = new Set(['assignment', 'syllabus', 'profile', 'lecture', 'message', 'general']);
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 30 * 1024 * 1024 * 1024;
 
 function sanitizeSegment(value = '', fallback = 'general') {
     const normalized = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');

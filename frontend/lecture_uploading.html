@@ -50,7 +50,7 @@
                         <div><label>Lecture Title</label><input type="text" id="lectureTitle" required placeholder="e.g. Chapter 3 Lecture"></div>
                         <div><label>Subject</label><input type="text" id="lectureSubject" placeholder="e.g. Science"></div>
                         <div><label>Lecture Link</label><input type="url" id="lectureUrl" placeholder="https://..."></div>
-                        <div><label>Attach File / Video</label><input type="file" id="lectureFile" accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.webm,.jpg,.jpeg,.png,.txt"></div>
+                        <div><label>Attach File / Video (up to 30GB)</label><input type="file" id="lectureFile" accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.webm,.jpg,.jpeg,.png,.txt" data-max-size="32212254720"></div>
                     </div>
                     <div style="margin-top:1rem;"><label>Lecture Notes</label><textarea id="lectureDetails" required placeholder="Write lecture notes, instructions, or links"></textarea></div>
                     <button type="submit" class="btn btn-primary" id="lectureSaveBtn" style="margin-top:1rem;"><i data-lucide="save"></i> Save Lecture</button>
@@ -101,7 +101,11 @@
         function populateClasses() {
             const students = data('eduCore_students');
             const classes = data('eduCore_classes');
-            const names = [...new Set([...classes.map((item) => item?.section ? `${item.name} (${item.section})` : item?.name), ...students.map((student) => student?.classGrade)].map((value) => String(value || '').trim()).filter(Boolean))].sort();
+            const defaultClasses = ['Play Group', 'Nursarry', 'Prep', 'Class One', 'Class Two', 'Class Three', 'Class Four', 'Class Five', 'Class Six', 'Class Seven', 'Class Eight', 'Class Nine', 'Class 10'];
+            const names = [...new Set([...defaultClasses, ...classes.map((item) => item?.section ? `${item.name} (${item.section})` : item?.name), ...students.map((student) => student?.classGrade)].map((value) => String(value || '').trim()).filter(Boolean))].sort((a, b) => {
+                if (typeof compareStudentClassNames === 'function') return compareStudentClassNames(a, b);
+                return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+            });
             lectureClass.innerHTML = '<option value="">Select Class</option>' + names.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
         }
         function readFile(input) {
@@ -146,7 +150,7 @@
             } catch (_error) {}
             event.target.reset(); lectureUploadId.value = ''; lectureSaveBtn.innerHTML = '<i data-lucide="save"></i> Save Lecture'; render(); showSuccessModal(editId ? 'Lecture Updated!' : 'Lecture Uploaded!', 'Lecture is visible in student portal.');
         });
-        populateClasses();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', populateClasses); else populateClasses();
         loadLecturesFromApi().then(syncLocalLecturesToApi).finally(render);
         render();
         if (window.lucide) lucide.createIcons();

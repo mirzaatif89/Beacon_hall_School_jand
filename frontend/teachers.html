@@ -540,6 +540,10 @@
             min-height: 34px;
             background: #f8fafc;
         }
+        .teacher-table-container { overflow-x: hidden !important; scrollbar-width: none !important; }
+        .teacher-table-container::-webkit-scrollbar { display: none !important; height: 0 !important; }
+        #teachersTable { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; }
+        #teachersTable th, #teachersTable td { min-width: 0 !important; width: auto !important; padding: .55rem .4rem !important; font-size: .74rem !important; overflow: hidden; text-overflow: ellipsis; }
 
         @media (max-width: 1200px) {
             .teacher-name-cell {
@@ -813,18 +817,6 @@
                                 <input type="file" id="tProfileImage" accept="image/*">
                             </div>
                         </div>
-                        <div class="input-group">
-                            <label>Bank Name</label>
-                            <input type="text" id="tBankName" placeholder="e.g. HBL">
-                        </div>
-                        <div class="input-group">
-                            <label>Bank Account Number</label>
-                            <input type="text" id="tBankAccountNumber" placeholder="Enter bank account number">
-                        </div>
-                        <div class="input-group">
-                            <label>Bank Account Holder Name</label>
-                            <input type="text" id="tBankAccountTitle" placeholder="Enter account holder name">
-                        </div>
                     </div> <!-- End of form-grid -->
 
                     <div class="action-steps">
@@ -1001,8 +993,6 @@
                             <th>DOB</th>
                             <th>Campus</th>
                             <th>Subject</th>
-                            <th>Bank Details</th>
-                            <th>Documents</th>
                             <th>Login Details</th>
                             <th>Salary</th>
                             <th>Phone</th>

@@ -1331,8 +1331,8 @@ async function populateCampusDropdowns() {
     populateCampusSelect('campusName', campuses, campuses.length ? 'Select Campus' : 'Add campus in Branch Registration first');
     populateCampusSelect('tCampusName', campuses, campuses.length ? 'Select Campus' : 'Add campus in Branch Registration first');
     populateCampusSelect('teacherCampusFilter', campuses, 'All Campuses', selectedGlobalCampus === 'all' ? '' : selectedGlobalCampus);
-    populateCampusSelect('tBankBranch', campuses, campuses.length ? 'Select Branch' : 'Add campus in Branch Registration first');
-    populateCampusSelect('sBankBranch', campuses, campuses.length ? 'Select Branch' : 'Add campus in Branch Registration first');
+    if (document.getElementById('tBankBranch')) populateCampusSelect('tBankBranch', campuses, campuses.length ? 'Select Branch' : 'Add campus in Branch Registration first');
+    if (document.getElementById('sBankBranch')) populateCampusSelect('sBankBranch', campuses, campuses.length ? 'Select Branch' : 'Add campus in Branch Registration first');
 }
 
 function ensureStudentCampusDefault() {
@@ -8148,10 +8148,10 @@ async function handleTeacherFormSubmit(e) {
         idCardFront,
         idCardBack,
         cvFile,
-        bankName: document.getElementById('tBankName').value.trim(),
-        bankAccountTitle: document.getElementById('tBankAccountTitle').value.trim(),
-        bankAccountNumber: document.getElementById('tBankAccountNumber').value.trim(),
-        bankBranch: document.getElementById('tBankBranch').value.trim(),
+        bankName: document.getElementById('tBankName')?.value.trim() || '',
+        bankAccountTitle: document.getElementById('tBankAccountTitle')?.value.trim() || '',
+        bankAccountNumber: document.getElementById('tBankAccountNumber')?.value.trim() || '',
+        bankBranch: document.getElementById('tBankBranch')?.value.trim() || '',
         schedule: normalizeTeacherSchedule(existingTeacher?.schedule),
         employmentStatus: existingTeacher?.employmentStatus || 'Active',
         stuckOffAt: existingTeacher?.stuckOffAt || '',
@@ -8406,8 +8406,6 @@ function renderTeachers(term = null) {
                     <div>${t.subject}</div>
                     ${getTeacherScheduleSummary(t)}
                 </td>
-                <td>${getBankDetailsMarkup(t)}</td>
-                <td>${getDocumentBadgesMarkup(t)}</td>
                 <td class="teacher-login-details">
                     <div>
                         <div><strong>User:</strong> ${t.username || '-'}</div>
@@ -8723,10 +8721,10 @@ async function handleStaffFormSubmit(e) {
         salary: document.getElementById('sSalary').value || '0',
         idCardFront,
         idCardBack,
-        bankName: document.getElementById('sBankName').value.trim(),
-        bankAccountTitle: document.getElementById('sBankAccountTitle').value.trim(),
-        bankAccountNumber: document.getElementById('sBankAccountNumber').value.trim(),
-        bankBranch: document.getElementById('sBankBranch').value.trim(),
+        bankName: document.getElementById('sBankName')?.value.trim() || '',
+        bankAccountTitle: document.getElementById('sBankAccountTitle')?.value.trim() || '',
+        bankAccountNumber: document.getElementById('sBankAccountNumber')?.value.trim() || '',
+        bankBranch: document.getElementById('sBankBranch')?.value.trim() || '',
         role: 'Staff'
     };
     if (existingStaff?.username) newStaff.username = existingStaff.username;
@@ -8832,22 +8830,30 @@ function renderStaff(term = '') {
                 <td>${s.fatherName || '-'}</td>
                 <td>${formatDateForDisplay(s.dob)}</td>
                 <td>${s.designation}</td>
-                <td>${getBankDetailsMarkup(s)}</td>
-                <td>${getDocumentBadgesMarkup(s)}</td>
                 <td>${s.cnic || '-'}</td>
                 <td>${s.phone || '-'}</td>
                 <td>PKR ${s.salary}</td>
-                <td>
-                    <button class="action-btn btn-view" onclick="openIndividualMessageFromEncoded('${encodedStaff}', 'Staff')"><i data-lucide="message-circle" width="14"></i> Message</button>
-                    ${s.email ? `<button class="action-btn btn-view" onclick="sendStaffCustomEmailFromEncoded('${encodedStaff}')"><i data-lucide="mail" width="14"></i> Email</button>` : ''}
-                    <button class="action-btn btn-edit" onclick='editStaff(${JSON.stringify(s)})'><i data-lucide="edit-2" width="14"></i> Edit</button>
-                    <button class="action-btn btn-delete" onclick="deleteStaff('${s.id}')"><i data-lucide="trash-2" width="14"></i></button>
-                </td>
+                <td><select class="staff-action-select" aria-label="Staff actions" onchange="handleStaffActionSelect(this, '${encodedStaff}', '${s.id}')">
+                    <option value="">Actions</option>
+                    <option value="message">Message</option>
+                    ${s.email ? '<option value="email">Send Email</option>' : ''}
+                    <option value="edit">Edit</option>
+                    <option value="delete">Delete</option>
+                </select></td>
             `;
             tbody.appendChild(tr);
         });
         window.lucide.createIcons();
     }
+}
+
+function handleStaffActionSelect(select, encodedPayload, staffId) {
+    const action = select.value;
+    select.value = '';
+    if (action === 'message') openIndividualMessageFromEncoded(encodedPayload, 'Staff');
+    if (action === 'email') sendStaffCustomEmailFromEncoded(encodedPayload);
+    if (action === 'edit') { try { editStaff(JSON.parse(decodeURIComponent(encodedPayload))); } catch (_error) {} }
+    if (action === 'delete') deleteStaff(staffId);
 }
 
 function editStaff(s) {

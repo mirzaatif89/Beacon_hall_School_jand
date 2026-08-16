@@ -35,7 +35,10 @@
             <section class="schedule-panel">
                 <form id="assignmentUploadForm">
                     <div class="assignment-upload-grid">
+                        <div><label>Campus</label><select id="assignmentUploadCampus" required></select></div>
                         <div><label>Class</label><select id="assignmentUploadClass" required></select></div>
+                        <div><label>Subject</label><input id="assignmentUploadSubject" required placeholder="e.g. Mathematics"></div>
+                        <div><label>Total Marks</label><input type="number" id="assignmentTotalMarks" min="1" required placeholder="100"></div>
                         <div><label>Start Date</label><input type="date" id="assignmentStartDate" required></div>
                         <div><label>Due Date</label><input type="date" id="assignmentDueDate" required></div>
                         <div><label>Assignment File</label><input type="file" id="assignmentUploadFile" required accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"></div>
@@ -43,7 +46,7 @@
                     <button type="submit" class="btn btn-primary" style="margin-top:1rem;"><i data-lucide="send"></i> Submit Assignment</button>
                 </form>
             </section>
-            <section class="schedule-panel"><h3 style="margin-bottom:1rem;">Uploaded Assignments</h3><div id="assignmentUploadList"></div></section>
+            <section class="schedule-panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;"><h3>Uploaded Assignments & Submissions</h3><button type="button" class="btn btn-outline" onclick="printAssignmentList()"><i data-lucide="printer"></i> Print List</button></div><div id="assignmentUploadList"></div></section>
         </main>
     </div>
     <div id="successModal" class="success-overlay"><div class="success-modal"><div class="success-icon-wrap"><i data-lucide="check-circle"></i></div><h2 id="successTitle">Success!</h2><p id="successMessage" style="color:var(--text-secondary); margin:1rem 0 2rem;"></p><button class="btn btn-primary" style="width:100%;" onclick="closeSuccessModal()">Great!</button></div></div>
@@ -66,6 +69,8 @@
                     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
                 });
             assignmentUploadClass.innerHTML = '<option value="">Select Class</option>' + names.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+            const campuses = [...new Set([...students.map((s) => s?.campusName), ...classes.map((c) => c?.campusName), 'Main Campus'].map((v) => String(v || '').trim()).filter(Boolean))].sort();
+            assignmentUploadCampus.innerHTML = '<option value="">Select Campus</option>' + campuses.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
         }
         function readFile(input) {
             const file = input.files?.[0];
@@ -80,7 +85,7 @@
         function render() {
             const items = data(STUDENT_UPLOADED_ASSIGNMENT_KEY).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
             if (!items.length) { assignmentUploadList.innerHTML = '<div class="empty-note">No assignment uploaded yet.</div>'; return; }
-            assignmentUploadList.innerHTML = `<table class="schedule-table"><thead><tr><th>Class</th><th>Start</th><th>Due</th><th>File</th><th>Action</th></tr></thead><tbody>${items.map((item) => `<tr><td>${esc(item.classGrade || '-')}</td><td>${esc(item.startDate || '-')}</td><td>${esc(item.dueDate || '-')}</td><td>${item.file?.dataUrl ? `<a class="assignment-file-name" href="${item.file.dataUrl}" download="${esc(item.file.name || 'assignment')}">${esc(item.file.name || 'Download')}</a>` : '-'}</td><td><div class="schedule-actions"><button type="button" class="schedule-action-btn delete" onclick="deleteAssignment('${esc(item.id)}')"><i data-lucide="trash-2" width="14"></i> Delete</button></div></td></tr>`).join('')}</tbody></table>`;
+            assignmentUploadList.innerHTML = items.map((item) => { const students = data('eduCore_students').filter(s => String(s.campusName||'') === String(item.campusName||'') && String(s.classGrade||'') === String(item.classGrade||'')); return `<div style="margin:1rem 0;padding:1rem;border:1px solid #dbecea;border-radius:12px"><strong>${esc(item.subject)} · ${esc(item.classGrade)} · ${esc(item.campusName)}</strong><span style="margin-left:1rem">Total: ${esc(item.totalMarks)}</span><br><a class="assignment-file-name" href="${item.file?.dataUrl || '#'}" download="${esc(item.file?.name || 'assignment')}">${esc(item.file?.name || 'Download')}</a><table class="schedule-table"><thead><tr><th>Student</th><th>Status</th><th>Marks</th><th>Result</th></tr></thead><tbody>${students.map(s => { const sub=(item.submissions||{})[s.id]||{}; const result = sub.marks === undefined || sub.marks === '' ? '-' : (Number(sub.marks) >= Number(item.totalMarks) / 2 ? 'Pass' : 'Fail'); return `<tr><td>${esc(s.fullName||s.name||'Student')}</td><td><select onchange="setSubmission('${esc(item.id)}','${esc(s.id)}',this.value)"><option ${sub.submitted?'selected':''} value="submitted">Submitted</option><option ${!sub.submitted?'selected':''} value="not_submitted">Not Submitted</option></select></td><td><input style="width:90px" type="number" min="0" max="${esc(item.totalMarks)}" value="${esc(sub.marks||'')}" onchange="setMarks('${esc(item.id)}','${esc(s.id)}',this.value)"></td><td>${result}</td></tr>`; }).join('')}</tbody></table><button type="button" class="schedule-action-btn delete" onclick="deleteAssignment('${esc(item.id)}')">Delete</button></div>`; }).join('');
             if (window.lucide) window.lucide.createIcons();
         }
         function deleteAssignment(id) {
@@ -94,13 +99,16 @@
             const item = {
                 id: `UPLOADED-ASG-${Date.now()}`,
                 classGrade: assignmentUploadClass.value,
+                campusName: assignmentUploadCampus.value,
+                subject: assignmentUploadSubject.value.trim(),
+                totalMarks: Number(assignmentTotalMarks.value),
                 startDate: assignmentStartDate.value,
                 dueDate: assignmentDueDate.value,
                 file,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
-            if (!item.classGrade || !item.startDate || !item.dueDate || !item.file?.dataUrl) { showAppAlert('Class, dates, and assignment file are required.', 'Missing Assignment'); return; }
+            if (!item.campusName || !item.classGrade || !item.subject || !item.totalMarks || !item.startDate || !item.dueDate || !item.file?.dataUrl) { showAppAlert('Campus, class, subject, total marks, dates, and file are required.', 'Missing Assignment'); return; }
             if (item.dueDate < item.startDate) { showAppAlert('Due date cannot be before start date.', 'Date Error'); return; }
             const items = data(STUDENT_UPLOADED_ASSIGNMENT_KEY);
             items.unshift(item);
@@ -109,6 +117,10 @@
             render();
             showSuccessModal('Assignment Submitted!', 'Students in the selected class can download this assignment in their portal.');
         });
+        function updateAssignment(id, updater) { const items=data(STUDENT_UPLOADED_ASSIGNMENT_KEY); const item=items.find(x=>x.id===id); if(!item)return; updater(item); save(items); render(); }
+        function setSubmission(id, studentId, value) { updateAssignment(id, item => { item.submissions=item.submissions||{}; item.submissions[studentId]={...(item.submissions[studentId]||{}),submitted:value==='submitted'}; }); }
+        function setMarks(id, studentId, value) { updateAssignment(id, item => { item.submissions=item.submissions||{}; item.submissions[studentId]={...(item.submissions[studentId]||{}),marks:value}; }); }
+        function printAssignmentList() { const html=assignmentUploadList.innerHTML; const win=window.open('','_blank'); if(win){win.document.write('<html><head><title>Assignment Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h1>Assignment Report</h1>'+html+'</body></html>'); win.document.close(); win.print();} }
         populateClasses(); render(); if (window.lucide) window.lucide.createIcons();
     </script>
 </body>

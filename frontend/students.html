@@ -912,6 +912,22 @@
             text-align: center;
         }
 
+        /* Keep the complete student list inside the viewport at normal browser zoom. */
+        .student-table-container { overflow-x: hidden !important; scrollbar-width: none !important; }
+        .student-table-container::-webkit-scrollbar { display: none !important; height: 0 !important; }
+        #studentsTable { width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: fixed !important; }
+        #studentsTable th, #studentsTable td { min-width: 0 !important; width: auto !important; padding: .62rem .5rem !important; font-size: .76rem !important; }
+        #studentsTable th:nth-child(1), #studentsTable td:nth-child(1) { width: 9% !important; }
+        #studentsTable th:nth-child(2), #studentsTable td:nth-child(2) { width: 18% !important; }
+        #studentsTable th:nth-child(3), #studentsTable td:nth-child(3) { width: 17% !important; }
+        #studentsTable th:nth-child(4), #studentsTable td:nth-child(4) { width: 11% !important; }
+        #studentsTable th:nth-child(5), #studentsTable td:nth-child(5) { width: 11% !important; }
+        #studentsTable th:nth-child(6), #studentsTable td:nth-child(6) { width: 12% !important; }
+        #studentsTable th:nth-child(7), #studentsTable td:nth-child(7) { width: 9% !important; }
+        #studentsTable th:nth-child(8), #studentsTable td:nth-child(8) { width: 10% !important; }
+        #studentsTable th:nth-child(9), #studentsTable td:nth-child(9) { width: 12% !important; min-width: 92px !important; overflow: visible !important; text-overflow: clip !important; }
+        #studentsTable th, #studentsTable td { overflow: hidden !important; text-overflow: ellipsis !important; }
+
         #studentsTable .status-badge {
             display: inline-flex;
             align-items: center;

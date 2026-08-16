@@ -3525,3 +3525,23 @@ td {
     white-space: pre;
     font-size: 0.84rem;
 }
+.teacher-table-container, .staff-table-container, .student-table-container { overflow-x: hidden !important; }
+.teacher-table-container table, .staff-table-container table, #studentsTable { width: 100% !important; table-layout: fixed; }
+.teacher-table-container th, .teacher-table-container td, .staff-table-container th, .staff-table-container td { padding: .55rem .45rem !important; font-size: .78rem; word-break: normal; overflow-wrap: anywhere; }
+.teacher-table-container th, .staff-table-container th { white-space: normal; line-height: 1.15; }
+.teacher-table-container td:last-child, .staff-table-container td:last-child { white-space: nowrap; }
+.teacher-search-bar, .staff-page .search-bar { background: #fff !important; border: 1px solid #b8d8ca !important; box-shadow: 0 6px 18px rgba(20,80,55,.08); min-height: 44px; }
+.profile-image-picker { min-height: 58px; display:flex; align-items:center; gap:.7rem; border:1px solid var(--border-color); border-radius:10px; padding:.35rem .55rem; background:#fff; }
+.profile-image-picker .profile-image-action { flex:1; min-height:42px; justify-content:center; border:0; background:#f0faf5; border-radius:8px; }
+.staff-action-select, .teacher-table-container .table-action-select { width: 96px; min-height: 34px; padding: .35rem .45rem; border: 1px solid #b8d8ca; border-radius: 8px; background: #fff; color: #164e3b; font-weight: 700; cursor: pointer; }
+.staff-table-container td:last-child, .teacher-table-container td:last-child { text-align: center; }
+.staff-table-container table, .teacher-table-container table, #studentsTable { min-width: 0 !important; }
+#teachersTable { width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: fixed !important; }
+.teacher-table-container { overflow-x: hidden !important; scrollbar-width: none !important; }
+.teacher-table-container::-webkit-scrollbar, .staff-table-container::-webkit-scrollbar { display: none !important; height: 0 !important; }
+#staffTable { width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: fixed !important; }
+.staff-table-container { overflow-x: hidden !important; }
+#teachersTable th, #teachersTable td, #staffTable th, #staffTable td { min-width: 0 !important; padding: .55rem .4rem !important; font-size: .74rem !important; overflow: hidden; text-overflow: ellipsis; }
+#teachersTable th:last-child, #teachersTable td:last-child, #staffTable th:last-child, #staffTable td:last-child { width: 105px !important; min-width: 105px !important; overflow: visible !important; text-overflow: clip !important; }
+.table-action-select, .staff-action-select { display: inline-block !important; visibility: visible !important; opacity: 1 !important; }
+@media (max-width: 1100px) { .teacher-table-container th, .teacher-table-container td, .staff-table-container th, .staff-table-container td, #studentsTable th, #studentsTable td { padding: .42rem .3rem !important; font-size: .7rem; } }
