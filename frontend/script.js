@@ -8403,8 +8403,7 @@ function renderTeachers(term = null) {
                 <td>${formatDateForDisplay(t.dob)}</td>
                 <td class="teacher-cell-compact">${t.campusName || '-'}</td>
                 <td class="teacher-cell-compact">
-                    <div>${t.subject}</div>
-                    ${getTeacherScheduleSummary(t)}
+                    <div>${t.subject || '-'}</div>
                 </td>
                 <td class="teacher-login-details">
                     <div>

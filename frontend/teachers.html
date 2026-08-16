@@ -168,14 +168,49 @@
             display: flex;
             flex-direction: row;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0;
+            margin-left: auto;
+            background: transparent;
+        }
+
+        .teacher-header-actions .teacher-search-bar {
+            box-sizing: border-box;
+            width: 260px;
+            max-width: 260px;
+            min-height: 42px;
+            height: 42px;
+            padding: 0 0.85rem;
+            background: #ffffff;
+            border: 1px solid #d8e5df;
+            border-radius: 10px;
+            box-shadow: none;
+        }
+
+        .teacher-header-actions .teacher-search-bar svg {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 auto;
+        }
+
+        .teacher-header-actions .teacher-search-bar input {
+            min-width: 0;
+            height: 100%;
+            padding: 0;
+            font-size: 1rem;
+            border: 0 !important;
+            outline: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            appearance: none;
+            -webkit-appearance: none;
         }
 
         .teacher-search-bar {
             width: 260px;
             max-width: 260px;
             min-height: 42px;
-            padding: 0.5rem 0.75rem;
+            height: 42px;
+            padding: 0 0.85rem;
             border-radius: var(--radius-md);
         }
 
@@ -545,6 +580,39 @@
         #teachersTable { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; }
         #teachersTable th, #teachersTable td { min-width: 0 !important; width: auto !important; padding: .55rem .4rem !important; font-size: .74rem !important; overflow: hidden; text-overflow: ellipsis; }
 
+        /* Compact teacher rows so the list stays dense and easy to scan. */
+        #teachersTable th {
+            padding-top: .3rem !important;
+            padding-bottom: .3rem !important;
+        }
+
+        #teachersTable td {
+            padding-top: .22rem !important;
+            padding-bottom: .22rem !important;
+            line-height: 1.08 !important;
+        }
+
+        #teachersTable .teacher-name-cell {
+            gap: .4rem;
+        }
+
+        #teachersTable .teacher-avatar {
+            width: 30px;
+            height: 30px;
+            font-size: .78rem;
+        }
+
+        #teachersTable .teacher-name-text {
+            line-height: 1.08 !important;
+        }
+
+        #teachersTable .table-action-select {
+            min-height: 29px;
+            height: 29px;
+            padding-top: .15rem;
+            padding-bottom: .15rem;
+        }
+
         @media (max-width: 1200px) {
             .teacher-name-cell {
                 gap: 0.5rem;
@@ -699,7 +767,7 @@
                 <div class="header-actions teacher-header-actions">
                     <div class="search-bar teacher-search-bar">
                         <i data-lucide="search" size="18" style="color: var(--text-secondary);"></i>
-                        <input type="text" id="teacherSearchInput" placeholder="Search">
+                        <input type="search" id="teacherSearchInput" placeholder="Search" aria-label="Search teachers" autocomplete="off">
                     </div>
                 </div>
             </header>

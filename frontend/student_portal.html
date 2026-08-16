@@ -2724,11 +2724,11 @@
             <h3>Apply Leave</h3>
             <form id="studentLeaveForm">
                 <div class="result-filter-grid">
-                    <div class="portal-field">
+                    <div class="portal-field" style="display:none;">
                         <label for="studentLeaveName">Student Name</label>
                         <input type="text" id="studentLeaveName" class="form-control" readonly>
                     </div>
-                    <div class="portal-field">
+                    <div class="portal-field" style="display:none;">
                         <label for="studentLeaveClass">Class</label>
                         <input type="text" id="studentLeaveClass" class="form-control" readonly>
                     </div>
@@ -2748,7 +2748,7 @@
                         <label for="studentLeaveTo">To Date</label>
                         <input type="date" id="studentLeaveTo" class="form-control" required>
                     </div>
-                    <div class="portal-field" style="grid-column: 1 / -1;">
+                    <div class="portal-field" style="display:none;">
                         <label for="studentLeaveReason">Reason</label>
                         <textarea id="studentLeaveReason" class="form-control" rows="4" required placeholder="Write leave reason"></textarea>
                     </div>
@@ -2829,23 +2829,24 @@
             <div class="portal-content-list" id="studentAssignedAssignmentList"></div>
             <div class="empty-note" id="studentAssignedAssignmentEmpty">No assignment has been uploaded for your class yet.</div>
             <form id="studentAssignmentForm">
+                <input type="hidden" id="studentAssignmentId">
                 <div class="result-filter-grid complaint-form-grid">
-                    <div class="portal-field">
+                    <div class="portal-field" style="display:none;">
                         <label for="studentAssignmentTitle">Assignment Title</label>
-                        <input type="text" id="studentAssignmentTitle" class="form-control" required placeholder="e.g. Science Chapter 4">
+                        <input type="text" id="studentAssignmentTitle" class="form-control" placeholder="e.g. Science Chapter 4">
                     </div>
-                    <div class="portal-field">
+                    <div class="portal-field" style="display:none;">
                         <label for="studentAssignmentSubject">Subject</label>
                         <input type="text" id="studentAssignmentSubject" class="form-control" placeholder="e.g. Science">
                     </div>
-                    <div class="portal-field" style="grid-column: 1 / -1;">
+                    <div class="portal-field" style="display:none;">
                         <label for="studentAssignmentNote">Notes</label>
                         <textarea id="studentAssignmentNote" class="form-control" rows="4" placeholder="Write any note for the teacher/admin"></textarea>
                     </div>
                     <div class="portal-field portal-file-box" style="grid-column: 1 / -1;">
                         <label for="studentAssignmentFile">Upload Assignment File</label>
                         <input type="file" id="studentAssignmentFile" class="form-control" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt">
-                        <div class="portal-file-help" id="studentAssignmentFileName">Attach assignment file: PDF, Word, image, or text.</div>
+                        <div class="portal-file-help" id="studentAssignmentFileName">Attach assignment file: PDF, Word, image, or text. Maximum 30 GB.</div>
                     </div>
                 </div>
                 <div class="portal-action-row">
@@ -3612,7 +3613,11 @@
             if (!list || !empty) return;
 
             const submissions = getStudentAssignmentSubmissions(student);
-            if (!submissions.length) {
+            const gradedAssignments = getPortalData(STUDENT_UPLOADED_ASSIGNMENT_KEY)
+                .filter((assignment) => assignment.submissions?.[student.id]?.submitted)
+                .map((assignment) => ({ assignment, submission: assignment.submissions[student.id] }))
+                .filter(({ submission }) => submission.marks !== undefined && submission.marks !== '');
+            if (!submissions.length && !gradedAssignments.length) {
                 list.innerHTML = '';
                 empty.style.display = 'block';
                 return;
@@ -3638,6 +3643,9 @@
             if (!list || !empty) return;
 
             const assignments = getClassWiseItems(STUDENT_UPLOADED_ASSIGNMENT_KEY, student);
+            const hasPendingAssignment = assignments.some((item) => !item.submissions?.[student.id]?.submitted);
+            const submissionForm = document.getElementById('studentAssignmentForm');
+            if (submissionForm) submissionForm.style.display = hasPendingAssignment ? '' : 'none';
             if (!assignments.length) {
                 list.innerHTML = '';
                 empty.style.display = 'block';
@@ -3651,10 +3659,22 @@
                     <div class="portal-content-meta">
                         Start: ${escapeHtml(item.startDate || '-')} | Due: ${escapeHtml(item.dueDate || '-')}
                     </div>
-                    ${item.file?.dataUrl ? `<button type="button" class="portal-download-btn" onclick="downloadPortalAttachment('${STUDENT_UPLOADED_ASSIGNMENT_KEY}', '${escapeHtml(item.id || '')}')"><i data-lucide="download" width="16"></i> Download Assignment</button>` : ''}
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                        ${item.file?.dataUrl ? `<button type="button" class="portal-download-btn" onclick="downloadPortalAttachment('${STUDENT_UPLOADED_ASSIGNMENT_KEY}', '${escapeHtml(item.id || '')}')"><i data-lucide="download" width="16"></i> Download Assignment</button>` : ''}
+                        ${item.submissions?.[student.id]?.submitted ? `<span class="portal-download-btn" style="cursor:default;">Submitted${item.submissions[student.id].marks !== undefined && item.submissions[student.id].marks !== '' ? ` · Marks: ${escapeHtml(item.submissions[student.id].marks)} / ${escapeHtml(item.totalMarks)}` : ''}</span>` : `<button type="button" class="portal-download-btn" onclick="selectUploadedAssignment('${escapeHtml(item.id || '')}')">Submit This Assignment</button>`}
+                    </div>
                 </article>
             `).join('');
             if (window.lucide) window.lucide.createIcons();
+        }
+
+        function selectUploadedAssignment(assignmentId) {
+            const assignment = getPortalData(STUDENT_UPLOADED_ASSIGNMENT_KEY).find((item) => String(item.id) === String(assignmentId));
+            if (!assignment) return;
+            document.getElementById('studentAssignmentId').value = assignment.id || '';
+            document.getElementById('studentAssignmentTitle').value = assignment.file?.name || assignment.subject || 'Assignment';
+            document.getElementById('studentAssignmentSubject').value = assignment.subject || '';
+            document.getElementById('studentAssignmentForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         function updateStudentAssignmentFileLabel() {
@@ -3663,9 +3683,11 @@
             if (label) {
                 label.textContent = file
                     ? `Selected: ${file.name}`
-                    : 'Attach assignment file: PDF, Word, image, or text.';
+                    : 'Attach assignment file: PDF, Word, image, or text. Maximum 30 GB.';
             }
         }
+
+        const MAX_STUDENT_ASSIGNMENT_FILE_SIZE = 30 * 1024 * 1024 * 1024;
 
         async function submitStudentAssignment(event) {
             event.preventDefault();
@@ -3673,8 +3695,21 @@
             const title = document.getElementById('studentAssignmentTitle').value.trim();
             const subject = document.getElementById('studentAssignmentSubject').value.trim();
             const note = document.getElementById('studentAssignmentNote').value.trim();
-            if (!title) {
-                showAppAlert('Assignment title is required.', 'Missing Assignment');
+            let uploadedAssignmentId = document.getElementById('studentAssignmentId')?.value || '';
+            const availableAssignments = getPortalData(STUDENT_UPLOADED_ASSIGNMENT_KEY);
+            const selectedAssignment = availableAssignments.find((item) => String(item.id) === String(uploadedAssignmentId));
+            if (!uploadedAssignmentId && availableAssignments.length === 1) {
+                uploadedAssignmentId = availableAssignments[0].id || '';
+            }
+            const assignmentDetails = selectedAssignment || availableAssignments.find((item) => String(item.id) === String(uploadedAssignmentId));
+
+            const selectedFile = document.getElementById('studentAssignmentFile')?.files?.[0];
+            if (!selectedFile) {
+                showAppAlert('Please attach an assignment file.', 'Missing File');
+                return;
+            }
+            if (selectedFile.size > MAX_STUDENT_ASSIGNMENT_FILE_SIZE) {
+                showAppAlert('File size cannot be greater than 30 GB.', 'File Too Large');
                 return;
             }
 
@@ -3697,8 +3732,8 @@
                 studentName: student.fullName || loggedInUser.fullName || 'Student',
                 rollNo: student.rollNo || '',
                 classGrade: student.classGrade || '',
-                assignmentTitle: title,
-                subject,
+                assignmentTitle: assignmentDetails?.file?.name || assignmentDetails?.subject || title || 'Assignment Submission',
+                subject: assignmentDetails?.subject || subject,
                 note,
                 fileName: file.name,
                 fileType: file.type,
@@ -3707,13 +3742,34 @@
                 status: 'Submitted'
             };
 
+            if (uploadedAssignmentId) {
+                const uploadedAssignments = getPortalData(STUDENT_UPLOADED_ASSIGNMENT_KEY);
+                const assignment = uploadedAssignments.find((item) => String(item.id) === String(uploadedAssignmentId));
+                if (assignment) {
+                    assignment.submissions = assignment.submissions || {};
+                    assignment.submissions[student.id] = {
+                        ...(assignment.submissions[student.id] || {}),
+                        submitted: true,
+                        fileName: file.name,
+                        fileType: file.type,
+                        fileData: file.dataUrl,
+                        submittedAt: new Date().toISOString(),
+                        note
+                    };
+                    try {
+                        localStorage.setItem(STUDENT_UPLOADED_ASSIGNMENT_KEY, JSON.stringify(uploadedAssignments));
+                    } catch (_error) {
+                        console.warn('Assignment submission could not be cached locally; server sync will continue.');
+                    }
+                }
+            }
+
             const submissions = getPortalData(STUDENT_ASSIGNMENT_SUBMISSION_KEY);
             submissions.unshift(payload);
             try {
                 localStorage.setItem(STUDENT_ASSIGNMENT_SUBMISSION_KEY, JSON.stringify(submissions));
             } catch (_error) {
-                showAppAlert('Assignment file is too large to save in browser storage.', 'Storage Full');
-                return;
+                console.warn('Assignment submission could not be cached locally; server sync will continue.');
             }
 
             try {
@@ -3736,6 +3792,7 @@
             document.getElementById('studentAssignmentForm').reset();
             updateStudentAssignmentFileLabel();
             renderStudentAssignmentSubmissions(student);
+            renderStudentUploadedAssignments(student);
             updateStudentNotifications(student);
             showAppAlert('Your assignment has been submitted.', 'Assignment Submitted');
         }
@@ -5492,6 +5549,13 @@
                     <div class="portal-content-meta">Latest: ${escapeHtml(items[0]?.performanceDate || '-')}</div>
                     <button type="button" class="portal-download-btn" onclick="openStudentSubjectPerformance('${encodeURIComponent(subject)}')"><i data-lucide="book-open" width="16"></i> Open Subject</button>
                 </article>
+            `).join('') + gradedAssignments.map(({ assignment, submission }) => `
+                <article class="portal-content-card">
+                    <h4>${escapeHtml(assignment.subject || 'Assignment')}</h4>
+                    <div class="portal-content-meta">${escapeHtml(assignment.classGrade || '-')} | Marks: ${escapeHtml(submission.marks)} / ${escapeHtml(assignment.totalMarks)}</div>
+                    <p>${Number(submission.marks) >= Number(assignment.passingMarks ?? Number(assignment.totalMarks) / 2) ? 'Pass' : 'Fail'}</p>
+                    ${submission.fileData ? `<a class="portal-download-btn" href="${escapeHtml(submission.fileData)}" download="${escapeHtml(submission.fileName || 'submission')}">Download Submitted File</a>` : ''}
+                </article>
             `).join('');
             if (window.lucide) window.lucide.createIcons();
         }
@@ -6148,7 +6212,19 @@
             document.getElementById('printStudentResultBtn')?.addEventListener('click', printStudentResultCard);
             document.getElementById('studentLeaveForm')?.addEventListener('submit', submitStudentLeaveRequest);
             document.getElementById('studentLeaveFile')?.addEventListener('change', () => updateStudentLeaveFileLabel());
-            document.getElementById('studentAssignmentForm')?.addEventListener('submit', submitStudentAssignment);
+        window.addEventListener('storage', (event) => {
+            if (event.key === STUDENT_UPLOADED_ASSIGNMENT_KEY || event.key === STUDENT_ASSIGNMENT_SUBMISSION_KEY) {
+                const student = getCurrentPortalStudent();
+                renderStudentAssignmentSubmissions(student);
+                renderStudentUploadedAssignments(student);
+            }
+        });
+        window.addEventListener('focus', () => {
+            const student = getCurrentPortalStudent();
+            renderStudentAssignmentSubmissions(student);
+            renderStudentUploadedAssignments(student);
+        });
+        document.getElementById('studentAssignmentForm')?.addEventListener('submit', submitStudentAssignment);
             document.getElementById('studentAssignmentFile')?.addEventListener('change', updateStudentAssignmentFileLabel);
             document.getElementById('studentComplaintForm')?.addEventListener('submit', submitStudentComplaint);
             document.getElementById('studentComplaintFile')?.addEventListener('change', updateStudentComplaintFileLabel);

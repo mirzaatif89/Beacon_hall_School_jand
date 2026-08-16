@@ -12,7 +12,10 @@
         .performance-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}
         .performance-step{padding:13px 16px;border:1px solid #cfe3dc;border-radius:12px;background:#fff;color:#64748b;font-weight:800}
         .performance-step.active{color:#176b4a;border-color:#35a56e;background:#effaf4;box-shadow:0 8px 20px rgba(53,165,110,.12)}
-        .performance-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px}
+        .performance-layout{display:block}
+        .performance-layout > .performance-panel:first-child{display:none}
+        .step-select{display:block;width:100%;margin-top:8px;min-height:34px;padding:6px 9px;border:1px solid #cfe3dc;border-radius:8px;background:#fff;font:inherit;color:#24483a}
+        .class-select{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #cfe3dc;border-radius:10px;padding:10px;background:#fff;font:inherit;color:#24483a}
         .performance-panel{background:#fff;border:1px solid #cfe3dc;border-radius:12px;padding:18px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
         .performance-panel h2{font-size:1.05rem;color:#153d2e;margin:0 0 14px}
         .choice-list{display:grid;gap:9px;max-height:540px;overflow:auto;padding-right:4px}
@@ -34,6 +37,13 @@
         .performance-textarea{min-height:92px;resize:vertical;line-height:1.45}
         .form-strip,.print-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:14px;padding:12px;border:1px solid #dcebe5;border-radius:10px;background:#f8fcfa}
         .field-label{display:grid;gap:6px;color:#48675a;font-weight:800;font-size:.82rem}
+        .portfolio-field{font-size:1.05rem;min-height:40px;align-content:start}
+        #performanceModal .performance-form-grid:first-of-type{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end}
+        #performanceModal .performance-form-grid:nth-of-type(2){grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+        #performanceModal #modalSkill,#performanceModal #modalLearningOutcome{min-height:76px;max-height:96px}
+        #performanceModal .rubric-grid{gap:14px;margin-top:2px}
+        #performanceModal .rubric-card{padding:12px;background:#f8fcfa;box-shadow:0 3px 10px rgba(15,61,46,.04)}
+        #performanceModal .rubric-card .performance-textarea{min-height:82px;max-height:105px}
         .action-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
         .action-button{border:0;border-radius:9px;background:#35a56e;color:#fff;padding:10px 14px;font-weight:850;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
         .action-button.secondary{background:#eef8f2;color:#176b4a;border:1px solid #bfe2d0}
@@ -66,9 +76,9 @@
     <main class="main-content">
         <a class="back-link" href="student_scheduling.html"><i data-lucide="arrow-left" width="18"></i> Back to Student Scheduling</a>
         <header class="header"><div><h1>Student Performance</h1><p style="color:var(--text-secondary);margin-top:.3rem">Select a student, choose a subject, then add skill-wise performance.</p></div></header>
-        <div class="performance-steps"><div class="performance-step active" id="stepClass">1. Select Class</div><div class="performance-step" id="stepStudent">2. Select Student</div><div class="performance-step" id="stepSubjects">3. Select Subject</div><div class="performance-step" id="stepSkills">4. Add Performance</div></div>
+        <div class="performance-steps"><div class="performance-step active" id="stepClass">1. Select Class<select class="step-select" id="classStepSelect"><option value="">Select Class</option></select></div><div class="performance-step" id="stepStudent">2. Select Student<select class="step-select" id="studentStepSelect" disabled><option value="">Select Student</option></select></div><div class="performance-step" id="stepSubjects">3. Select Subject</div><div class="performance-step" id="stepSkills">4. Add Performance</div></div>
         <section class="performance-layout">
-            <div class="performance-panel"><h2 id="choiceTitle">Classes</h2><div class="choice-list" id="choiceList"><div class="empty-state">Loading classes...</div></div></div>
+            <div class="performance-panel"><h2 id="choiceTitle">Select Class</h2><select class="class-select" id="choiceList"><option value="">Loading classes...</option></select></div>
             <div class="performance-panel" id="workspace"><div class="empty-state"><i data-lucide="school" width="32"></i><p>Select a class to view its students.</p></div></div>
         </section>
     </main>
@@ -95,6 +105,8 @@
     let examResults = [];
     const choiceTitle = document.getElementById('choiceTitle');
     const choiceList = document.getElementById('choiceList');
+    const classStepSelect = document.getElementById('classStepSelect');
+    const studentStepSelect = document.getElementById('studentStepSelect');
     const workspace = document.getElementById('workspace');
     const steps = [document.getElementById('stepClass'), document.getElementById('stepStudent'), document.getElementById('stepSubjects'), document.getElementById('stepSkills')];
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -159,13 +171,13 @@
     }
 
     function renderClasses() {
-        choiceTitle.textContent = 'Classes';
-        choiceList.innerHTML = classNames().map(name => {
-            const count = students.filter(student => norm(student.classGrade) === norm(name)).length;
-            return `<button class="choice-button ${norm(name) === norm(selectedClass) ? 'active' : ''}" data-class="${esc(name)}"><span>${esc(name)}<small class="choice-meta">${count} student${count === 1 ? '' : 's'}</small></span><i data-lucide="chevron-right" width="18"></i></button>`;
-        }).join('');
-        choiceList.querySelectorAll('[data-class]').forEach(button => button.onclick = () => selectClass(button.dataset.class));
-        if (window.lucide) lucide.createIcons();
+        choiceTitle.textContent = 'Select Class';
+        choiceList.innerHTML = '<option value="">Select Class</option>' + classNames().map(name => `<option value="${esc(name)}">${esc(name)} (${students.filter(student => norm(student.classGrade) === norm(name)).length})</option>`).join('');
+        choiceList.value = selectedClass;
+        choiceList.onchange = () => choiceList.value && selectClass(choiceList.value);
+        classStepSelect.innerHTML = '<option value="">Select Class</option>' + classNames().map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+        classStepSelect.value = selectedClass;
+        classStepSelect.onchange = () => classStepSelect.value && selectClass(classStepSelect.value);
     }
 
     function selectClass(name) {
@@ -176,9 +188,11 @@
         setSteps(2);
         renderClasses();
         const list = students.filter(student => norm(student.classGrade) === norm(name));
-        workspace.innerHTML = `<div class="performance-heading"><h2>${esc(name)} Students</h2><span class="badge">${list.length} enrolled</span></div><div class="choice-list">${list.length ? list.map(student => `<button class="choice-button" data-student="${esc(student.id)}"><span>${esc(student.fullName || 'Unnamed Student')}<small class="choice-meta">Roll No: ${esc(student.rollNo || student.studentCode || '-')} - ${esc(student.campusName || 'Main Campus')}</small></span><i data-lucide="chevron-right" width="18"></i></button>`).join('') : '<div class="empty-state">No students found in this class.</div>'}</div>`;
-        workspace.querySelectorAll('[data-student]').forEach(button => button.onclick = () => selectStudent(button.dataset.student));
-        if (window.lucide) lucide.createIcons();
+        studentStepSelect.disabled = !list.length;
+        studentStepSelect.innerHTML = '<option value="">Select Student</option>' + list.map(student => `<option value="${esc(student.id)}">${esc(student.fullName || 'Unnamed Student')}</option>`).join('');
+        studentStepSelect.value = '';
+        studentStepSelect.onchange = () => studentStepSelect.value && selectStudent(studentStepSelect.value);
+        workspace.innerHTML = `<div class="empty-state">${list.length ? 'Select a student from the Student dropdown above.' : 'No students found in this class.'}</div>`;
     }
 
     async function selectStudent(id) {
@@ -232,6 +246,12 @@
         if (modal) return modal;
         document.body.insertAdjacentHTML('beforeend', `<div class="performance-modal" id="performanceModal"><div class="performance-dialog"><div class="performance-dialog-head"><div><h2 id="performanceModalTitle">Add Performance</h2><p id="performanceModalMeta"></p></div><button class="modal-close" id="closePerformanceModal" type="button"><i data-lucide="x" width="20"></i></button></div><form class="performance-form" id="performanceModalForm"><input type="hidden" id="modalRecordId"><div class="performance-form-grid"><label class="field-label">Date<input class="date-input" id="modalPerformanceDate" type="date"></label><label class="field-label">Month<input class="month-input" id="modalPerformanceMonth" type="month"></label></div><div class="performance-form-grid"><label class="field-label">Skills<textarea class="performance-textarea" id="modalSkill" placeholder="Write skill description"></textarea></label><label class="field-label">Learning Outcome<textarea class="performance-textarea" id="modalLearningOutcome" placeholder="Write learning outcome description"></textarea></label></div><div class="rubric-grid"><div class="rubric-card"><label class="field-label">Excellent<textarea class="performance-textarea" id="modalExcellent" placeholder="Describe excellent performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Satisfactory<textarea class="performance-textarea" id="modalSatisfactory" placeholder="Describe satisfactory performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Needs Practice<textarea class="performance-textarea" id="modalNeedsPractice" placeholder="Describe what needs practice"></textarea></label></div></div></form><div class="modal-actions"><button class="action-button secondary" id="cancelPerformanceModal" type="button">Cancel</button><button class="action-button" id="saveSkill" type="button"><i data-lucide="database" width="18"></i> Save Performance</button></div></div></div>`);
         modal = document.getElementById('performanceModal');
+        const portfolioDateLabel = document.getElementById('modalPerformanceDate')?.parentElement;
+        if (portfolioDateLabel) {
+            portfolioDateLabel.classList.add('portfolio-field');
+            portfolioDateLabel.firstChild.textContent = 'Portfolio';
+            document.getElementById('modalPerformanceDate').style.display = 'none';
+        }
         document.getElementById('closePerformanceModal').onclick = closePerformanceModal;
         document.getElementById('cancelPerformanceModal').onclick = closePerformanceModal;
         modal.addEventListener('click', event => {
@@ -357,9 +377,16 @@
             showAppAlert('No performance records are available for this subject.', 'Nothing To Print');
             return;
         }
+        const portfolioMonth = records[0]?.performanceMonth || String(records[0]?.performanceDate || '').slice(0, 7) || 'Month-Year';
         const rows = records.map(record => `<tr><td class="skill"><strong>${esc(record.skill)}</strong><small>${esc(record.performanceDate || '')}</small></td><td>${esc(record.learningOutcome || '')}</td><td><span class="circle">○</span>${esc(record.excellentDescription || '')}</td><td><span class="circle">○</span>${esc(record.satisfactoryDescription || '')}</td><td><span class="circle">○</span>${esc(record.needsPracticeDescription || '')}</td></tr>`).join('');
         const html = `<!DOCTYPE html><html><head><title>${esc(selectedSubject)} Progress</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1f2937;margin:0;font-size:10px}.head{display:flex;align-items:center;justify-content:center;gap:12px;border:2px solid #374151;border-radius:24px;padding:7px 18px;margin-bottom:8px}.logo{width:48px;height:48px;object-fit:contain}.head h1{margin:0;text-align:center;font-size:18px}.head p{margin:3px 0 0;text-align:center;font-size:12px}.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}.box{border:1px solid #6b7280;padding:5px 8px;min-height:25px}.report{width:100%;border-collapse:collapse;table-layout:fixed}.report th,.report td{border:1px solid #4b5563;padding:5px;vertical-align:top;line-height:1.18;word-break:break-word}.report th{background:#e5e7eb;text-align:center;font-size:11px}.report th:nth-child(1){width:13%}.report th:nth-child(2){width:25%}.report th:nth-child(3),.report th:nth-child(4),.report th:nth-child(5){width:20.66%}.skill{font-size:11px}.skill small{display:block;margin-top:5px;color:#4b5563;font-size:9px}.circle{font-size:16px;line-height:10px;margin-right:4px;vertical-align:-1px}.signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:45px;margin-top:20px;font-size:11px}.line{border-top:1px solid #374151;padding-top:4px;text-align:center}@media print{.head,.report th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="head"><img class="logo" src="${esc(logoSrc)}" alt="School logo"><div><h1>Beacon Light School System</h1><p>${esc(selectedSubject)} Progress Report</p></div></div><div class="meta"><div class="box"><strong>Name:</strong> ${esc(selectedStudent.fullName || '')}</div><div class="box"><strong>Class:</strong> ${esc(selectedClass)}</div><div class="box"><strong>Roll No:</strong> ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</div></div><table class="report"><thead><tr><th>Skills</th><th>Learning Outcome</th><th>Excellent</th><th>Satisfactory</th><th>Needs Practice</th></tr></thead><tbody>${rows}</tbody></table><div class="signatures"><div class="line">Teacher's Signature</div><div class="line">School Stamp</div><div class="line">Parent Signature</div></div></body></html>`;
-        openPrintableReport(html);
+        openPrintableReport(html
+            .replace('</style>', '.portfolio-head{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border:1px solid #777;border-radius:18px;background:#e5e5e5;padding:7px 18px;margin-bottom:8px;font-weight:800;text-align:center}.portfolio-head span:first-child{text-align:left}.portfolio-head span:last-child{text-align:right}.meta{display:none!important}.stamp-line{border-top:0!important;font-size:13px;font-weight:800;line-height:1.35}</style>')
+            .replace(/<div class="head">[\s\S]*?<\/div><div class="meta">/, `<div class="portfolio-head"><span>Portfolio_${esc(portfolioMonth)}</span><span>${esc(selectedSubject)}</span><span>${esc(selectedStudent.fullName || '')}</span></div><div class="meta">`)
+            .replace('<th>Excellent</th>', '<th>😊 Excellent</th>')
+            .replace('<th>Satisfactory</th>', '<th>🙂 Satisfactory</th>')
+            .replace('<th>Needs Practice</th>', '<th>😟 Needs Practice</th>')
+            .replace('<div class="line">School Stamp</div>', '<div class="line stamp-line">Beacon Light School System Jand<br>School Stamp</div>'));
     }
 
     function openPrintableReport(html) {

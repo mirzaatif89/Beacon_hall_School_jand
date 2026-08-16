@@ -26,6 +26,9 @@
         .mini-btn { min-height:34px; border:0; border-radius:8px; padding:.45rem .7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:.35rem; }
         .mini-btn.edit { background:#f1e8f7; color:#43206f; }
         .mini-btn.delete { background:#fee2e2; color:#b91c1c; }
+        .page-back-btn { display:inline-flex; align-items:center; gap:.45rem; width:max-content; margin-bottom:1rem; padding:.6rem .9rem; border:1px solid #cfe8e5; border-radius:10px; background:#fff; color:#176b4c; font-weight:800; text-decoration:none; box-shadow:0 4px 12px rgba(15,23,42,.05); }
+        .page-back-btn:hover { background:#f0faf6; }
+        .page-back-btn svg { width:18px; height:18px; }
     </style>
 </head>
 
@@ -41,7 +44,7 @@
             <a href="settings.html" class="user-profile"><div class="avatar">AD</div><div class="user-info"><h4>Admin User</h4><p>Admin</p></div></a>
         </aside>
         <main class="main-content">
-            <header class="header"><div><h1>Lecture Uploading</h1><p style="color:var(--text-secondary); margin-top:.3rem;">Upload class-wise lectures for student portal.</p></div></header>
+            <header class="header"><div><a href="student_scheduling.html" class="page-back-btn" aria-label="Back to Student Scheduling"><i data-lucide="arrow-left"></i> Back</a><h1>Lecture Uploading</h1><p style="color:var(--text-secondary); margin-top:.3rem;">Upload class-wise lectures for student portal.</p></div></header>
             <section class="upload-panel">
                 <form id="lectureUploadForm">
                     <input type="hidden" id="lectureUploadId">

@@ -11,9 +11,44 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .back-link { display:inline-flex; align-items:center; gap:.45rem; margin-bottom:1rem; color:#0f766e; font-weight:800; text-decoration:none; }
-        .assignment-upload-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; align-items:end; }
-        .assignment-upload-grid input,.assignment-upload-grid select { min-height:42px; }
+        .assignment-upload-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+        .assignment-upload-grid > div { min-width: 0; }
+        .assignment-upload-grid label {
+            display: block;
+            margin: 0 0 .45rem;
+            line-height: 1.2;
+        }
+        .assignment-upload-grid input,
+        .assignment-upload-grid select {
+            box-sizing: border-box;
+            display: block;
+            width: 100%;
+            height: 46px;
+            min-height: 46px;
+            margin: 0;
+            padding: .55rem .75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #fff;
+            font: inherit;
+        }
+        .assignment-upload-grid input[type="file"] { padding: .35rem .55rem; }
+        @media (max-width: 900px) {
+            .assignment-upload-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 560px) {
+            .assignment-upload-grid { grid-template-columns: 1fr; }
+        }
         .assignment-file-name { display:block; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .assignment-list-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; margin:1rem 0; }
+        .assignment-list-filters select { width:100%; min-height:40px; padding:.45rem .65rem; border:1px solid var(--border-color); border-radius:8px; background:#fff; }
+        @media (max-width:800px) { .assignment-list-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width:520px) { .assignment-list-filters { grid-template-columns:1fr; } }
     </style>
 </head>
 
@@ -39,6 +74,7 @@
                         <div><label>Class</label><select id="assignmentUploadClass" required></select></div>
                         <div><label>Subject</label><input id="assignmentUploadSubject" required placeholder="e.g. Mathematics"></div>
                         <div><label>Total Marks</label><input type="number" id="assignmentTotalMarks" min="1" required placeholder="100"></div>
+                        <div><label>Passing Marks</label><input type="number" id="assignmentPassingMarks" min="0" required placeholder="40"></div>
                         <div><label>Start Date</label><input type="date" id="assignmentStartDate" required></div>
                         <div><label>Due Date</label><input type="date" id="assignmentDueDate" required></div>
                         <div><label>Assignment File</label><input type="file" id="assignmentUploadFile" required accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"></div>
@@ -46,7 +82,7 @@
                     <button type="submit" class="btn btn-primary" style="margin-top:1rem;"><i data-lucide="send"></i> Submit Assignment</button>
                 </form>
             </section>
-            <section class="schedule-panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;"><h3>Uploaded Assignments & Submissions</h3><button type="button" class="btn btn-outline" onclick="printAssignmentList()"><i data-lucide="printer"></i> Print List</button></div><div id="assignmentUploadList"></div></section>
+            <section class="schedule-panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;"><h3>Uploaded Assignments & Submissions</h3><button type="button" class="btn btn-outline" onclick="printAssignmentList()"><i data-lucide="printer"></i> Print List</button></div><div class="assignment-list-filters"><select id="assignmentFilterCampus"><option value="">All Campuses</option></select><select id="assignmentFilterClass"><option value="">All Classes</option></select><select id="assignmentFilterSubject"><option value="">All Subjects</option></select><select id="assignmentFilterStatus"><option value="">All Statuses</option><option value="Pass">Pass</option><option value="Fail">Fail</option><option value="Submitted">Submitted</option><option value="Not Submitted">Not Submitted</option></select></div><div id="assignmentUploadList"></div></section>
         </main>
     </div>
     <div id="successModal" class="success-overlay"><div class="success-modal"><div class="success-icon-wrap"><i data-lucide="check-circle"></i></div><h2 id="successTitle">Success!</h2><p id="successMessage" style="color:var(--text-secondary); margin:1rem 0 2rem;"></p><button class="btn btn-primary" style="width:100%;" onclick="closeSuccessModal()">Great!</button></div></div>
@@ -83,9 +119,25 @@
             });
         }
         function render() {
-            const items = data(STUDENT_UPLOADED_ASSIGNMENT_KEY).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+            const filterCampus = assignmentFilterCampus.value;
+            const filterClass = assignmentFilterClass.value;
+            const filterSubject = assignmentFilterSubject.value;
+            const filterStatus = assignmentFilterStatus.value;
+            const allItems = data(STUDENT_UPLOADED_ASSIGNMENT_KEY).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+            const items = allItems.filter((item) => (!filterCampus || item.campusName === filterCampus) && (!filterClass || item.classGrade === filterClass) && (!filterSubject || item.subject === filterSubject));
+            assignmentFilterCampus.innerHTML = '<option value="">All Campuses</option>' + [...new Set(allItems.map((item) => item.campusName).filter(Boolean))].sort().map((value) => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+            assignmentFilterCampus.value = filterCampus;
+            assignmentFilterClass.innerHTML = '<option value="">All Classes</option>' + [...new Set(allItems.filter((item) => !filterCampus || item.campusName === filterCampus).map((item) => item.classGrade).filter(Boolean))].sort().map((value) => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+            assignmentFilterClass.value = filterClass;
+            assignmentFilterSubject.innerHTML = '<option value="">All Subjects</option>' + [...new Set(allItems.filter((item) => (!filterCampus || item.campusName === filterCampus) && (!filterClass || item.classGrade === filterClass)).map((item) => item.subject).filter(Boolean))].sort().map((value) => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+            assignmentFilterSubject.value = filterSubject;
             if (!items.length) { assignmentUploadList.innerHTML = '<div class="empty-note">No assignment uploaded yet.</div>'; return; }
-            assignmentUploadList.innerHTML = items.map((item) => { const students = data('eduCore_students').filter(s => String(s.campusName||'') === String(item.campusName||'') && String(s.classGrade||'') === String(item.classGrade||'')); return `<div style="margin:1rem 0;padding:1rem;border:1px solid #dbecea;border-radius:12px"><strong>${esc(item.subject)} · ${esc(item.classGrade)} · ${esc(item.campusName)}</strong><span style="margin-left:1rem">Total: ${esc(item.totalMarks)}</span><br><a class="assignment-file-name" href="${item.file?.dataUrl || '#'}" download="${esc(item.file?.name || 'assignment')}">${esc(item.file?.name || 'Download')}</a><table class="schedule-table"><thead><tr><th>Student</th><th>Status</th><th>Marks</th><th>Result</th></tr></thead><tbody>${students.map(s => { const sub=(item.submissions||{})[s.id]||{}; const result = sub.marks === undefined || sub.marks === '' ? '-' : (Number(sub.marks) >= Number(item.totalMarks) / 2 ? 'Pass' : 'Fail'); return `<tr><td>${esc(s.fullName||s.name||'Student')}</td><td><select onchange="setSubmission('${esc(item.id)}','${esc(s.id)}',this.value)"><option ${sub.submitted?'selected':''} value="submitted">Submitted</option><option ${!sub.submitted?'selected':''} value="not_submitted">Not Submitted</option></select></td><td><input style="width:90px" type="number" min="0" max="${esc(item.totalMarks)}" value="${esc(sub.marks||'')}" onchange="setMarks('${esc(item.id)}','${esc(s.id)}',this.value)"></td><td>${result}</td></tr>`; }).join('')}</tbody></table><button type="button" class="schedule-action-btn delete" onclick="deleteAssignment('${esc(item.id)}')">Delete</button></div>`; }).join('');
+            assignmentUploadList.innerHTML = items.map((item) => { const students = data('eduCore_students').filter(s => String(s.campusName||'') === String(item.campusName||'') && String(s.classGrade||'') === String(item.classGrade||'')); return `<div style="margin:1rem 0;padding:1rem;border:1px solid #dbecea;border-radius:12px"><strong>${esc(item.subject)} · ${esc(item.classGrade)} · ${esc(item.campusName)}</strong><span style="margin-left:1rem">Total: ${esc(item.totalMarks)} | Pass: ${esc(item.passingMarks)}</span><br><a class="assignment-file-name" href="${item.file?.dataUrl || '#'}" download="${esc(item.file?.name || 'assignment')}">${esc(item.file?.name || 'Download')}</a><table class="schedule-table"><thead><tr><th>Student</th><th>Status</th><th>Submitted File</th><th>Marks</th><th>Result</th></tr></thead><tbody>${students.map(s => { const sub=(item.submissions||{})[s.id]||{}; const result = sub.marks === undefined || sub.marks === '' ? '-' : (Number(sub.marks) >= Number(item.passingMarks) ? 'Pass' : 'Fail'); const submittedFile = sub.fileData ? `<a href="${sub.fileData}" download="${esc(sub.fileName || 'submission')}">View file</a>` : '-'; const status = sub.submitted ? 'Submitted' : 'Not Submitted'; return `<tr><td>${esc(s.fullName||s.name||'Student')}</td><td><span>${status}</span></td><td>${submittedFile}</td><td><input style="width:90px" type="number" min="0" max="${esc(item.totalMarks)}" value="${esc(sub.marks||'')}" onchange="setMarks('${esc(item.id)}','${esc(s.id)}',this.value)"></td><td>${result}</td></tr>`; }).join('')}</tbody></table><button type="button" class="schedule-action-btn delete" onclick="deleteAssignment('${esc(item.id)}')">Delete</button></div>`; }).join('');
+            if (filterStatus) assignmentUploadList.querySelectorAll('tbody tr').forEach((row) => {
+                const status = row.children[1]?.textContent.trim();
+                const result = row.children[4]?.textContent.trim();
+                row.style.display = filterStatus === status || filterStatus === result ? '' : 'none';
+            });
             if (window.lucide) window.lucide.createIcons();
         }
         function deleteAssignment(id) {
@@ -102,13 +154,14 @@
                 campusName: assignmentUploadCampus.value,
                 subject: assignmentUploadSubject.value.trim(),
                 totalMarks: Number(assignmentTotalMarks.value),
+                passingMarks: Number(assignmentPassingMarks.value),
                 startDate: assignmentStartDate.value,
                 dueDate: assignmentDueDate.value,
                 file,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
-            if (!item.campusName || !item.classGrade || !item.subject || !item.totalMarks || !item.startDate || !item.dueDate || !item.file?.dataUrl) { showAppAlert('Campus, class, subject, total marks, dates, and file are required.', 'Missing Assignment'); return; }
+            if (!item.campusName || !item.classGrade || !item.subject || !item.totalMarks || item.passingMarks < 0 || item.passingMarks > item.totalMarks || !item.startDate || !item.dueDate || !item.file?.dataUrl) { showAppAlert('Please enter valid assignment details and passing marks.', 'Missing Assignment'); return; }
             if (item.dueDate < item.startDate) { showAppAlert('Due date cannot be before start date.', 'Date Error'); return; }
             const items = data(STUDENT_UPLOADED_ASSIGNMENT_KEY);
             items.unshift(item);
@@ -120,7 +173,31 @@
         function updateAssignment(id, updater) { const items=data(STUDENT_UPLOADED_ASSIGNMENT_KEY); const item=items.find(x=>x.id===id); if(!item)return; updater(item); save(items); render(); }
         function setSubmission(id, studentId, value) { updateAssignment(id, item => { item.submissions=item.submissions||{}; item.submissions[studentId]={...(item.submissions[studentId]||{}),submitted:value==='submitted'}; }); }
         function setMarks(id, studentId, value) { updateAssignment(id, item => { item.submissions=item.submissions||{}; item.submissions[studentId]={...(item.submissions[studentId]||{}),marks:value}; }); }
-        function printAssignmentList() { const html=assignmentUploadList.innerHTML; const win=window.open('','_blank'); if(win){win.document.write('<html><head><title>Assignment Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h1>Assignment Report</h1>'+html+'</body></html>'); win.document.close(); win.print();} }
+        function printAssignmentList() {
+            const campus = assignmentFilterCampus.value;
+            const className = assignmentFilterClass.value;
+            const subject = assignmentFilterSubject.value;
+            const statusFilter = assignmentFilterStatus.value;
+            const items = data(STUDENT_UPLOADED_ASSIGNMENT_KEY).filter((item) => (!campus || item.campusName === campus) && (!className || item.classGrade === className) && (!subject || item.subject === subject));
+            const rows = [];
+            items.forEach((item) => {
+                data('eduCore_students').filter((student) => String(student.campusName || '') === String(item.campusName || '') && String(student.classGrade || '') === String(item.classGrade || '')).forEach((student) => {
+                    const sub = (item.submissions || {})[student.id] || {};
+                    const status = sub.submitted ? 'Submitted' : 'Not Submitted';
+                    const marks = sub.marks === undefined || sub.marks === '' ? '-' : sub.marks;
+                    const result = marks === '-' ? '-' : (Number(marks) >= Number(item.passingMarks ?? Number(item.totalMarks) / 2) ? 'Pass' : 'Fail');
+                    if (statusFilter && statusFilter !== status && statusFilter !== result) return;
+                    rows.push(`<tr><td>${esc(student.fullName || student.name || 'Student')}</td><td>${status}</td><td>${sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '-'}</td><td>${esc(marks)}</td><td>${result}</td></tr>`);
+                });
+            });
+            const win = window.open('', '_blank');
+            if (!win) return;
+            win.document.write(`<html><head><title>Assignment Report</title><style>body{font-family:Arial,sans-serif;color:#173b2d;padding:32px}header{text-align:center;border-bottom:2px solid #238b5b;padding-bottom:16px;margin-bottom:24px}header img{width:70px;height:70px;object-fit:contain}header h1{margin:8px 0 0;font-size:24px}header h2{margin:8px 0 0;font-size:20px;color:#238b5b}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #b9d8c8;padding:9px;text-align:left}th{background:#eaf6ef} .meta{margin:8px 0;color:#526b5e}</style></head><body><header><img src="images/logo.jpeg" alt="School Logo"><h1>Beacon Light School System</h1><h2>Assignment Report</h2></header><div class="meta">Campus: ${esc(campus || 'All Campuses')} | Class: ${esc(className || 'All Classes')} | Subject: ${esc(subject || 'All Subjects')} | Status: ${esc(statusFilter || 'All Statuses')}</div><table><thead><tr><th>Student Name</th><th>Status</th><th>Submitted Date</th><th>Marks</th><th>Result</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="5">No students found for selected filters.</td></tr>'}</tbody></table></body></html>`);
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+        [assignmentFilterCampus, assignmentFilterClass, assignmentFilterSubject, assignmentFilterStatus].forEach((filter) => filter.addEventListener('change', render));
         populateClasses(); render(); if (window.lucide) window.lucide.createIcons();
     </script>
 </body>
