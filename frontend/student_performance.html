@@ -38,7 +38,12 @@
         .form-strip,.print-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:14px;padding:12px;border:1px solid #dcebe5;border-radius:10px;background:#f8fcfa}
         .field-label{display:grid;gap:6px;color:#48675a;font-weight:800;font-size:.82rem}
         .portfolio-field{font-size:1.05rem;min-height:40px;align-content:start}
-        #performanceModal .performance-form-grid:first-of-type{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end}
+        #performanceModal .performance-form-grid:first-of-type{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+        #performanceModal .performance-form-grid:first-of-type .field-label:has(#modalPerformanceMonth){order:2;width:220px}
+        #performanceModal .performance-form-grid:first-of-type .portfolio-field{order:1;width:220px}
+        #performanceModal #modalPerformanceMonth{width:220px}
+        #performanceModal .performance-form-grid:first-of-type{position:relative}
+        #performanceModal #addNewPerformance{position:absolute;top:0;right:0}
         #performanceModal .performance-form-grid:nth-of-type(2){grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
         #performanceModal #modalSkill,#performanceModal #modalLearningOutcome{min-height:76px;max-height:96px}
         #performanceModal .rubric-grid{gap:14px;margin-top:2px}
@@ -244,7 +249,7 @@
     function ensurePerformanceModal() {
         let modal = document.getElementById('performanceModal');
         if (modal) return modal;
-        document.body.insertAdjacentHTML('beforeend', `<div class="performance-modal" id="performanceModal"><div class="performance-dialog"><div class="performance-dialog-head"><div><h2 id="performanceModalTitle">Add Performance</h2><p id="performanceModalMeta"></p></div><button class="modal-close" id="closePerformanceModal" type="button"><i data-lucide="x" width="20"></i></button></div><form class="performance-form" id="performanceModalForm"><input type="hidden" id="modalRecordId"><div class="performance-form-grid"><label class="field-label">Date<input class="date-input" id="modalPerformanceDate" type="date"></label><label class="field-label">Month<input class="month-input" id="modalPerformanceMonth" type="month"></label></div><div class="performance-form-grid"><label class="field-label">Skills<textarea class="performance-textarea" id="modalSkill" placeholder="Write skill description"></textarea></label><label class="field-label">Learning Outcome<textarea class="performance-textarea" id="modalLearningOutcome" placeholder="Write learning outcome description"></textarea></label></div><div class="rubric-grid"><div class="rubric-card"><label class="field-label">Excellent<textarea class="performance-textarea" id="modalExcellent" placeholder="Describe excellent performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Satisfactory<textarea class="performance-textarea" id="modalSatisfactory" placeholder="Describe satisfactory performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Needs Practice<textarea class="performance-textarea" id="modalNeedsPractice" placeholder="Describe what needs practice"></textarea></label></div></div></form><div class="modal-actions"><button class="action-button secondary" id="cancelPerformanceModal" type="button">Cancel</button><button class="action-button" id="saveSkill" type="button"><i data-lucide="database" width="18"></i> Save Performance</button></div></div></div>`);
+        document.body.insertAdjacentHTML('beforeend', `<div class="performance-modal" id="performanceModal"><div class="performance-dialog"><div class="performance-dialog-head"><div><h2 id="performanceModalTitle">Add Performance</h2><p id="performanceModalMeta"></p></div><button class="modal-close" id="closePerformanceModal" type="button"><i data-lucide="x" width="20"></i></button></div><form class="performance-form" id="performanceModalForm"><input type="hidden" id="modalRecordId"><div class="performance-form-grid"><label class="field-label">Date<input class="date-input" id="modalPerformanceDate" type="date"></label><label class="field-label">Month<input class="month-input" id="modalPerformanceMonth" type="month"></label><button class="action-button secondary" id="addNewPerformance" type="button"><i data-lucide="plus" width="18"></i> Add New Performance</button></div><div class="performance-form-grid"><label class="field-label">Skills<textarea class="performance-textarea" id="modalSkill" placeholder="Write skill description"></textarea></label><label class="field-label">Learning Outcome<textarea class="performance-textarea" id="modalLearningOutcome" placeholder="Write learning outcome description"></textarea></label></div><div class="rubric-grid"><div class="rubric-card"><label class="field-label">Excellent<textarea class="performance-textarea" id="modalExcellent" placeholder="Describe excellent performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Satisfactory<textarea class="performance-textarea" id="modalSatisfactory" placeholder="Describe satisfactory performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Needs Practice<textarea class="performance-textarea" id="modalNeedsPractice" placeholder="Describe what needs practice"></textarea></label></div></div></form><div class="modal-actions"><button class="action-button secondary" id="cancelPerformanceModal" type="button">Cancel</button><button class="action-button" id="saveSkill" type="button"><i data-lucide="database" width="18"></i> Save Performance</button></div></div></div>`);
         modal = document.getElementById('performanceModal');
         const portfolioDateLabel = document.getElementById('modalPerformanceDate')?.parentElement;
         if (portfolioDateLabel) {
@@ -258,6 +263,7 @@
             if (event.target === modal) closePerformanceModal();
         });
         document.getElementById('saveSkill').onclick = saveSkillPerformance;
+        document.getElementById('addNewPerformance').onclick = () => saveSkillPerformance(true);
         if (window.lucide) lucide.createIcons();
         return modal;
     }
@@ -283,7 +289,7 @@
         if (modal) modal.classList.remove('open');
     }
 
-    async function saveSkillPerformance() {
+    async function saveSkillPerformance(keepAdding = false) {
         const date = document.getElementById('modalPerformanceDate').value || today();
         const month = document.getElementById('modalPerformanceMonth').value || date.slice(0, 7);
         const record = {
@@ -319,9 +325,13 @@
             if (!response.ok || !result.success) throw new Error(result.message || 'Performance could not be saved.');
             const returned = Array.isArray(result.performances) ? result.performances : [];
             saved = mergePerformanceRecords(returned.some(item => item.skill) ? returned : [record], getLocalPerformanceRecords(selectedStudent.id));
-            closePerformanceModal();
             renderSkillEditor(selectedSubject);
-            showSuccessModal('Performance Saved!', 'Skill-wise subject performance has been saved.');
+            if (keepAdding) {
+                openPerformanceModal();
+            } else {
+                closePerformanceModal();
+                showSuccessModal('Performance Saved!', 'Skill-wise subject performance has been saved.');
+            }
         } catch (error) {
             closePerformanceModal();
             renderSkillEditor(selectedSubject);

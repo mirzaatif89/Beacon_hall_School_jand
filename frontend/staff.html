@@ -144,6 +144,54 @@
             transition: var(--transition);
         }
 
+        /* Keep staff rows as compact as the teacher table rows. */
+        .staff-table-container {
+            overflow-x: hidden !important;
+        }
+
+        #staffTable th,
+        #staffTable td {
+            min-width: 0 !important;
+            padding: 0.22rem 0.4rem !important;
+            font-size: 0.74rem !important;
+            line-height: 1.08 !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #staffTable th {
+            padding-top: 0.3rem !important;
+            padding-bottom: 0.3rem !important;
+            line-height: 1.2 !important;
+        }
+
+        #staffTable .staff-name-cell {
+            gap: 0.4rem;
+        }
+
+        #staffTable .staff-avatar {
+            width: 30px;
+            height: 30px;
+            font-size: 0.78rem;
+        }
+
+        #staffTable td:last-child {
+            width: 105px !important;
+            min-width: 105px !important;
+            overflow: visible;
+            text-overflow: clip;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        #staffTable .staff-action-select,
+        #staffTable .table-action-select {
+            min-height: 29px;
+            height: 29px;
+            padding-top: 0.15rem;
+            padding-bottom: 0.15rem;
+        }
+
         .btn-edit {
             background: #fbf7fd;
             color: var(--primary-color);

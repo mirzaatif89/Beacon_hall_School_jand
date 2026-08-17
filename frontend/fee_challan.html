@@ -93,9 +93,29 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
+        /* Use one consistent control size throughout the challan form. */
+        .challan-form .field-block input,
+        .challan-form .field-block select,
+        .challan-form .field-block textarea,
+        .challan-form .challan-filter-trigger {
+            height: 42px;
+            min-height: 42px;
+            box-sizing: border-box;
+        }
+
+        .challan-form .field-block textarea {
+            resize: none;
+        }
+
+        .challan-layout {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
         .field-block {
             display: grid;
             gap: 0.45rem;
+            align-content: start;
+            align-items: start;
         }
 
         .field-block.full {
@@ -148,6 +168,38 @@
             color: var(--challan-soft);
             margin-top: -0.1rem;
         }
+
+        .challan-student-results {
+            display: none;
+            max-height: 240px;
+            overflow-y: auto;
+            margin-top: -0.1rem;
+            border: 1px solid #d8e0e8;
+            border-radius: 0.45rem;
+            background: #fff;
+            box-shadow: 0 8px 18px rgba(31, 45, 61, 0.1);
+        }
+
+        .challan-student-results.active { display: block; }
+
+        .challan-student-result {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(90px, 0.8fr) minmax(90px, 0.8fr);
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.7rem 0.85rem;
+            border: 0;
+            border-bottom: 1px solid #edf1f5;
+            background: #fff;
+            color: var(--challan-text);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .challan-student-result:last-child { border-bottom: 0; }
+        .challan-student-result:hover { background: #f0f8f4; }
+        .challan-student-result strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .challan-student-result span { color: var(--challan-soft); font-size: 0.78rem; }
 
         .field-block input:focus,
         .field-block select:focus,
@@ -1315,7 +1367,7 @@
             <header class="header">
                 <div>
                     <h1>Fee Challan Generator</h1>
-                    <p style="color: var(--text-secondary); margin-top: 0.3rem;">Compact form with a live preview layout.</p>
+                    <p style="color: var(--text-secondary); margin-top: 0.3rem;">Enter challan details and print when ready.</p>
                 </div>
             </header>
 
@@ -1325,7 +1377,7 @@
                         <div class="challan-head">
                             <div>
                                 <h2>Challan Details</h2>
-                                <p>These inputs are reflected immediately in the preview.</p>
+                                <p>Enter the required details below.</p>
                             </div>
                         </div>
                         <div class="challan-body">
@@ -1342,6 +1394,7 @@
                                 <div class="field-block full">
                                     <label for="challanStudentSearch">Search Student</label>
                                     <input type="search" id="challanStudentSearch" placeholder="Search by name, ID, class, or father name">
+                                    <div class="challan-student-results" id="challanStudentResults" role="listbox"></div>
                                     <div class="field-help">Type to filter the student list below.</div>
                                 </div>
                                 <div class="field-block full">
@@ -1530,28 +1583,6 @@
                         </div>
                     </section>
 
-                    <section class="challan-panel">
-                        <div class="challan-head">
-                            <div>
-                                <h2>Live Preview</h2>
-                                <p>The preview refreshes as soon as you modify the fields.</p>
-                            </div>
-                            <span class="printable-tag">Printable</span>
-                        </div>
-                        <div class="challan-body">
-                            <div class="preview-card">
-                                <div class="preview-meta" id="challanPreviewCard"></div>
-                                <div class="qr-preview-card">
-                                    <div class="qr-preview-image" id="qrPreviewImage">QR</div>
-                                    <div class="qr-preview-copy">
-                                        <h4>QR Payment Scan</h4>
-                                        <p id="qrPreviewStatus">Select student and fee month to generate QR.</p>
-                                        <a id="qrPreviewLink" href="#" target="_blank" rel="noopener" style="display:none;"></a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
                 </div>
             </section>
 
@@ -1665,6 +1696,7 @@
             if (studentSearch) {
                 studentSearch.addEventListener('input', () => {
                     populateStudents();
+                    renderStudentSearchResults();
                 });
             }
             const popupSearch = document.getElementById('classStudentsSearch');
@@ -2175,6 +2207,62 @@
                     console.warn('fee_payment_update could not be processed:', error?.message || error);
                 }
             });
+        }
+
+        function renderStudentSearchResults() {
+            const input = document.getElementById('challanStudentSearch');
+            const results = document.getElementById('challanStudentResults');
+            if (!input || !results) return;
+
+            const term = String(input.value || '').trim().toLowerCase();
+            if (!term) {
+                results.classList.remove('active');
+                results.innerHTML = '';
+                return;
+            }
+
+            const matches = getFilteredChallanStudentsBySelectedClass().filter((student) => {
+                const haystack = [student.fullName, student.studentCode, student.id, student.rollNo,
+                    student.fatherName, student.classGrade, student.campusName]
+                    .map((value) => String(value || '').toLowerCase()).join(' ');
+                return haystack.includes(term);
+            }).slice(0, 30);
+
+            if (!matches.length) {
+                results.innerHTML = '<div class="challan-student-result"><span>No students found</span></div>';
+                results.classList.add('active');
+                return;
+            }
+
+            results.innerHTML = matches.map((student) => `
+                <button type="button" class="challan-student-result" role="option"
+                    onclick="selectStudentFromSearch('${encodeURIComponent(String(student.id || ''))}')">
+                    <strong>${escapeHtml(student.fullName || 'Unnamed Student')}</strong>
+                    <span>Class: ${escapeHtml(student.classGrade || '-')}</span>
+                    <span>Campus: ${escapeHtml(student.campusName || '-')}</span>
+                </button>
+            `).join('');
+            results.classList.add('active');
+        }
+
+        function selectStudentFromSearch(encodedStudentId) {
+            const studentId = decodeURIComponent(encodedStudentId || '');
+            const student = challanStudents.find((item) => String(item?.id || '') === studentId);
+            if (!student) return;
+
+            const search = document.getElementById('challanStudentSearch');
+            const results = document.getElementById('challanStudentResults');
+            if (search) search.value = student.fullName || student.studentCode || '';
+            if (results) {
+                results.classList.remove('active');
+                results.innerHTML = '';
+            }
+
+            populateStudents();
+            const select = document.getElementById('challanStudent');
+            if (select) select.value = student.id;
+            applyStudentToChallan(student, true);
+            triggerChallanRefresh();
         }
 
         function populateStudents() {
@@ -3302,7 +3390,8 @@
 
         function renderChallanPreview() {
             const data = getChallanData();
-            document.getElementById('challanPreviewCard').innerHTML = buildPreviewMarkup(data);
+            const previewCard = document.getElementById('challanPreviewCard');
+            if (previewCard) previewCard.innerHTML = buildPreviewMarkup(data);
             document.getElementById('printSheet').innerHTML = buildBulkGroupMarkup(data, challanQrState);
             renderQrPreviewBlock();
         }
