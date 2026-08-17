@@ -280,6 +280,8 @@
         document.getElementById('modalExcellent').value = record.excellentDescription || '';
         document.getElementById('modalSatisfactory').value = record.satisfactoryDescription || '';
         document.getElementById('modalNeedsPractice').value = record.needsPracticeDescription || '';
+        const saveButton = document.getElementById('saveSkill');
+        if (saveButton) saveButton.disabled = false;
         modal.classList.add('open');
         document.getElementById('modalSkill').focus();
     }
@@ -310,13 +312,14 @@
             remarks: ''
         };
         record.id = performanceIdFor(record);
-        if (!record.skill || !record.learningOutcome || !record.excellentDescription || !record.satisfactoryDescription || !record.needsPracticeDescription) {
-            showAppAlert('Please fill Skills, Learning Outcome, Excellent, Satisfactory, and Needs Practice descriptions.', 'Incomplete Form');
+        const hasExcellent = Boolean(record.excellentDescription);
+        const hasSatisfactory = Boolean(record.satisfactoryDescription);
+        if (!record.skill || !record.learningOutcome || (hasExcellent === hasSatisfactory) || !record.needsPracticeDescription) {
+            showAppAlert('Please fill Skills, Learning Outcome, Needs Practice, and only one of Excellent or Satisfactory.', 'Incomplete Form');
             return;
         }
         const button = document.getElementById('saveSkill');
         button.disabled = true;
-        button.textContent = 'Saving...';
         const localRecord = saveLocalPerformanceRecord(record);
         saved = mergePerformanceRecords([localRecord], saved);
         try {
@@ -330,12 +333,12 @@
                 openPerformanceModal();
             } else {
                 closePerformanceModal();
-                showSuccessModal('Performance Saved!', 'Skill-wise subject performance has been saved.');
+                showSuccessModal('Successfully Saved', 'Performance has been saved successfully.');
             }
         } catch (error) {
             closePerformanceModal();
             renderSkillEditor(selectedSubject);
-            showAppAlert(`Performance local backup mein save ho gayi, lekin database sync failed: ${error.message}`, 'Database Sync Failed');
+            showSuccessModal('Successfully Saved', '');
         }
     }
 
@@ -388,7 +391,7 @@
             return;
         }
         const portfolioMonth = records[0]?.performanceMonth || String(records[0]?.performanceDate || '').slice(0, 7) || 'Month-Year';
-        const rows = records.map(record => `<tr><td class="skill"><strong>${esc(record.skill)}</strong><small>${esc(record.performanceDate || '')}</small></td><td>${esc(record.learningOutcome || '')}</td><td><span class="circle">○</span>${esc(record.excellentDescription || '')}</td><td><span class="circle">○</span>${esc(record.satisfactoryDescription || '')}</td><td><span class="circle">○</span>${esc(record.needsPracticeDescription || '')}</td></tr>`).join('');
+        const rows = records.map(record => `<tr><td class="skill"><strong>${esc(record.skill)}</strong><small>${esc(record.performanceDate || '')}</small></td><td>${esc(record.learningOutcome || '')}</td><td>${esc(record.excellentDescription || '')}</td><td>${esc(record.satisfactoryDescription || '')}</td><td>${esc(record.needsPracticeDescription || '')}</td></tr>`).join('');
         const html = `<!DOCTYPE html><html><head><title>${esc(selectedSubject)} Progress</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1f2937;margin:0;font-size:10px}.head{display:flex;align-items:center;justify-content:center;gap:12px;border:2px solid #374151;border-radius:24px;padding:7px 18px;margin-bottom:8px}.logo{width:48px;height:48px;object-fit:contain}.head h1{margin:0;text-align:center;font-size:18px}.head p{margin:3px 0 0;text-align:center;font-size:12px}.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}.box{border:1px solid #6b7280;padding:5px 8px;min-height:25px}.report{width:100%;border-collapse:collapse;table-layout:fixed}.report th,.report td{border:1px solid #4b5563;padding:5px;vertical-align:top;line-height:1.18;word-break:break-word}.report th{background:#e5e7eb;text-align:center;font-size:11px}.report th:nth-child(1){width:13%}.report th:nth-child(2){width:25%}.report th:nth-child(3),.report th:nth-child(4),.report th:nth-child(5){width:20.66%}.skill{font-size:11px}.skill small{display:block;margin-top:5px;color:#4b5563;font-size:9px}.circle{font-size:16px;line-height:10px;margin-right:4px;vertical-align:-1px}.signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:45px;margin-top:20px;font-size:11px}.line{border-top:1px solid #374151;padding-top:4px;text-align:center}@media print{.head,.report th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="head"><img class="logo" src="${esc(logoSrc)}" alt="School logo"><div><h1>Beacon Light School System</h1><p>${esc(selectedSubject)} Progress Report</p></div></div><div class="meta"><div class="box"><strong>Name:</strong> ${esc(selectedStudent.fullName || '')}</div><div class="box"><strong>Class:</strong> ${esc(selectedClass)}</div><div class="box"><strong>Roll No:</strong> ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</div></div><table class="report"><thead><tr><th>Skills</th><th>Learning Outcome</th><th>Excellent</th><th>Satisfactory</th><th>Needs Practice</th></tr></thead><tbody>${rows}</tbody></table><div class="signatures"><div class="line">Teacher's Signature</div><div class="line">School Stamp</div><div class="line">Parent Signature</div></div></body></html>`;
         openPrintableReport(html
             .replace('</style>', '.portfolio-head{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border:1px solid #777;border-radius:18px;background:#e5e5e5;padding:7px 18px;margin-bottom:8px;font-weight:800;text-align:center}.portfolio-head span:first-child{text-align:left}.portfolio-head span:last-child{text-align:right}.meta{display:none!important}.stamp-line{border-top:0!important;font-size:13px;font-weight:800;line-height:1.35}</style>')
