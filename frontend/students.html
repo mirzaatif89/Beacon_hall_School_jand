@@ -10,6 +10,10 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        body.students-status-view #studentsTable th:nth-child(4), body.students-status-view #studentsTable td:nth-child(4),
+        body.students-status-view #studentsTable th:nth-child(7), body.students-status-view #studentsTable td:nth-child(7),
+        body.students-status-view #studentsTable th:nth-child(8), body.students-status-view #studentsTable td:nth-child(8) { display: none; }
+        .performance-report-fullscreen{align-items:stretch!important;justify-content:stretch!important;padding:0!important}.performance-report-fullscreen>div{width:100%!important;max-width:none!important;max-height:none!important;height:100vh!important;border-radius:0!important;box-sizing:border-box;padding:28px 5vw!important}.performance-report-fullscreen #performanceReportSubjects{display:none!important}
         /* Specific Basic Styles for the Form Modal/Section */
         .form-container {
             background: var(--surface-color);
@@ -1197,7 +1201,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="header">
-                <h1>Student Management</h1>
+                <h1 id="studentsPageHeading">Student Management</h1>
             </header>
 
             <div class="student-toolbar">
@@ -1511,6 +1515,11 @@
     <script src="auth.js?v=20260814-live-auth-fix1"></script>
     <script src="script.js?v=20260815-student-post-fix1"></script>
     <script>
+        if (window.location.hash === '#status') {
+            document.body.classList.add('students-status-view');
+            const heading = document.getElementById('studentsPageHeading');
+            if (heading) heading.textContent = 'Students Performances';
+        }
         window.togglePasswordVisibility = window.togglePasswordVisibility || function (targetId, toggleBtn) {
             const input = document.getElementById(targetId);
             if (!input) return false;

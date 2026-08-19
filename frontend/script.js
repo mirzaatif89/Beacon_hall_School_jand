@@ -6121,6 +6121,11 @@ function handleStudentActionSelect(selectElement, encodedPayload, studentId, isB
         return;
     }
 
+    if (action === 'performance_report') {
+        openStudentPerformanceReportFromEncoded(encodedPayload);
+        return;
+    }
+
     if (action === 'print_admission') {
         printStudentAdmissionFormFromEncoded(encodedPayload);
         return;
@@ -6468,6 +6473,42 @@ function isStudentZeroFee(student) {
     const monthlyFee = Number(rawMonthlyFee || 0) || 0;
     const zeroFeeReason = String(student?.zeroFeeReason || student?.freeStudyReason || '').trim();
     return feeStatus === 'zero fee student' || student?.freeStudy === true || student?.freeStudy === 'true' || Boolean(zeroFeeReason) || (rawMonthlyFee !== '' && monthlyFee === 0);
+}
+
+async function openStudentPerformanceReportFromEncoded(encodedPayload) {
+    let student = {};
+    try { student = JSON.parse(decodeURIComponent(encodedPayload || '')) || {}; } catch (_) {}
+    const escReport = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    let records = [];
+    try {
+        const response = await fetch(`${typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : '/api'}/student-performance?studentId=${encodeURIComponent(student.id || '')}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem('eduCore_token') || ''}` } });
+        const result = await response.json();
+        records = Array.isArray(result.performances) ? result.performances : [];
+    } catch (_) {}
+    try {
+        const localRecords = JSON.parse(localStorage.getItem('eduCore_student_skill_performance') || '[]');
+        const localForStudent = localRecords.filter(item => String(item.studentId) === String(student.id));
+        const merged = new Map();
+        [...records, ...localForStudent].forEach(item => merged.set(String(item.id || `${item.studentId}-${item.subject}-${item.performanceDate}-${item.skill}`), item));
+        records = [...merged.values()];
+    } catch (_) {}
+    const subjects = [...new Set(records.map(item => String(item.subject || '').trim()).filter(Boolean))];
+    const modal = document.createElement('div');
+    modal.className = 'success-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `<div class="success-modal" style="width:min(760px,94vw);max-height:85vh;overflow:auto;text-align:left"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Performance Report</h2><button type="button" class="btn btn-outline" id="closePerformanceReport">Close</button></div><p style="color:var(--text-secondary)">${escReport(student.fullName || 'Student')} · ${escReport(student.classGrade || '-')} · ${escReport(student.campusName || '-')}</p><div id="performanceReportSubjects" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px"></div><div id="performanceReportDetails" style="margin-top:18px"></div></div>`;
+    document.body.appendChild(modal);
+    const subjectsBox = modal.querySelector('#performanceReportSubjects');
+    const details = modal.querySelector('#performanceReportDetails');
+    const showSubject = subject => {
+        const rows = records.filter(item => String(item.subject || '') === subject);
+        modal.classList.add('performance-report-fullscreen');
+        subjectsBox.style.display = 'none';
+        details.innerHTML = `<div style="border:1px solid #cfe3dc;border-radius:12px;padding:16px;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><h3 style="margin:0;color:#153d2e">${escReport(subject)} Performance</h3><small style="color:#64748b">Portfolio · ${escReport(student.fullName || 'Student')}</small></div><button type="button" class="btn btn-outline" onclick="window.print()">Print</button></div>${rows.length ? `<div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse;font-size:13px"><thead><tr style="background:#eef6f1"><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Skills</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Learning Outcome</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">😊 Excellent</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">🙂 Satisfactory</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">😐 Needs Practice</th></tr></thead><tbody>${rows.map(item => `<tr><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top"><strong>${escReport(item.skill || '-')}</strong><br><small>${escReport(item.performanceDate || '')}</small></td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.learningOutcome || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.excellentDescription || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.satisfactoryDescription || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.needsPracticeDescription || '-')}</td></tr>`).join('')}</tbody></table></div><div style="display:flex;justify-content:space-between;gap:50px;margin-top:34px;text-align:center;font-size:12px"><div style="border-top:1px solid #334155;flex:1;padding-top:8px">Teacher's Signature</div><strong style="flex:1">Beacon Light School System</strong><div style="border-top:1px solid #334155;flex:1;padding-top:8px">Parent Signature</div></div>` : '<p>No performance record found.</p>'}</div>`;
+    };
+    subjectsBox.innerHTML = subjects.length ? subjects.map(subject => `<button type="button" class="btn btn-outline" data-report-subject="${escReport(subject)}">${escReport(subject)}</button>`).join('') : '<p>No subjects/performance records found for this student.</p>';
+    subjectsBox.querySelectorAll('[data-report-subject]').forEach(button => button.onclick = () => showSubject(button.dataset.reportSubject));
+    modal.querySelector('#closePerformanceReport').onclick = () => modal.remove();
 }
 
 function formatClassFeeSessionMonth(value = '') {
@@ -6981,6 +7022,7 @@ function renderStudents(term = '') {
         }
     } else {
         if (noData) noData.style.display = 'none';
+        const studentsStatusView = window.location.hash === '#status';
         filtered.forEach(s => {
             const terminated = isStudentTerminated(s);
             const statusLabel = getStudentStatusLabel(s);
@@ -7003,16 +7045,17 @@ function renderStudents(term = '') {
                 <td>${s.gender || '-'}</td>
                 <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
                 <td><div class="table-action-wrap">
-                    <select class="table-action-select" onchange="handleStudentActionSelect(this, '${encodedStudent}', '${s.id}', ${isBranchUser ? 1 : 0})">
-                        <option value="">Actions</option>
-                        <option value="view">View</option>
+                    ${studentsStatusView ? `<button type="button" class="btn btn-outline" onclick="openStudentPerformanceReportFromEncoded('${encodedStudent}')">View Report</button>` : `<select class="table-action-select" onchange="handleStudentActionSelect(this, '${encodedStudent}', '${s.id}', ${isBranchUser ? 1 : 0})">
+                        <option value="">${studentsStatusView ? 'Report' : 'Actions'}</option>
+                        ${studentsStatusView ? '<option value="performance_report">View Report</option>' : '<option value="view">View</option>'}
+                        ${studentsStatusView ? '' : `
                         <option value="print_admission">Print Admission Form</option>
                         <option value="message">Message</option>
                         ${s.email ? '<option value="email">Send Email</option>' : ''}
                         ${canEditStudents ? '<option value="edit">Edit</option>' : ''}
                         ${canEditStudents ? (terminated ? '<option value="reactivate">Reactivate</option>' : '<option value="stuckoff">Stuck-Off</option>') : ''}
-                        ${canDeleteStudents ? '<option value="delete">Delete</option>' : ''}
-                    </select>
+                        ${canDeleteStudents ? '<option value="delete">Delete</option>' : ''}`}
+                    </select>`}
                 </div>
                 </td>
             `;

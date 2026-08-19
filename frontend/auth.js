@@ -783,7 +783,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                 const normalizedPage = normalizePageName(pageName);
                 const activePages = schedulingNavPages[normalizedPage];
                 if (activePages ? !activePages.has(currentPage) : normalizedPage !== currentPage) return false;
-                return !hash || window.location.hash === hash;
+                return hash ? window.location.hash === hash : !window.location.hash;
             };
             const canShowPage = (pageName) => pageRegistry[normalizePageName(pageName)] && canAccessPage(user, permissions, pageName);
             const canShowAny = (children = []) => children.some((child) => child.type === 'dropdown' ? canShowAny(child.children) : canShowPage(child.page));
@@ -798,6 +798,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                 { type: 'link', page: 'notifications.html', label: 'Notification', icon: 'bell-ring' },
                 { type: 'link', page: 'classes.html', label: 'Classes', icon: 'school' },
                 { type: 'link', page: 'students.html', label: 'Students', icon: 'users' },
+                { type: 'link', page: 'students.html', hash: '#status', label: 'Students Status', icon: 'user-check' },
                 { type: 'link', page: 'teachers.html', label: 'Teachers', icon: 'book-open' },
                 { type: 'link', page: 'staff.html', label: 'Staff', icon: 'briefcase' },
                 { type: 'link', page: 'families.html', label: 'Families', icon: 'home' },
