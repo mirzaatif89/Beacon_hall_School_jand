@@ -166,6 +166,11 @@
             const items = data(STUDENT_UPLOADED_ASSIGNMENT_KEY);
             items.unshift(item);
             if (!save(items)) return;
+            try {
+                await fetch('/api/uploaded-assignments', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item) });
+            } catch (_error) {
+                console.warn('Assignment was saved locally; database sync will retry when available.');
+            }
             event.target.reset();
             render();
             showSuccessModal('Assignment Submitted!', 'Students in the selected class can download this assignment in their portal.');

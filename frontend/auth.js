@@ -326,6 +326,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                 homePage: 'teacher_portal.html',
                 permissions: {
                     teacher_portal: 'manage',
+                    student_scheduling: 'manage',
                     students: 'view',
                     classes: 'view',
                     student_attendance: 'edit',
