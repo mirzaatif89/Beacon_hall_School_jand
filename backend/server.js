@@ -69,7 +69,7 @@ function resolvePageFileByRoute(routeName = '') {
     if (!normalized) return '';
     if (RESERVED_ROUTE_NAMES.has(normalized)) return '';
     if (normalized === 'login') return 'login.html';
-    if (normalized === 'index' || normalized === 'website') return 'login.html';
+    if (normalized === 'index' || normalized === 'website') return 'website.html';
     if (!/^[a-z0-9_-]+$/i.test(normalized)) return '';
 
     const candidate = `${normalized}.html`;
@@ -78,7 +78,7 @@ function resolvePageFileByRoute(routeName = '') {
 }
 
 app.get('/', (_req, res) => {
-    res.sendFile(path.join(FRONTEND_DIR, 'login.html'));
+    res.sendFile(path.join(FRONTEND_DIR, 'website.html'));
 });
 
 app.get('/:pageName([a-zA-Z0-9_-]+).html', (req, res, next) => {
@@ -86,7 +86,7 @@ app.get('/:pageName([a-zA-Z0-9_-]+).html', (req, res, next) => {
     if (RESERVED_ROUTE_NAMES.has(pageName)) return next();
     if (pageName === 'designation-permissions') return res.redirect(302, '/permissions');
 
-    const targetRoute = pageName === 'index' || pageName === 'website' ? '' : pageName;
+    const targetRoute = pageName === 'index' ? '' : pageName;
     const targetFile = resolvePageFileByRoute(targetRoute);
     if (!targetFile && targetRoute) return next();
 
