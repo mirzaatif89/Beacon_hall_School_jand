@@ -7076,7 +7076,16 @@ function toggleStudentReportMenu(button, encodedStudent) {
     const menu = document.createElement('div');
     menu.className = 'student-report-menu';
     menu.innerHTML = '<button type="button" data-report-mode="subject">Subject wise report</button><button type="button" data-report-mode="full">Full Report</button>';
-    button.parentElement.appendChild(menu);
+    document.body.appendChild(menu);
+    const buttonRect = button.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, buttonRect.right - 180)}px`;
+    menu.style.top = `${buttonRect.bottom + 6}px`;
+    requestAnimationFrame(() => {
+        const menuRect = menu.getBoundingClientRect();
+        if (menuRect.bottom > window.innerHeight - 8) {
+            menu.style.top = `${Math.max(8, buttonRect.top - menuRect.height - 6)}px`;
+        }
+    });
     menu.querySelector('[data-report-mode="subject"]').onclick = () => {
         menu.remove();
         openStudentPerformanceReportFromEncoded(encodedStudent, 'subject');

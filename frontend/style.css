@@ -2848,7 +2848,7 @@ button {
 }
 
 .report-menu-wrap { position: relative; display: inline-block; }
-.student-report-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 180px; padding: 6px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 61, 46, .15); }
+.student-report-menu { position: fixed; z-index: 9999; min-width: 180px; padding: 6px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 61, 46, .15); }
 .student-report-menu button { display: block; width: 100%; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; }
 .student-report-menu button:hover { background: #eef8f2; color: var(--primary-color); }
 

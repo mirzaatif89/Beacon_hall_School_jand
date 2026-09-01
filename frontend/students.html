@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Students - Beacon Light School System</title>
     <link rel="icon" type="image/png" href="images/logo.jpeg">
-    <link rel="stylesheet" href="style.css?v=20260814-centered-school-name">
+    <link rel="stylesheet" href="style.css?v=20260901-report-menu-fixed">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -931,6 +931,9 @@
         #studentsTable th:nth-child(8), #studentsTable td:nth-child(8) { width: 10% !important; }
         #studentsTable th:nth-child(9), #studentsTable td:nth-child(9) { width: 12% !important; min-width: 92px !important; overflow: visible !important; text-overflow: clip !important; }
         #studentsTable th, #studentsTable td { overflow: hidden !important; text-overflow: ellipsis !important; }
+        #studentsTable tbody, #studentsTable tr, #studentsTable td:nth-child(9), #studentsTable td:nth-child(9) .table-action-wrap { overflow: visible !important; }
+        body.students-status-view .student-table-container { overflow: visible !important; }
+        #studentsTable td:nth-child(9) { position: relative; z-index: 2; }
 
         #studentsTable .status-badge {
             display: inline-flex;
@@ -1517,7 +1520,7 @@
     </div>
 
     <script src="auth.js?v=20260901-performances-sidebar"></script>
-    <script src="script.js?v=20260901-report-menu"></script>
+    <script src="script.js?v=20260901-report-menu-fixed"></script>
     <script>
         if (window.location.hash === '#status') {
             document.body.classList.add('students-status-view');
