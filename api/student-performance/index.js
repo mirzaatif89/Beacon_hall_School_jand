@@ -69,8 +69,8 @@ module.exports = createHandler({
                 error.statusCode = 400;
                 throw error;
             }
-            if (skill && ((Boolean(excellentDescription) === Boolean(satisfactoryDescription)) || !needsPracticeDescription)) {
-                const error = new Error('Fill only one of Excellent or Satisfactory, and provide Needs Practice.');
+            if (skill && ((excellentDescription && satisfactoryDescription) || (!excellentDescription && !satisfactoryDescription && !needsPracticeDescription))) {
+                const error = new Error('Enter Excellent, or enter Satisfactory and/or Needs Practice.');
                 error.statusCode = 400;
                 throw error;
             }

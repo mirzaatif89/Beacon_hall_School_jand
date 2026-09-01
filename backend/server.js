@@ -3482,8 +3482,8 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
             if (skill && (!learningOutcome || !['Excellent', 'Satisfactory', 'Needs Practice'].includes(rating))) {
                 return res.status(400).json({ success: false, message: 'Skill, learning outcome, and rating are required.' });
             }
-            if (skill && (!excellentDescription || !satisfactoryDescription || !needsPracticeDescription)) {
-                return res.status(400).json({ success: false, message: 'Descriptions for Excellent, Satisfactory, and Needs Practice are required.' });
+            if (skill && ((excellentDescription && satisfactoryDescription) || (!excellentDescription && !satisfactoryDescription && !needsPracticeDescription))) {
+                return res.status(400).json({ success: false, message: 'Enter Excellent, or enter Satisfactory and/or Needs Practice.' });
             }
             if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
                 return res.status(400).json({ success: false, message: 'Percentage must be from 0 to 100.' });
