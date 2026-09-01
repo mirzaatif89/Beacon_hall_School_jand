@@ -6475,7 +6475,7 @@ function isStudentZeroFee(student) {
     return feeStatus === 'zero fee student' || student?.freeStudy === true || student?.freeStudy === 'true' || Boolean(zeroFeeReason) || (rawMonthlyFee !== '' && monthlyFee === 0);
 }
 
-async function openStudentPerformanceReportFromEncoded(encodedPayload) {
+async function openStudentPerformanceReportFromEncoded(encodedPayload, reportMode = 'subject') {
     let student = {};
     try { student = JSON.parse(decodeURIComponent(encodedPayload || '')) || {}; } catch (_) {}
     const escReport = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -6506,6 +6506,12 @@ async function openStudentPerformanceReportFromEncoded(encodedPayload) {
         subjectsBox.style.display = 'none';
         details.innerHTML = `<div style="border:1px solid #cfe3dc;border-radius:12px;padding:16px;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><h3 style="margin:0;color:#153d2e">${escReport(subject)} Performance</h3><small style="color:#64748b">Portfolio · ${escReport(student.fullName || 'Student')}</small></div><button type="button" class="btn btn-outline" onclick="window.print()">Print</button></div>${rows.length ? `<div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse;font-size:13px"><thead><tr style="background:#eef6f1"><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Skills</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Learning Outcome</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">😊 Excellent</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">🙂 Satisfactory</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">😐 Needs Practice</th></tr></thead><tbody>${rows.map(item => `<tr><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top"><strong>${escReport(item.skill || '-')}</strong><br><small>${escReport(item.performanceDate || '')}</small></td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.learningOutcome || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.excellentDescription || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.satisfactoryDescription || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.needsPracticeDescription || '-')}</td></tr>`).join('')}</tbody></table></div><div style="display:flex;justify-content:space-between;gap:50px;margin-top:34px;text-align:center;font-size:12px"><div style="border-top:1px solid #334155;flex:1;padding-top:8px">Teacher's Signature</div><strong style="flex:1">Beacon Light School System</strong><div style="border-top:1px solid #334155;flex:1;padding-top:8px">Parent Signature</div></div>` : '<p>No performance record found.</p>'}</div>`;
     };
+    if (reportMode === 'full') {
+        modal.classList.add('performance-report-fullscreen');
+        subjectsBox.style.display = 'none';
+        details.innerHTML = `<div style="border:1px solid #cfe3dc;border-radius:12px;padding:16px;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><h3 style="margin:0;color:#153d2e">Full Performance Report</h3><small style="color:#64748b">${escReport(student.fullName || 'Student')}</small></div><button type="button" class="btn btn-outline" onclick="window.print()">Print</button></div>${records.length ? `<div style="overflow:auto"><table style="width:100%;min-width:800px;border-collapse:collapse;font-size:13px"><thead><tr style="background:#eef6f1"><th>Subject</th><th>Skills</th><th>Learning Outcome</th><th>Excellent</th><th>Satisfactory</th><th>Needs Practice</th></tr></thead><tbody>${records.map(item => `<tr><td>${escReport(item.subject || '-')}</td><td>${escReport(item.skill || '-')}</td><td>${escReport(item.learningOutcome || '-')}</td><td>${escReport(item.excellentDescription || '-')}</td><td>${escReport(item.satisfactoryDescription || '-')}</td><td>${escReport(item.needsPracticeDescription || '-')}</td></tr>`).join('')}</tbody></table></div>` : '<p>No performance record found.</p>'}</div>`;
+        return;
+    }
     subjectsBox.innerHTML = subjects.length ? subjects.map(subject => `<button type="button" class="btn btn-outline" data-report-subject="${escReport(subject)}">${escReport(subject)}</button>`).join('') : '<p>No subjects/performance records found for this student.</p>';
     subjectsBox.querySelectorAll('[data-report-subject]').forEach(button => button.onclick = () => showSubject(button.dataset.reportSubject));
     modal.querySelector('#closePerformanceReport').onclick = () => modal.remove();
@@ -7045,7 +7051,7 @@ function renderStudents(term = '') {
                 <td>${s.gender || '-'}</td>
                 <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
                 <td><div class="table-action-wrap">
-                    ${studentsStatusView ? `<button type="button" class="btn btn-outline" onclick="openStudentPerformanceReportFromEncoded('${encodedStudent}')">View Report</button>` : `<select class="table-action-select" onchange="handleStudentActionSelect(this, '${encodedStudent}', '${s.id}', ${isBranchUser ? 1 : 0})">
+                    ${studentsStatusView ? `<div class="report-menu-wrap"><button type="button" class="btn btn-outline" onclick="toggleStudentReportMenu(this, '${encodedStudent}')">View Report</button></div>` : `<select class="table-action-select" onchange="handleStudentActionSelect(this, '${encodedStudent}', '${s.id}', ${isBranchUser ? 1 : 0})">
                         <option value="">${studentsStatusView ? 'Report' : 'Actions'}</option>
                         ${studentsStatusView ? '<option value="performance_report">View Report</option>' : '<option value="view">View</option>'}
                         ${studentsStatusView ? '' : `
@@ -7063,6 +7069,28 @@ function renderStudents(term = '') {
         });
         window.lucide.createIcons();
     }
+}
+
+function toggleStudentReportMenu(button, encodedStudent) {
+    document.querySelectorAll('.student-report-menu').forEach(menu => menu.remove());
+    const menu = document.createElement('div');
+    menu.className = 'student-report-menu';
+    menu.innerHTML = '<button type="button" data-report-mode="subject">Subject wise report</button><button type="button" data-report-mode="full">Full Report</button>';
+    button.parentElement.appendChild(menu);
+    menu.querySelector('[data-report-mode="subject"]').onclick = () => {
+        menu.remove();
+        openStudentPerformanceReportFromEncoded(encodedStudent, 'subject');
+    };
+    menu.querySelector('[data-report-mode="full"]').onclick = () => {
+        menu.remove();
+        openStudentPerformanceReportFromEncoded(encodedStudent, 'full');
+    };
+    setTimeout(() => document.addEventListener('click', function closeMenu(event) {
+        if (!menu.contains(event.target) && event.target !== button) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    }, { once: true }), 0);
 }
 
 function showAdminRecordsSection(sectionKey = '') {
