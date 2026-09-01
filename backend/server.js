@@ -1289,15 +1289,10 @@ app.post('/api/login', async (req, res) => {
         const user = await User.findOne({ where: userWhere });
 
         if (user) {
-            const permissions = readPermissions();
-            const roleKey = String(user.role || '').toLowerCase();
-            if (permissions.loginAccess[roleKey] === false) {
-                return res.status(403).json({ success: false, message: `${user.role} login is currently disabled by admin.` });
-            }
-
             const isMatch = await bcrypt.compare(password, user.password);
 
             if (isMatch) {
+                const permissions = readPermissions();
                 let profileName = user.fullName;
                 let designationKey = '';
 
@@ -1314,19 +1309,27 @@ app.post('/api/login', async (req, res) => {
                     designationKey = normalizeDesignationKey(staff?.designation || 'staff');
                 }
 
-                const sessionId = createSessionId(user.role, user.profileId);
-                const token = jwt.sign({ id: user.profileId, role: user.role, campusName: user.campusName || '', sessionId }, JWT_SECRET, { expiresIn: '1d' });
+                const effectiveRole = user.role === 'Teacher'
+                    ? (designationKey === 'admin' ? 'Admin' : (designationKey === 'accountant' ? 'Staff' : (designationKey === 'principal' ? 'Principal' : 'Teacher')))
+                    : user.role;
+                const roleKey = String(effectiveRole || '').toLowerCase();
+                if (permissions.loginAccess[roleKey] === false) {
+                    return res.status(403).json({ success: false, message: `${effectiveRole} login is currently disabled by admin.` });
+                }
+
+                const sessionId = createSessionId(effectiveRole, user.profileId);
+                const token = jwt.sign({ id: user.profileId, role: effectiveRole, campusName: user.campusName || '', sessionId }, JWT_SECRET, { expiresIn: '1d' });
                 const responseUser = {
                     id: user.profileId,
                     fullName: profileName,
-                    role: user.role,
+                    role: effectiveRole,
                     username: user.username,
                     campusName: user.campusName || '',
-                    groupKey: user.role === 'Teacher'
+                    groupKey: effectiveRole === 'Teacher'
                         ? 'teacher'
-                        : (user.role === 'Staff' && designationKey
+                        : (effectiveRole === 'Staff' && designationKey
                             ? designationKey
-                            : (user.groupKey || permissions.roleGroups[user.role] || roleKey)),
+                            : (user.groupKey || permissions.roleGroups[effectiveRole] || roleKey)),
                     ...(designationKey ? { designation: designationKey } : {})
                 };
                 registerActiveSession(req, sessionId, responseUser);

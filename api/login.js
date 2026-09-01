@@ -90,12 +90,6 @@ module.exports = createHandler({
         }
 
         const permissions = await loadPermissions(db);
-        const roleKey = String(user.role || '').toLowerCase();
-        if (permissions.loginAccess[roleKey] === false) {
-            sendJson(res, 403, { success: false, message: `${user.role} login is currently disabled by admin.` });
-            return;
-        }
-
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             sendJson(res, 401, { success: false, message: 'Invalid credentials' });
@@ -103,20 +97,31 @@ module.exports = createHandler({
         }
 
         let profileName = user.fullName;
+        let designationKey = '';
         if (user.role === 'Student') {
             const student = await Student.findByPk(user.profileId);
             profileName = student?.fullName || profileName;
         } else if (user.role === 'Teacher') {
             const teacher = await Teacher.findByPk(user.profileId);
             profileName = teacher?.fullName || profileName;
+            designationKey = String(teacher?.designation || '').trim().toLowerCase();
         } else if (user.role === 'Staff') {
             const staff = await Staff.findByPk(user.profileId);
             profileName = staff?.fullName || profileName;
         }
 
-        const sessionId = createSessionId(user.role, user.profileId);
+        const effectiveRole = user.role === 'Teacher'
+            ? (designationKey === 'admin' ? 'Admin' : (designationKey === 'accountant' ? 'Staff' : (['principal', 'principle'].includes(designationKey) ? 'Principal' : 'Teacher')))
+            : user.role;
+        const roleKey = String(effectiveRole || '').toLowerCase();
+        if (permissions.loginAccess[roleKey] === false) {
+            sendJson(res, 403, { success: false, message: `${effectiveRole} login is currently disabled by admin.` });
+            return;
+        }
+
+        const sessionId = createSessionId(effectiveRole, user.profileId);
         const token = jwt.sign(
-            { id: user.profileId, role: user.role, campusName: user.campusName || '', sessionId },
+            { id: user.profileId, role: effectiveRole, campusName: user.campusName || '', sessionId },
             JWT_SECRET,
             { expiresIn: '1d' }
         );
@@ -129,10 +134,11 @@ module.exports = createHandler({
             user: {
                 id: user.profileId,
                 fullName: profileName,
-                role: user.role,
+                role: effectiveRole,
                 username: user.username,
                 campusName: user.campusName || '',
-                groupKey: user.groupKey || permissions.roleGroups[user.role] || roleKey
+                groupKey: effectiveRole === 'Staff' && designationKey ? designationKey : (effectiveRole === 'Teacher' ? 'teacher' : (user.groupKey || permissions.roleGroups[effectiveRole] || roleKey)),
+                ...(designationKey ? { designation: designationKey } : {})
             }
         });
     }
