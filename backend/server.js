@@ -1134,10 +1134,30 @@ app.post('/api/admin-credentials', (req, res) => {
         verifyAdminAccessToken(req);
         const current = readAdminCredentials();
         const nextUsername = String(req.body?.username || '').trim();
-        const nextPassword = String(req.body?.password || '').trim();
+        const hasPasswordChange = Object.prototype.hasOwnProperty.call(req.body || {}, 'password');
+        const nextPassword = hasPasswordChange ? String(req.body?.password || '') : '';
+        if (hasPasswordChange) {
+            const currentPassword = String(req.body?.currentPassword || '');
+            if (!currentPassword) {
+                return res.status(400).json({ success: false, message: 'Current password is required.' });
+            }
+            if (currentPassword !== current.password) {
+                return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
+            }
+            const confirmPassword = String(req.body?.confirmPassword || '');
+            if (!nextPassword) {
+                return res.status(400).json({ success: false, message: 'New password is required.' });
+            }
+            if (nextPassword !== confirmPassword) {
+                return res.status(400).json({ success: false, message: 'New password and confirm password do not match.' });
+            }
+            if (nextPassword.length < 6) {
+                return res.status(400).json({ success: false, message: 'New password must be at least 6 characters.' });
+            }
+        }
         const saved = writeAdminCredentials({
             username: nextUsername || current.username,
-            password: nextPassword || current.password
+            password: hasPasswordChange ? nextPassword : current.password
         });
         res.json({ success: true, credentials: { username: saved.username } });
     } catch (error) {

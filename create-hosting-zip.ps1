@@ -25,6 +25,16 @@ $excludePrefixes = @(
     ".deploy_tmp/",
     ".vscode\",
     ".vscode/",
+    "android\\",
+    "android/",
+    "ios\\",
+    "ios/",
+    "Final-Apps\\",
+    "Final-Apps/",
+    "Archive\\",
+    "Archive/",
+    "docs\\",
+    "docs/",
     "node_modules\",
     "node_modules/",
     "tools\",
@@ -38,7 +48,10 @@ if ($IncludeNodeModules) {
 $allFiles = Get-ChildItem -Path $projectRoot -Recurse -File -Force
 $filesToPack = $allFiles | Where-Object {
     $relative = $_.FullName.Substring($projectRoot.Length).TrimStart('\', '/')
-    foreach ($prefix in $excludePrefixes) {
+    if ($excludePrefixes | Where-Object { $relative.StartsWith($_, [System.StringComparison]::OrdinalIgnoreCase) }) {
+        return $false
+    }
+    foreach ($prefix in @()) {
         if ($relative.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
             return $false
         }
@@ -54,7 +67,7 @@ if (-not $filesToPack) {
     throw "No files selected for archive."
 }
 
-$tempDir = Join-Path $projectRoot ".deploy_tmp"
+$tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("beacon-lights-hosting-" + [Guid]::NewGuid().ToString("N"))
 if (Test-Path $tempDir) {
     Remove-Item -LiteralPath $tempDir -Recurse -Force
 }

@@ -9252,7 +9252,7 @@ function resetAdminPasswordChangeFlow(hidePanel = true) {
 
     if (panel) panel.hidden = hidePanel;
     if (otpStep) otpStep.hidden = false;
-    if (passwordStep) passwordStep.hidden = true;
+    if (passwordStep) passwordStep.hidden = false;
     if (otpInput) {
         otpInput.value = '';
         otpInput.dataset.verified = '';
@@ -9275,51 +9275,10 @@ function normalizeAdminOtpError(error) {
 async function sendAdminCredentialOtp() {
     const sendBtn = document.getElementById('sendAdminOtpBtn');
     const panel = document.getElementById('adminPasswordChangePanel');
-    const otpStep = document.getElementById('adminOtpStep');
-    const passwordStep = document.getElementById('adminPasswordStep');
-    const otpInput = document.getElementById('adminOtpSetting');
-    const passwordInput = document.getElementById('adminNewPasswordSetting');
-    const confirmPasswordInput = document.getElementById('adminConfirmPasswordSetting');
-    const token = sessionStorage.getItem('eduCore_token') || '';
-    const originalText = sendBtn?.innerHTML || '';
-
-    try {
-        if (sendBtn) {
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = '<i data-lucide="loader"></i> Sending OTP...';
-            if (window.lucide) window.lucide.createIcons();
-        }
-        const response = await fetch(`${API_BASE_URL}/admin-credentials/request-otp`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({})
-        });
-        const result = await parseJsonResponse(response, 'OTP could not be sent.');
-        if (!response.ok || result?.success === false) throw new Error(result?.message || 'OTP could not be sent.');
-        if (panel) panel.hidden = false;
-        if (otpStep) otpStep.hidden = false;
-        if (passwordStep) passwordStep.hidden = true;
-        if (otpInput) {
-            otpInput.value = '';
-            otpInput.dataset.verified = '';
-            otpInput.focus();
-        }
-        if (passwordInput) passwordInput.value = '';
-        if (confirmPasswordInput) confirmPasswordInput.value = '';
-        setAdminPasswordStatus(result.message || 'OTP sent successfully.', 'success');
-    } catch (error) {
-        resetAdminPasswordChangeFlow(true);
-        setAdminPasswordStatus(error.message || 'OTP could not be sent.', 'error');
-    } finally {
-        if (sendBtn) {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = originalText;
-            if (window.lucide) window.lucide.createIcons();
-        }
-    }
+    const currentInput = document.getElementById('adminCurrentPasswordSetting');
+    if (panel) panel.hidden = false;
+    setAdminPasswordStatus('Current password verify karke new password save karein.', 'success');
+    if (currentInput) currentInput.focus();
 }
 
 async function verifyAdminCredentialOtp() {
@@ -9393,23 +9352,23 @@ async function saveAdminCredentialSettings() {
 
 async function saveVerifiedAdminPassword() {
     const usernameInput = document.getElementById('adminUsernameSetting');
+    const currentPasswordInput = document.getElementById('adminCurrentPasswordSetting');
     const passwordInput = document.getElementById('adminNewPasswordSetting');
     const confirmPasswordInput = document.getElementById('adminConfirmPasswordSetting');
-    const otpInput = document.getElementById('adminOtpSetting');
     const saveBtn = document.getElementById('saveAdminPasswordBtn');
     const panel = document.getElementById('adminPasswordChangePanel');
     const otpStep = document.getElementById('adminOtpStep');
     const passwordStep = document.getElementById('adminPasswordStep');
-    if (!usernameInput || !passwordInput || !confirmPasswordInput || !otpInput) return;
+    if (!usernameInput || !currentPasswordInput || !passwordInput || !confirmPasswordInput) return;
 
     const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
-    const confirmPassword = confirmPasswordInput.value.trim();
-    const otp = otpInput.dataset.verified || '';
+    const currentPassword = currentPasswordInput.value;
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
     const originalText = saveBtn?.textContent || '';
 
     try {
-        if (!otp) throw new Error('Pehle email OTP verify karein.');
+        if (!currentPassword) throw new Error('Current password required hai.');
         if (!password) throw new Error('New password required hai.');
         if (password.length < 6) throw new Error('New password must be at least 6 characters.');
         if (password !== confirmPassword) throw new Error('New password and confirm password do not match.');
@@ -9425,7 +9384,7 @@ async function saveVerifiedAdminPassword() {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify({ username, password, confirmPassword, otp })
+            body: JSON.stringify({ username, currentPassword, password, confirmPassword })
         });
         const result = await parseJsonResponse(response, 'Admin password could not be updated.');
         if (!response.ok || result?.success === false) throw new Error(result?.message || 'Admin password could not be updated.');
@@ -9433,8 +9392,7 @@ async function saveVerifiedAdminPassword() {
         usernameInput.dataset.originalValue = result?.credentials?.username || username;
         passwordInput.value = '';
         confirmPasswordInput.value = '';
-        otpInput.value = '';
-        otpInput.dataset.verified = '';
+        currentPasswordInput.value = '';
         if (panel) panel.hidden = true;
         if (otpStep) otpStep.hidden = false;
         if (passwordStep) passwordStep.hidden = true;

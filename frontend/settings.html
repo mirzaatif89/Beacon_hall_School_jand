@@ -238,16 +238,11 @@
                         <div class="password-change-panel" id="adminPasswordChangePanel" hidden>
                             <div class="settings-grid" id="adminOtpStep">
                                 <div class="input-group">
-                                    <label for="adminOtpSetting">Email OTP</label>
-                                    <input type="text" id="adminOtpSetting" inputmode="numeric" maxlength="6" placeholder="6 digit OTP">
-                                </div>
-                                <div class="input-group" style="align-self:end;">
-                                    <button type="button" class="btn btn-primary" id="verifyAdminOtpBtn" style="width:100%;">
-                                        Verify OTP
-                                    </button>
+                                    <label for="adminCurrentPasswordSetting">Current Password</label>
+                                    <input type="password" id="adminCurrentPasswordSetting" autocomplete="current-password" placeholder="Current password">
                                 </div>
                             </div>
-                            <div class="settings-grid" id="adminPasswordStep" hidden>
+                            <div class="settings-grid" id="adminPasswordStep">
                                 <div class="input-group">
                                     <label for="adminNewPasswordSetting">New Password</label>
                                     <input type="password" id="adminNewPasswordSetting" autocomplete="new-password" placeholder="New password">
@@ -264,7 +259,7 @@
                             </div>
                         </div>
                         <p class="settings-hint" id="adminOtpHint">
-                            Click Change Password to send OTP on admin recovery email.
+                            Current password enter karke new password set karein.
                         </p>
                     </div>
 

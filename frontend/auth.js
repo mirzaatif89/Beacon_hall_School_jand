@@ -809,6 +809,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                     children: [
                         { page: 'set_fee.html', label: 'Set Fees', icon: 'badge-dollar-sign' },
                         { page: 'fees.html', label: 'Fees', icon: 'credit-card' },
+                        { page: 'fees.html', hash: '#direct-payment', label: 'Direct Payment', icon: 'hand-coins' },
                         { page: 'fee_challan.html', label: 'Fee Challan', icon: 'file-text' },
                         { page: 'remaining_charges.html', label: 'Remaining Charges', icon: 'circle-dollar-sign' },
                         { page: 'payment_history.html', label: 'Payment Statement', icon: 'receipt-text' },
