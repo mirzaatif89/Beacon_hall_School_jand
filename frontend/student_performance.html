@@ -90,7 +90,7 @@
     </main>
 </div>
 <script src="auth.js?v=20260814-live-auth-fix1"></script>
-<script src="script.js?v=20260814-local-runtime-fix6"></script>
+<script src="script.js?v=20260901-assigned-subject"></script>
 <script>
 (() => {
     const apiBase = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : `${location.origin}/api`;
@@ -109,6 +109,7 @@
     let saved = [];
     let attendanceStore = {};
     let examResults = [];
+    let teacherAssignedSubjects = null;
     const choiceTitle = document.getElementById('choiceTitle');
     const choiceList = document.getElementById('choiceList');
     const classStepSelect = document.getElementById('classStepSelect');
@@ -172,8 +173,11 @@
             ...courses.filter(c => norm(c.classGrade) === norm(selectedClass)).map(c => String(c.title || c.subject || '').trim()),
             ...saved.map(record => String(record.subject || '').trim())
         ].filter(Boolean);
-        if (titles.length) return [...new Map(titles.map(value => [norm(value), value])).values()];
-        return ['Play Group','Nursarry','Prep'].some(name => norm(name) === norm(selectedClass)) ? juniorSubjects : seniorSubjects;
+        const baseSubjects = titles.length ? [...new Map(titles.map(value => [norm(value), value])).values()] : (['Play Group','Nursarry','Prep'].some(name => norm(name) === norm(selectedClass)) ? juniorSubjects : seniorSubjects);
+        if (Array.isArray(teacherAssignedSubjects)) {
+            return baseSubjects.filter(subject => teacherAssignedSubjects.some(assigned => norm(assigned) === norm(subject)));
+        }
+        return baseSubjects;
     }
 
     function renderClasses() {
@@ -453,6 +457,13 @@
 
     async function init() {
         try {
+            const loggedInUser = JSON.parse(sessionStorage.getItem('loggedInUser') || 'null');
+            if (loggedInUser?.role === 'Teacher') {
+                const teacherResponse = await fetch(`${apiBase}/teacher/me`, { headers: headers(), cache: 'no-store' });
+                const teacherData = await teacherResponse.json().catch(() => ({}));
+                const assigned = teacherData?.subject || teacherData?.subjects || '';
+                teacherAssignedSubjects = String(assigned).split(/[,|]/).map(value => value.trim()).filter(Boolean);
+            }
             const [studentResponse, courseResponse, attendanceResponse, resultResponse] = await Promise.all([
                 fetch(`${apiBase}/students`, { cache:'no-store' }),
                 fetch(`${apiBase}/student-courses`, { cache:'no-store' }),

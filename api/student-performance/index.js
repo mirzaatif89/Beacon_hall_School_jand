@@ -45,7 +45,7 @@ module.exports = createHandler({
         sendJson(res, 200, { success: true, performances });
     },
     POST: async ({ req, res, db, body }) => {
-        requireUser(req);
+        const user = requireUser(req);
         const items = Array.isArray(body) ? body : [body];
         for (const item of items) {
             const studentId = String(item?.studentId || '').trim();
@@ -63,6 +63,15 @@ module.exports = createHandler({
                 const error = new Error('Student and subject are required.');
                 error.statusCode = 400;
                 throw error;
+            }
+            if (user.role === 'Teacher') {
+                const teacher = await db.models.Teacher.findByPk(user.id, { attributes: ['subject'] });
+                const assignedSubjects = String(teacher?.subject || '').split(/[,|]/).map(value => value.trim().toLowerCase()).filter(Boolean);
+                if (!assignedSubjects.includes(subject.toLowerCase())) {
+                    const error = new Error('You can only add performance for your assigned subject.');
+                    error.statusCode = 403;
+                    throw error;
+                }
             }
             if (skill && (!learningOutcome || !['Excellent', 'Satisfactory', 'Needs Practice'].includes(rating))) {
                 const error = new Error('Skill, learning outcome, and rating are required.');

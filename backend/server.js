@@ -3482,6 +3482,13 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
             if (!studentId || !subject) {
                 return res.status(400).json({ success: false, message: 'Student and subject are required.' });
             }
+            if (req.user?.role === 'Teacher') {
+                const teacher = await sequelize.models.Teacher.findByPk(req.user.id, { attributes: ['subject'] });
+                const assignedSubjects = String(teacher?.subject || '').split(/[,|]/).map(value => value.trim().toLowerCase()).filter(Boolean);
+                if (!assignedSubjects.includes(subject.toLowerCase())) {
+                    return res.status(403).json({ success: false, message: 'You can only add performance for your assigned subject.' });
+                }
+            }
             if (skill && (!learningOutcome || !['Excellent', 'Satisfactory', 'Needs Practice'].includes(rating))) {
                 return res.status(400).json({ success: false, message: 'Skill, learning outcome, and rating are required.' });
             }
