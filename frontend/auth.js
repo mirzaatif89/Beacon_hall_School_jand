@@ -892,6 +892,12 @@ if (window.Capacitor?.isNativePlatform?.()) {
 
             navLinks.innerHTML = navItems.map((item) => buildItem(item)).join('');
 
+            // Students and Performances share students.html; never highlight both.
+            if (currentPage === 'students.html' && window.location.hash === '#status') {
+                navLinks.querySelectorAll('a.nav-item[href$="students.html"]').forEach((link) => link.classList.remove('active'));
+                navLinks.querySelectorAll('a.nav-item[href$="students.html#status"]').forEach((link) => link.classList.add('active'));
+            }
+
             navLinks.dataset.requestedSidebarSequence = 'true';
             navLinks.querySelectorAll('[data-requested-sidebar-dropdown] > .nav-dropdown-toggle').forEach((toggle) => {
                 toggle.addEventListener('click', () => {

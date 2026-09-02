@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .performance-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}
+        .performance-steps.co-curriculum-mode{grid-template-columns:repeat(3,1fr)}
         .performance-step{box-sizing:border-box;min-height:110px;padding:16px 16px;border:1px solid #cfe3dc;border-radius:12px;background:#fff;color:#64748b;font-weight:800;line-height:1.5;display:flex;align-items:flex-start;gap:6px}
         .performance-step:has(.step-select){display:block}
         .performance-step.active{color:#176b4a;border-color:#35a56e;background:#effaf4;box-shadow:0 8px 20px rgba(53,165,110,.12)}
@@ -91,7 +92,7 @@
     </main>
 </div>
 <script src="auth.js?v=20260814-live-auth-fix1"></script>
-<script src="script.js?v=20260901-assigned-subject"></script>
+<script src="script.js?v=20260902-co-curriculum-save"></script>
 <script>
 (() => {
     const apiBase = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : `${location.origin}/api`;
@@ -120,6 +121,11 @@
     const subjectStepSelect = document.getElementById('subjectStepSelect');
     const workspace = document.getElementById('workspace');
     const steps = [document.getElementById('stepClass'), document.getElementById('stepStudent'), document.getElementById('stepSubjects'), document.getElementById('stepSkills')];
+    if (performanceMode === 'co-curriculum' || performanceMode === 'participation') {
+        document.getElementById('stepSubjects').style.display = 'none';
+        document.querySelector('.performance-steps')?.classList.add('co-curriculum-mode');
+        document.getElementById('stepSkills').firstChild.textContent = performanceMode === 'co-curriculum' ? '3. Co-Curriculum Performance' : '3. Participant Report';
+    }
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const norm = value => String(value || '').trim().toLowerCase().replace(/\s+/g,' ');
     const logoSrc = new URL('images/logo.jpeg', location.href).href;
@@ -282,7 +288,7 @@
         const records = items.map(item => {
             const rating = workspace.querySelector(`input[name="co-${item}"]:checked`)?.value || '';
             if (!rating) return null;
-            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Co-Curriculum', assessmentSection:'Co-Curriculum', assessmentItem:item, assessmentRating:rating, skill:item, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
+            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Co-Curriculum', assessmentSection:'Co-Curriculum', assessmentItem:item, assessmentRating:rating, skill:item, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating:rating === 'Advance' ? 'Excellent' : rating === 'Proficient' ? 'Satisfactory' : 'Needs Practice', grade:rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
             record.id = performanceIdFor(record);
             return record;
         }).filter(Boolean);
@@ -316,7 +322,7 @@
         const records = items.map(item => {
             const rating = workspace.querySelector(`input[name="part-${item}"]:checked`)?.value || '';
             if (!rating) return null;
-            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Participation', assessmentSection:'Participation', assessmentItem:item, assessmentRating:rating, skill:item, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
+            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Participation', assessmentSection:'Participation', assessmentItem:item, assessmentRating:rating, skill:item, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating:rating === 'Advance' ? 'Excellent' : rating === 'Proficient' ? 'Satisfactory' : 'Needs Practice', grade:rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
             record.id = performanceIdFor(record);
             return record;
         }).filter(Boolean);
