@@ -5824,6 +5824,7 @@ async function handleStudentFormSubmit(e) {
         dob: document.getElementById('studentDob').value,
         admissionDate: document.getElementById('admissionDate') ? document.getElementById('admissionDate').value : (existingStudent?.admissionDate || ''),
         classGrade: selectedClassGrade,
+        subjects: (document.getElementById('studentSubjects')?.value ?? (existingStudent?.subjects || '')).split(/[,|]/).map(value => value.trim()).filter(Boolean).join(', '),
         campusName: document.getElementById('campusName').value,
         parentPhone,
         address: studentAddress,
@@ -7959,6 +7960,7 @@ function editStudent(s) {
     if (document.getElementById('studentDob')) document.getElementById('studentDob').value = s.dob || '';
     if (document.getElementById('admissionDate')) document.getElementById('admissionDate').value = normalizeDateInputValue(s.admissionDate || s.createdAt || '');
     document.getElementById('classGrade').value = s.classGrade;
+    if (document.getElementById('studentSubjects')) document.getElementById('studentSubjects').value = Array.isArray(s.subjects) ? s.subjects.join(', ') : (s.subjects || '');
     document.getElementById('campusName').value = s.campusName || '';
     document.getElementById('parentPhone').value = s.parentPhone;
     if (document.getElementById('studentAddress')) document.getElementById('studentAddress').value = s.address || '';

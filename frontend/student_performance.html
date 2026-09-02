@@ -9,8 +9,9 @@
     <link rel="stylesheet" href="student_schedule_theme.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .performance-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}
-        .performance-step{padding:13px 16px;border:1px solid #cfe3dc;border-radius:12px;background:#fff;color:#64748b;font-weight:800}
+        .performance-steps{display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:12px;margin:0 0 18px}
+        .performance-step{box-sizing:border-box;min-height:110px;padding:16px 16px;border:1px solid #cfe3dc;border-radius:12px;background:#fff;color:#64748b;font-weight:800;line-height:1.5;display:flex;align-items:flex-start;gap:6px}
+        .performance-step:has(.step-select){display:block}
         .performance-step.active{color:#176b4a;border-color:#35a56e;background:#effaf4;box-shadow:0 8px 20px rgba(53,165,110,.12)}
         .performance-layout{display:block}
         .performance-layout > .performance-panel:first-child{display:none}
@@ -82,7 +83,7 @@
     <main class="main-content">
         <a class="back-link" href="student_scheduling.html"><i data-lucide="arrow-left" width="18"></i> Back to Student Scheduling</a>
         <header class="header"><div><h1>Student Performance</h1><p style="color:var(--text-secondary);margin-top:.3rem">Select a student, choose a subject, then add skill-wise performance.</p></div></header>
-        <div class="performance-steps"><div class="performance-step active" id="stepClass">1. Select Class<select class="step-select" id="classStepSelect"><option value="">Select Class</option></select></div><div class="performance-step" id="stepStudent">2. Select Student<select class="step-select" id="studentStepSelect" disabled><option value="">Select Student</option></select></div><div class="performance-step" id="stepSubjects">3. Select Subject</div><div class="performance-step" id="stepSkills">4. Add Performance</div></div>
+        <div class="performance-steps"><div class="performance-step active" id="stepClass">1. Select Class<select class="step-select" id="classStepSelect"><option value="">Select Class</option></select></div><div class="performance-step" id="stepStudent">2. Select Student<select class="step-select" id="studentStepSelect" disabled><option value="">Select Student</option></select></div><div class="performance-step" id="stepSubjects">3. Select Subject<select class="step-select" id="subjectStepSelect" disabled><option value="">Select Subject</option></select></div><div class="performance-step" id="stepSkills">4. Add Performance</div><div class="performance-step" id="stepCoCurriculum"><i data-lucide="trophy" width="18"></i> Add Co-Curriculum Performance</div><div class="performance-step" id="stepParticipation"><i data-lucide="users-round" width="18"></i> Add Participations</div></div>
         <section class="performance-layout">
             <div class="performance-panel"><h2 id="choiceTitle">Select Class</h2><select class="class-select" id="choiceList"><option value="">Loading classes...</option></select></div>
             <div class="performance-panel" id="workspace"><div class="empty-state"><i data-lucide="school" width="32"></i><p>Select a class to view its students.</p></div></div>
@@ -106,6 +107,7 @@
     let selectedClass = '';
     let selectedStudent = null;
     let selectedSubject = '';
+    let selectedSection = 'Portfolio Skills Assessment Summary';
     let saved = [];
     let attendanceStore = {};
     let examResults = [];
@@ -114,6 +116,7 @@
     const choiceList = document.getElementById('choiceList');
     const classStepSelect = document.getElementById('classStepSelect');
     const studentStepSelect = document.getElementById('studentStepSelect');
+    const subjectStepSelect = document.getElementById('subjectStepSelect');
     const workspace = document.getElementById('workspace');
     const steps = [document.getElementById('stepClass'), document.getElementById('stepStudent'), document.getElementById('stepSubjects'), document.getElementById('stepSkills')];
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -169,6 +172,14 @@
     }
 
     function subjectsForClass() {
+        const assignedToStudent = Array.isArray(selectedStudent?.subjects)
+            ? selectedStudent.subjects
+            : String(selectedStudent?.subjects || '').split(/[,|]/).map(value => value.trim()).filter(Boolean);
+        if (assignedToStudent.length) {
+            let list = [...new Map(assignedToStudent.map(value => [norm(value), value])).values()];
+            if (Array.isArray(teacherAssignedSubjects)) list = list.filter(subject => teacherAssignedSubjects.some(assigned => norm(assigned) === norm(subject)));
+            return list;
+        }
         const titles = [
             ...courses.filter(c => norm(c.classGrade) === norm(selectedClass)).map(c => String(c.title || c.subject || '').trim()),
             ...saved.map(record => String(record.subject || '').trim())
@@ -201,6 +212,8 @@
         studentStepSelect.disabled = !list.length;
         studentStepSelect.innerHTML = '<option value="">Select Student</option>' + list.map(student => `<option value="${esc(student.id)}">${esc(student.fullName || 'Unnamed Student')}</option>`).join('');
         studentStepSelect.value = '';
+        subjectStepSelect.disabled = true;
+        subjectStepSelect.innerHTML = '<option value="">Select Subject</option>';
         studentStepSelect.onchange = () => studentStepSelect.value && selectStudent(studentStepSelect.value);
         workspace.innerHTML = `<div class="empty-state">${list.length ? 'Select a student from the Student dropdown above.' : 'No students found in this class.'}</div>`;
     }
@@ -225,16 +238,34 @@
 
     function renderSubjects() {
         const subjects = subjectsForClass();
+        subjectStepSelect.disabled = !subjects.length;
+        subjectStepSelect.innerHTML = '<option value="">Select Subject</option>' + subjects.map(subject => `<option value="${esc(subject)}">${esc(subject)}</option>`).join('');
+        subjectStepSelect.value = '';
+        subjectStepSelect.onchange = () => subjectStepSelect.value && renderSkillEditor(subjectStepSelect.value);
         const countFor = subject => saved.filter(record => norm(record.subject) === norm(subject) && record.skill).length;
-        workspace.innerHTML = `<div class="performance-heading"><div><h2>${esc(selectedStudent.fullName)}</h2><span class="choice-meta">${esc(selectedClass)} - Roll No: ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</span></div></div><div class="subject-grid">${subjects.map(subject => `<button type="button" class="subject-card" data-subject="${esc(subject)}"><strong>${esc(subject)}</strong><span class="choice-meta">${countFor(subject)} skill record${countFor(subject) === 1 ? '' : 's'}</span><span class="choice-meta">Click to add performance</span></button>`).join('')}</div>`;
-        workspace.querySelectorAll('[data-subject]').forEach(button => button.onclick = () => renderSkillEditor(button.dataset.subject));
+        const sections = ['Portfolio Skills Assessment Summary','Performance Task','Learning Attitude'];
+        workspace.innerHTML = `<div class="performance-heading"><div><h2>${esc(selectedStudent.fullName)}</h2><span class="choice-meta">${esc(selectedClass)} - Roll No: ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</span></div></div><div class="subject-grid">${subjects.map(subject => `<button type="button" class="subject-card subject-open-btn" data-subject="${esc(subject)}"><strong>${esc(subject)}</strong><span class="choice-meta">Click to open report</span></button>`).join('')}</div>`;
+        workspace.querySelectorAll('.subject-open-btn').forEach(button => button.onclick = () => renderSkillEditor(button.dataset.subject));
+        workspace.querySelectorAll('.subject-section-btn').forEach(block => block.onclick = event => { event.stopPropagation(); const ratingBlock = event.target.closest('.assessment-rating-block'); if (!ratingBlock) { selectedSubject = block.dataset.subject; selectedSection = block.dataset.section; printReport(selectedSection); return; } selectedSection = block.dataset.section; selectedSubject = block.dataset.subject; const item = sectionItems[selectedSection][0]; openPerformanceModal({ assessmentSection: selectedSection, assessmentItem: item, assessmentRating: ratingBlock.dataset.rating }); });
+        workspace.querySelectorAll('.section-update-btn').forEach(button => button.onclick = event => { event.stopPropagation(); const block = button.closest('.subject-section-btn'); const item = block.querySelector('.section-item-select').value; if (!item) { showAppAlert('Select an assessment item first.', 'Item Required'); return; } selectedSection = block.dataset.section; selectedSubject = block.dataset.subject; openPerformanceModal({ assessmentSection: selectedSection, assessmentItem: item, assessmentRating: block.querySelector('.section-rating-select').value }); });
         if (window.lucide) lucide.createIcons();
     }
 
     function renderSkillEditor(subject) {
         selectedSubject = subject;
+        selectedSection = 'Portfolio Skills Assessment Summary';
+        const sections = ['Portfolio Skills Assessment Summary','Performance Task','Learning Attitude'];
+        workspace.innerHTML = `<div class="performance-heading"><div><h2>${esc(subject)} Report</h2><span class="choice-meta">${esc(selectedStudent.fullName)} - ${esc(selectedClass)}</span></div><button type="button" class="action-button secondary" id="backSubjects"><i data-lucide="arrow-left"></i> Subjects</button></div><div class="subject-grid">${sections.map(section => { const count = saved.filter(r => norm(r.subject)===norm(subject) && (r.assessmentSection || 'Portfolio Skills Assessment Summary')===section).length; return `<button type="button" class="subject-card section-open-card" data-section="${esc(section)}"><strong>${esc(section)}</strong><span class="choice-meta">${count} records · Click to open</span></button>`; }).join('')}</div>`;
+        document.getElementById('backSubjects').onclick = renderSubjects;
+        workspace.querySelectorAll('.section-open-card').forEach(card => card.onclick = () => renderSectionEditor(subject, card.dataset.section));
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function renderSectionEditor(subject, section = selectedSection) {
+        selectedSubject = subject;
+        selectedSection = section || 'Portfolio Skills Assessment Summary';
         setSteps(4);
-        const rows = saved.filter(record => norm(record.subject) === norm(subject) && record.skill);
+        const rows = saved.filter(record => norm(record.subject) === norm(subject) && record.skill && (record.assessmentSection || 'Portfolio Skills Assessment Summary') === selectedSection);
         workspace.innerHTML = `<div class="performance-heading"><div><h2>${esc(subject)} Performance</h2><span class="choice-meta">${esc(selectedStudent.fullName)} - ${esc(selectedClass)}</span></div><div class="action-row" style="margin-top:0"><button type="button" class="action-button secondary" id="backSubjects"><i data-lucide="arrow-left" width="18"></i> Subjects</button><button type="button" class="action-button" id="addPerformance"><i data-lucide="plus" width="18"></i> Add Performance</button><button type="button" class="action-button secondary" id="printTools"><i data-lucide="printer" width="18"></i> Print</button></div></div><div class="record-list">${rows.length ? rows.map(record => `<div class="record-card" data-performance-card="true" data-record="${esc(record.id)}" data-subject="${esc(record.subject || subject)}" data-skill="${esc(record.skill || '')}" data-learning-outcome="${esc(record.learningOutcome || '')}" data-excellent="${esc(record.excellentDescription || '')}" data-satisfactory="${esc(record.satisfactoryDescription || '')}" data-needs-practice="${esc(record.needsPracticeDescription || '')}" data-date="${esc(record.performanceDate || '')}"><div class="record-card-top"><div><strong>${esc(record.skill)}</strong><span class="choice-meta">${esc(record.learningOutcome)}</span><span class="badge">Date: ${esc(record.performanceDate || '-')}</span></div><div class="action-row" style="margin-top:0"><button class="action-button secondary edit-record" data-record="${esc(record.id)}" type="button"><i data-lucide="pencil" width="16"></i> Edit</button><button class="action-button danger delete-record" data-record="${esc(record.id)}" type="button"><i data-lucide="trash-2" width="16"></i> Delete</button></div></div><span class="choice-meta">Excellent: ${esc(record.excellentDescription || '-')}</span><span class="choice-meta">Satisfactory: ${esc(record.satisfactoryDescription || '-')}</span><span class="choice-meta">Needs Practice: ${esc(record.needsPracticeDescription || '-')}</span></div>`).join('') : '<div class="empty-state">No saved skill performance for this subject yet. Click Add Performance to create one.</div>'}</div>`;
         bindEditor();
     }
@@ -242,7 +273,7 @@
     function bindEditor() {
         document.getElementById('backSubjects').onclick = () => { setSteps(3); renderSubjects(); };
         document.getElementById('printTools').onclick = printReport;
-        document.getElementById('addPerformance').onclick = () => openPerformanceModal();
+        document.getElementById('addPerformance').onclick = () => openPerformanceModal({ assessmentSection: selectedSection });
         workspace.querySelectorAll('.edit-record').forEach(button => button.onclick = () => {
             const record = saved.find(item => String(item.id) === String(button.dataset.record));
             openPerformanceModal(record || {});
@@ -254,7 +285,7 @@
     function ensurePerformanceModal() {
         let modal = document.getElementById('performanceModal');
         if (modal) return modal;
-        document.body.insertAdjacentHTML('beforeend', `<div class="performance-modal" id="performanceModal"><div class="performance-dialog"><div class="performance-dialog-head"><div><h2 id="performanceModalTitle">Add Performance</h2><p id="performanceModalMeta"></p></div><button class="modal-close" id="closePerformanceModal" type="button"><i data-lucide="x" width="20"></i></button></div><form class="performance-form" id="performanceModalForm"><input type="hidden" id="modalRecordId"><div class="performance-form-grid"><label class="field-label">Date<input class="date-input" id="modalPerformanceDate" type="date"></label><label class="field-label">Month<input class="month-input" id="modalPerformanceMonth" type="month"></label><button class="action-button secondary" id="addNewPerformance" type="button"><i data-lucide="plus" width="18"></i> Add New Performance</button></div><div class="performance-form-grid"><label class="field-label">Skills<textarea class="performance-textarea" id="modalSkill" placeholder="Write skill description"></textarea></label><label class="field-label">Learning Outcome<textarea class="performance-textarea" id="modalLearningOutcome" placeholder="Write learning outcome description"></textarea></label></div><div class="rubric-grid"><div class="rubric-card"><label class="field-label">Excellent<textarea class="performance-textarea" id="modalExcellent" placeholder="Describe excellent performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Satisfactory<textarea class="performance-textarea" id="modalSatisfactory" placeholder="Describe satisfactory performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Needs Practice<textarea class="performance-textarea" id="modalNeedsPractice" placeholder="Describe what needs practice"></textarea></label></div></div></form><div class="modal-actions"><button class="action-button secondary" id="cancelPerformanceModal" type="button">Cancel</button><button class="action-button" id="saveSkill" type="button"><i data-lucide="database" width="18"></i> Save Performance</button></div></div></div>`);
+        document.body.insertAdjacentHTML('beforeend', `<div class="performance-modal" id="performanceModal"><div class="performance-dialog"><div class="performance-dialog-head"><div><h2 id="performanceModalTitle">Add Performance</h2><p id="performanceModalMeta"></p></div><button class="modal-close" id="closePerformanceModal" type="button"><i data-lucide="x" width="20"></i></button></div><form class="performance-form" id="performanceModalForm"><input type="hidden" id="modalRecordId"><div class="performance-form-grid"><label class="field-label">Assessment Section<select class="date-input" id="modalAssessmentSection"><option value="Portfolio Skills Assessment Summary">Portfolio Skills Assessment Summary</option><option value="Performance Task">Performance Task</option><option value="Learning Attitude">Learning Attitude</option></select></label><label class="field-label">Assessment Item<input class="performance-textarea" id="modalAssessmentItem" placeholder="e.g. Project, Participation"></label></div><div class="performance-form-grid"><label class="field-label">Rating<select class="date-input" id="modalAssessmentRating"><option value="Advance">Advance (85-100%)</option><option value="Proficient">Proficient (70-84%)</option><option value="Developing">Developing (50-69%)</option><option value="Below 50% Beginning">Below 50% / Beginning</option></select></label><label class="field-label">Portfolio Date<input class="date-input" id="modalPerformanceDate" type="date"></label><label class="field-label">Month<input class="month-input" id="modalPerformanceMonth" type="month"></label></div><div class="performance-form-grid"><label class="field-label">Skills<textarea class="performance-textarea" id="modalSkill" placeholder="Write skill description"></textarea></label><label class="field-label">Learning Outcome<textarea class="performance-textarea" id="modalLearningOutcome" placeholder="Write learning outcome description"></textarea></label></div><div class="rubric-grid"><div class="rubric-card"><label class="field-label">Excellent<textarea class="performance-textarea" id="modalExcellent" placeholder="Describe excellent performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Satisfactory<textarea class="performance-textarea" id="modalSatisfactory" placeholder="Describe satisfactory performance"></textarea></label></div><div class="rubric-card"><label class="field-label">Needs Practice<textarea class="performance-textarea" id="modalNeedsPractice" placeholder="Describe what needs practice"></textarea></label></div></div><button class="action-button secondary" id="addNewPerformance" type="button"><i data-lucide="plus" width="18"></i> Add New Performance</button></form><div class="modal-actions"><button class="action-button secondary" id="cancelPerformanceModal" type="button">Cancel</button><button class="action-button" id="saveSkill" type="button"><i data-lucide="database" width="18"></i> Save Performance</button></div></div></div>`);
         modal = document.getElementById('performanceModal');
         const portfolioDateLabel = document.getElementById('modalPerformanceDate')?.parentElement;
         if (portfolioDateLabel) {
@@ -290,6 +321,9 @@
         document.getElementById('performanceModalTitle').textContent = record.id ? 'Edit Performance' : 'Add Performance';
         document.getElementById('performanceModalMeta').textContent = `${selectedStudent.fullName || ''} - ${selectedSubject}`;
         document.getElementById('modalRecordId').value = record.id || '';
+        document.getElementById('modalAssessmentSection').value = record.assessmentSection || 'Portfolio Skills Assessment Summary';
+        document.getElementById('modalAssessmentItem').value = record.assessmentItem || '';
+        document.getElementById('modalAssessmentRating').value = record.assessmentRating || 'Advance';
         document.getElementById('modalPerformanceDate').value = record.performanceDate || today();
         document.getElementById('modalPerformanceMonth').value = record.performanceMonth || String(record.performanceDate || today()).slice(0, 7);
         document.getElementById('modalSkill').value = record.skill || '';
@@ -318,7 +352,10 @@
             studentName: selectedStudent.fullName || '',
             classGrade: selectedClass,
             subject: selectedSubject,
-            skill: document.getElementById('modalSkill').value.trim(),
+            assessmentSection: document.getElementById('modalAssessmentSection').value,
+            assessmentItem: document.getElementById('modalAssessmentItem').value.trim() || document.getElementById('modalSkill').value.trim(),
+            assessmentRating: document.getElementById('modalAssessmentRating').value,
+            skill: document.getElementById('modalSkill').value.trim() || document.getElementById('modalAssessmentItem').value.trim(),
             learningOutcome: document.getElementById('modalLearningOutcome').value.trim(),
             excellentDescription: document.getElementById('modalExcellent').value.trim(),
             satisfactoryDescription: document.getElementById('modalSatisfactory').value.trim(),
@@ -329,12 +366,13 @@
             percentage: 100,
             remarks: ''
         };
+        selectedSection = record.assessmentSection;
         record.id = performanceIdFor(record);
         const hasExcellent = Boolean(record.excellentDescription);
         const hasSatisfactory = Boolean(record.satisfactoryDescription);
         const hasNeedsPractice = Boolean(record.needsPracticeDescription);
-        if (!record.skill || !record.learningOutcome || (hasExcellent && hasSatisfactory) || (!hasExcellent && !hasSatisfactory && !hasNeedsPractice)) {
-            showAppAlert('Fill Skills and Learning Outcome. Enter Excellent, or enter Satisfactory and/or Needs Practice.', 'Incomplete Form');
+        if (!record.assessmentItem || !record.skill || (!record.learningOutcome && record.assessmentSection === 'Portfolio Skills Assessment Summary') || (hasExcellent && hasSatisfactory) || (!hasExcellent && !hasSatisfactory && !hasNeedsPractice)) {
+            showAppAlert('Select section, enter assessment item and complete the performance details.', 'Incomplete Form');
             return;
         }
         const button = document.getElementById('saveSkill');
@@ -349,7 +387,7 @@
             saved = mergePerformanceRecords(returned.some(item => item.skill) ? returned : [record], getLocalPerformanceRecords(selectedStudent.id));
             renderSkillEditor(selectedSubject);
             if (keepAdding) {
-                openPerformanceModal();
+                openPerformanceModal({ assessmentSection: selectedSection });
             } else {
                 closePerformanceModal();
                 showSuccessModal('Successfully Saved', 'Performance has been saved successfully.');
@@ -396,23 +434,24 @@
         })).filter(record => record.skill);
     }
 
-    function getPrintablePerformanceRecords() {
+    function getPrintablePerformanceRecords(sectionOnly = '') {
         const subject = selectedSubject;
-        const visibleRecords = getVisiblePerformanceRecords().filter(record => norm(record.subject) === norm(subject));
-        if (visibleRecords.length) return visibleRecords;
-        return saved.filter(record => record.skill && norm(record.subject) === norm(subject));
+        return saved.filter(record => record.skill && norm(record.subject) === norm(subject) && (!sectionOnly || (record.assessmentSection || 'Portfolio Skills Assessment Summary') === sectionOnly));
     }
 
-    function printReport() {
-        const records = getPrintablePerformanceRecords();
+    function printReport(sectionOnly = '') {
+        const records = getPrintablePerformanceRecords(sectionOnly);
         if (!records.length) {
             showAppAlert('No performance records are available for this subject.', 'Nothing To Print');
             return;
         }
         const portfolioMonth = records[0]?.performanceMonth || String(records[0]?.performanceDate || '').slice(0, 7) || 'Month-Year';
-        const rows = records.map(record => `<tr><td class="skill"><strong>${esc(record.skill)}</strong><small>${esc(record.performanceDate || '')}</small></td><td>${esc(record.learningOutcome || '')}</td><td>${esc(record.excellentDescription || '')}</td><td>${esc(record.satisfactoryDescription || '')}</td><td>${esc(record.needsPracticeDescription || '')}</td></tr>`).join('');
+        const sections = ['Portfolio Skills Assessment Summary','Performance Task','Learning Attitude'];
+        const rows = sections.map(section => { const sectionRecords = records.filter(record => (record.assessmentSection || 'Portfolio Skills Assessment Summary') === section); if (!sectionRecords.length) return ''; return `<tr class="section-row"><th colspan="5">${esc(section)}</th></tr>` + sectionRecords.map(record => `<tr><td class="skill"><strong>${esc(record.assessmentItem || record.skill)}</strong><small>${esc(record.performanceDate || '')}</small></td><td>${esc(record.assessmentRating || '')}</td><td>${esc(record.learningOutcome || record.skill || '')}</td><td>${esc(record.excellentDescription || '')}</td><td>${esc(record.satisfactoryDescription || record.needsPracticeDescription || '')}</td></tr>`).join(''); }).join('');
         const html = `<!DOCTYPE html><html><head><title>${esc(selectedSubject)} Progress</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1f2937;margin:0;font-size:10px}.head{display:flex;align-items:center;justify-content:center;gap:12px;border:2px solid #374151;border-radius:24px;padding:7px 18px;margin-bottom:8px}.logo{width:48px;height:48px;object-fit:contain}.head h1{margin:0;text-align:center;font-size:18px}.head p{margin:3px 0 0;text-align:center;font-size:12px}.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}.box{border:1px solid #6b7280;padding:5px 8px;min-height:25px}.report{width:100%;border-collapse:collapse;table-layout:fixed}.report th,.report td{border:1px solid #4b5563;padding:5px;vertical-align:top;line-height:1.18;word-break:break-word}.report th{background:#e5e7eb;text-align:center;font-size:11px}.report th:nth-child(1){width:13%}.report th:nth-child(2){width:25%}.report th:nth-child(3),.report th:nth-child(4),.report th:nth-child(5){width:20.66%}.skill{font-size:11px}.skill small{display:block;margin-top:5px;color:#4b5563;font-size:9px}.circle{font-size:16px;line-height:10px;margin-right:4px;vertical-align:-1px}.signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:45px;margin-top:20px;font-size:11px}.line{border-top:1px solid #374151;padding-top:4px;text-align:center}@media print{.head,.report th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="head"><img class="logo" src="${esc(logoSrc)}" alt="School logo"><div><h1>Beacon Light School System</h1><p>${esc(selectedSubject)} Progress Report</p></div></div><div class="meta"><div class="box"><strong>Name:</strong> ${esc(selectedStudent.fullName || '')}</div><div class="box"><strong>Class:</strong> ${esc(selectedClass)}</div><div class="box"><strong>Roll No:</strong> ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</div></div><table class="report"><thead><tr><th>Skills</th><th>Learning Outcome</th><th>Excellent</th><th>Satisfactory</th><th>Needs Practice</th></tr></thead><tbody>${rows}</tbody></table><div class="signatures"><div class="line">Teacher's Signature</div><div class="line">School Stamp</div><div class="line">Parent Signature</div></div></body></html>`;
         openPrintableReport(html
+            .replace('</style>', '.section-row th{background:#dcefe4;font-size:13px}</style>')
+            .replace('<th>Skills</th><th>Learning Outcome</th><th>Excellent</th><th>Satisfactory</th><th>Needs Practice</th>', '<th>Assessment Item</th><th>Rating</th><th>Learning Outcome / Skill</th><th>Excellent</th><th>Satisfactory / Needs Practice</th>')
             .replace('</style>', '.portfolio-head{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border:1px solid #777;border-radius:18px;background:#e5e5e5;padding:7px 18px;margin-bottom:8px;font-weight:800;text-align:center}.portfolio-head span:first-child{text-align:left}.portfolio-head span:last-child{text-align:right}.meta{display:none!important}.stamp-line{border-top:0!important;font-size:13px;font-weight:800;line-height:1.35}</style>')
             .replace(/<div class="head">[\s\S]*?<\/div><div class="meta">/, `<div class="portfolio-head"><span>Portfolio_${esc(portfolioMonth)}</span><span>${esc(selectedSubject)}</span><span>${esc(selectedStudent.fullName || '')}</span></div><div class="meta">`)
             .replace('<th>Excellent</th>', '<th>😊 Excellent</th>')

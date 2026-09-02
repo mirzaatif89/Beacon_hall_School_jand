@@ -2769,6 +2769,7 @@
 
         <section class="panel-card student-portal-section" id="studentCourseSection" style="display:none; margin-bottom: 1.25rem;">
             <h3>Class Course</h3>
+            <div id="studentAssignedSubjects" class="portal-content-meta" style="margin:.5rem 0 1rem;font-weight:600"></div>
             <div class="portal-content-list" id="studentCourseList"></div>
             <div class="empty-note" id="studentCourseEmpty">No course has been added for your class yet.</div>
         </section>
@@ -3583,6 +3584,9 @@
         }
 
         function applyStudentCourse(student = {}) {
+            const assigned = Array.isArray(student.subjects) ? student.subjects : String(student.subjects || '').split(/[,|]/).map(value => value.trim()).filter(Boolean);
+            const subjectEl = document.getElementById('studentAssignedSubjects');
+            if (subjectEl) subjectEl.textContent = assigned.length ? `Assigned Subjects: ${assigned.join(', ')}` : '';
             renderPortalContentList('studentCourseList', 'studentCourseEmpty', getClassWiseItems(STUDENT_COURSE_KEY, student), STUDENT_COURSE_KEY);
         }
 
