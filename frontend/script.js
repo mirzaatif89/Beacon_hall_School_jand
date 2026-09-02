@@ -4760,11 +4760,13 @@ function initDashboardRevenueMonthPicker() {
     picker.value = selectedDashboardRevenueMonthKey;
     if (picker.dataset.dashboardRevenueMonthBound) return;
     picker.dataset.dashboardRevenueMonthBound = 'true';
-    picker.addEventListener('change', () => {
+    const handleMonthChange = () => {
         selectedDashboardRevenueMonthKey = String(picker.value || getCurrentDashboardFeeMonthKey());
         dashboardRevenueMonthManuallySelected = true;
         updateDashboardRevenueStats();
-    });
+    };
+    picker.addEventListener('change', handleMonthChange);
+    picker.addEventListener('input', handleMonthChange);
 }
 
 async function updateDashboardRevenueStats(studentsForDashboard) {
