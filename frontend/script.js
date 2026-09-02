@@ -6517,6 +6517,15 @@ async function openStudentPerformanceReportFromEncoded(encodedPayload, reportMod
         details.innerHTML = buildStudentFullPortfolioReport(student, records, escReport);
         return;
     }
+    if (reportMode === 'co-curriculum' || reportMode === 'participant') {
+        const title = reportMode === 'co-curriculum' ? 'Co-Curriculum Report' : 'Participant Report';
+        const match = reportMode === 'co-curriculum' ? /co.curriculum|performance task/i : /particip|learning attitude/i;
+        const filtered = records.filter(item => match.test(String(item.assessmentSection || item.category || '')));
+        modal.classList.add('performance-report-fullscreen');
+        subjectsBox.style.display = 'none';
+        details.innerHTML = `<div style="border:1px solid #cfe3dc;border-radius:12px;padding:16px;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3 style="margin:0;color:#153d2e">${title}</h3><button type="button" class="btn btn-outline" onclick="window.print()">Print</button></div>${filtered.length ? `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Item</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Details</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Date</th></tr></thead><tbody>${filtered.map(item => `<tr><td style="border:1px solid #9fb4aa;padding:9px">${escReport(item.assessmentItem || item.skill || '-')}</td><td style="border:1px solid #9fb4aa;padding:9px">${escReport(item.learningOutcome || '-')}</td><td style="border:1px solid #9fb4aa;padding:9px">${escReport(item.performanceDate || '-')}</td></tr>`).join('')}</tbody></table>` : '<p>No records have been added for this report yet.</p>'}</div>`;
+        return;
+    }
     subjectsBox.innerHTML = subjects.length ? subjects.map(subject => `<button type="button" class="btn btn-outline" data-report-subject="${escReport(subject)}">${escReport(subject)}</button>`).join('') : '<p>No subjects/performance records found for this student.</p>';
     subjectsBox.querySelectorAll('[data-report-subject]').forEach(button => button.onclick = () => showSubject(button.dataset.reportSubject));
 }
@@ -7100,7 +7109,7 @@ function toggleStudentReportMenu(button, encodedStudent) {
     document.querySelectorAll('.student-report-menu').forEach(menu => menu.remove());
     const menu = document.createElement('div');
     menu.className = 'student-report-menu';
-    menu.innerHTML = '<button type="button" data-report-mode="subject">Subject wise report</button><button type="button" data-report-mode="full">Full Report</button>';
+    menu.innerHTML = '<button type="button" data-report-mode="full">Full Report</button><button type="button" data-report-mode="subject">Subject Wise Report</button><button type="button" data-report-mode="co-curriculum">Co-Curriculum Report</button><button type="button" data-report-mode="participant">Participant Report</button>';
     document.body.appendChild(menu);
     const buttonRect = button.getBoundingClientRect();
     menu.style.left = `${Math.max(8, buttonRect.right - 180)}px`;
@@ -7118,6 +7127,14 @@ function toggleStudentReportMenu(button, encodedStudent) {
     menu.querySelector('[data-report-mode="full"]').onclick = () => {
         menu.remove();
         openStudentPerformanceReportFromEncoded(encodedStudent, 'full');
+    };
+    menu.querySelector('[data-report-mode="co-curriculum"]').onclick = () => {
+        menu.remove();
+        openStudentPerformanceReportFromEncoded(encodedStudent, 'co-curriculum');
+    };
+    menu.querySelector('[data-report-mode="participant"]').onclick = () => {
+        menu.remove();
+        openStudentPerformanceReportFromEncoded(encodedStudent, 'participant');
     };
     setTimeout(() => document.addEventListener('click', function closeMenu(event) {
         if (!menu.contains(event.target) && event.target !== button) {
