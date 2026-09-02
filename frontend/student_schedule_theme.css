@@ -31,8 +31,8 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 0.9rem;
-    min-height: 112px;
-    padding: 1rem;
+    min-height: 92px;
+    padding: 0.75rem;
     border: 1px solid #d5e4f2;
     border-radius: 12px;
     background: #ffffff;
@@ -49,8 +49,8 @@
 }
 
 .schedule-hub-icon {
-    width: 46px;
-    height: 46px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
     display: inline-flex;
     align-items: center;
@@ -64,7 +64,7 @@
     display: block;
     margin-bottom: 0.25rem;
     color: #0f172a;
-    font-size: 1rem;
+    font-size: 0.94rem;
 }
 
 .schedule-hub-card span span,
@@ -72,8 +72,8 @@
     display: block;
     margin: 0;
     color: var(--text-secondary);
-    font-size: 0.86rem;
-    line-height: 1.45;
+    font-size: 0.8rem;
+    line-height: 1.35;
 }
 
 .schedule-hub-arrow {
