@@ -1651,6 +1651,17 @@
             return Array.from(classes.values());
         }
 
+        function uniqueSubjects() {
+            const subjects = new Map();
+            const addSubject = (value) => String(value || '').split(/[,|]/).map((item) => item.trim()).filter(Boolean).forEach((item) => {
+                const key = item.toLowerCase();
+                if (!subjects.has(key)) subjects.set(key, item);
+            });
+            addSubject(currentTeacherProfile?.subject);
+            teacherAssignedClassRecords.forEach((item) => addSubject(item.subject));
+            return Array.from(subjects.values());
+        }
+
         async function loadTeacherAssignedClasses() {
             try {
                 const response = await fetch(`${API_BASE_URL}/teacher-assigned-classes`, { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
@@ -2164,7 +2175,9 @@
             document.getElementById('studentManagerWorkspaceTitle').textContent = title || 'Student workspace';
             workspace.classList.add('active');
             frame.dataset.assignedClasses = JSON.stringify(assignedClasses);
-            const query = new URLSearchParams({ embedded: 'teacher', assignedClasses: assignedClasses.join('|') });
+            const assignedSubjects = uniqueSubjects();
+            frame.dataset.assignedSubjects = JSON.stringify(assignedSubjects);
+            const query = new URLSearchParams({ embedded: 'teacher', assignedClasses: assignedClasses.join('|'), assignedSubjects: assignedSubjects.join('|') });
             if (context.studentId) query.set('studentId', context.studentId);
             if (context.studentClass) query.set('class', context.studentClass);
             const [pagePath, pageHash = ''] = String(page || '').split('#');
@@ -2177,6 +2190,7 @@
                     style.textContent = '.sidebar{display:none!important}.main-content{margin-left:0!important;width:100%!important;max-width:none!important}.header{padding-top:10px!important}.page-back-btn{display:none!important}';
                     doc.head.appendChild(style);
                     const allowed = JSON.parse(frame.dataset.assignedClasses || '[]').map((value) => String(value).trim().toLowerCase());
+                    const allowedSubjects = JSON.parse(frame.dataset.assignedSubjects || '[]').map((value) => String(value).trim().toLowerCase());
                     const isClassField = (el) => /class|grade/i.test(`${el.id} ${el.name} ${el.getAttribute('aria-label') || ''}`);
                     const restrictClassFields = () => doc.querySelectorAll('select').forEach((select) => {
                         if (!isClassField(select)) return;
@@ -2185,8 +2199,30 @@
                             option.hidden = !allowed.includes(String(option.value).trim().toLowerCase()) && !allowed.includes(String(option.textContent).trim().toLowerCase());
                         });
                     });
+                    const isSubjectField = (el) => /subject|course/i.test(`${el.id} ${el.name} ${el.getAttribute('aria-label') || ''}`);
+                    const restrictSubjectFields = () => {
+                        if (!allowedSubjects.length) return;
+                        doc.querySelectorAll('select').forEach((select) => {
+                            if (!isSubjectField(select)) return;
+                            [...select.options].forEach((option) => {
+                                if (!option.value || /select|all subject/i.test(option.textContent || '')) return;
+                                option.hidden = !allowedSubjects.includes(String(option.value).trim().toLowerCase()) && !allowedSubjects.includes(String(option.textContent).trim().toLowerCase());
+                            });
+                            const selected = String(select.value || '').trim().toLowerCase();
+                            if (selected && !allowedSubjects.includes(selected)) {
+                                const next = [...select.options].find((option) => !option.hidden && option.value);
+                                if (next) { select.value = next.value; select.dispatchEvent(new Event('change', { bubbles: true })); }
+                            }
+                        });
+                        doc.querySelectorAll('input, textarea').forEach((field) => {
+                            if (!isSubjectField(field)) return;
+                            field.value = allowedSubjects[0] ? allowedSubjects[0].replace(/\b\w/g, (letter) => letter.toUpperCase()) : field.value;
+                            field.readOnly = true;
+                        });
+                    };
                     restrictClassFields();
-                    new MutationObserver(restrictClassFields).observe(doc.body, { childList:true, subtree:true });
+                    restrictSubjectFields();
+                    new MutationObserver(() => { restrictClassFields(); restrictSubjectFields(); }).observe(doc.body, { childList:true, subtree:true });
                 } catch (_error) { /* Same-origin pages are styled when available. */ }
             };
         }
