@@ -6499,7 +6499,9 @@ async function openStudentPerformanceReportFromEncoded(encodedPayload, reportMod
         [...records, ...localForStudent].forEach(item => merged.set(String(item.id || `${item.studentId}-${item.subject}-${item.performanceDate}-${item.skill}`), item));
         records = [...merged.values()];
     } catch (_) {}
-    const subjects = [...new Set(records.map(item => String(item.subject || '').trim()).filter(Boolean))];
+    const standardSubjects = ['English', 'Urdu', 'Mathematics', 'Science', 'Social Study', 'Islamiyat', 'Nazra', 'Math'];
+    const excludedSubjects = new Set(['co-curriculum', 'co curriculum', 'participation']);
+    const subjects = [...new Set([...standardSubjects, ...records.map(item => String(item.subject || '').trim())].filter(subject => subject && !excludedSubjects.has(subject.toLowerCase())))];
     const modal = document.createElement('div');
     modal.className = 'success-overlay';
     modal.style.display = 'flex';
@@ -7028,8 +7030,10 @@ function renderStudents(term = '') {
 
     const searchInput = document.getElementById('studentSearchInput');
     const quickFilter = document.getElementById('studentQuickFilter');
+    const quickFilterLabel = document.getElementById('studentQuickFilterLabel');
     const loggedInUser = getLoggedInUser();
     const isBranchUser = loggedInUser?.role === 'Branch';
+    if (quickFilterLabel) quickFilterLabel.textContent = window.location.hash === '#status' ? 'Class Filter' : 'Quick Filter';
     const canEditStudents = !isBranchUser && canCurrentUserPerformAction('students', 'edit');
     const canDeleteStudents = !isBranchUser && canCurrentUserPerformAction('students', 'delete');
 
@@ -7155,7 +7159,7 @@ function toggleStudentReportMenu(button, encodedStudent) {
     document.querySelectorAll('.student-report-menu').forEach(menu => menu.remove());
     const menu = document.createElement('div');
     menu.className = 'student-report-menu';
-    menu.innerHTML = '<button type="button" data-report-mode="full">Full Report</button><button type="button" data-report-mode="subject">Subject Wise Report</button><button type="button" data-report-mode="co-curriculum">Co-Curriculum Report</button><button type="button" data-report-mode="participant">Participant Report</button>';
+    menu.innerHTML = '<button type="button" data-report-mode="subject">Subject Wise Report</button><button type="button" data-report-mode="full">Full Report</button>';
     document.body.appendChild(menu);
     const buttonRect = button.getBoundingClientRect();
     menu.style.left = `${Math.max(8, buttonRect.right - 180)}px`;
@@ -7173,14 +7177,6 @@ function toggleStudentReportMenu(button, encodedStudent) {
     menu.querySelector('[data-report-mode="full"]').onclick = () => {
         menu.remove();
         openStudentPerformanceReportFromEncoded(encodedStudent, 'full');
-    };
-    menu.querySelector('[data-report-mode="co-curriculum"]').onclick = () => {
-        menu.remove();
-        openStudentPerformanceReportFromEncoded(encodedStudent, 'co-curriculum');
-    };
-    menu.querySelector('[data-report-mode="participant"]').onclick = () => {
-        menu.remove();
-        openStudentPerformanceReportFromEncoded(encodedStudent, 'participant');
     };
     setTimeout(() => document.addEventListener('click', function closeMenu(event) {
         if (!menu.contains(event.target) && event.target !== button) {
@@ -7941,20 +7937,17 @@ function populateStudentQuickFilterOptions() {
         });
 
     const classes = Array.from(classMap.values()).sort(compareStudentClassNames);
+    const performanceClassFilter = window.location.hash === '#status';
     const signature = [
-        'filters:v5-simple-student-lists',
+        performanceClassFilter ? 'filters:v6-performance-class-list' : 'filters:v5-simple-student-lists',
         `classes:${classes.map((name) => String(name || '').toLowerCase()).join('|')}`
     ].join('||');
     const needsRebuild = quickFilter.dataset.signature !== signature || !quickFilter.options.length;
 
     if (needsRebuild) {
-        quickFilter.innerHTML = `
-            <option value="all">All Students</option>
-            <option value="gender:Male">Male Students</option>
-            <option value="gender:Female">Female Students</option>
-            <option value="zero-fee">Zero Fee Students</option>
-            <option value="age:below5">Below 5 Years Students</option>
-        `;
+        quickFilter.innerHTML = performanceClassFilter
+            ? '<option value="all">All Classes</option>'
+            : '<option value="all">All Students</option><option value="gender:Male">Male Students</option><option value="gender:Female">Female Students</option><option value="zero-fee">Zero Fee Students</option><option value="age:below5">Below 5 Years Students</option>';
 
         if (classes.length) {
             const classGroup = document.createElement('optgroup');

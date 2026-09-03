@@ -1226,11 +1226,11 @@
                         </div>
                     </div>
                     <div class="student-filter-group">
-                        <label for="studentQuickFilterTrigger">Quick Filter</label>
+                        <label for="studentQuickFilterTrigger" id="studentQuickFilterLabel">Class Filter</label>
                         <div class="student-multifilter" id="studentQuickFilterMulti">
                             <button class="student-multifilter-trigger" type="button" id="studentQuickFilterTrigger"
                                 aria-haspopup="listbox" aria-expanded="false">
-                                All Students
+                                All Classes
                             </button>
                             <div class="student-multifilter-menu" id="studentQuickFilterMenu" role="listbox"
                                 aria-multiselectable="true"></div>
@@ -1525,7 +1525,7 @@
     </div>
 
     <script src="auth.js?v=20260902-single-active-performance"></script>
-    <script src="script.js?v=20260903-multi-rating-report"></script>
+    <script src="script.js?v=20260903-performance-class-filter"></script>
     <script>
         if (window.location.hash === '#status') {
             document.body.classList.add('students-status-view');
