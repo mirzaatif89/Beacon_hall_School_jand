@@ -32,7 +32,6 @@
     if (footerWhatsapp) { footerWhatsapp.classList.add('whatsapp-link'); footerWhatsapp.innerHTML = '<i class="fa-brands fa-whatsapp" aria-hidden="true"></i>0301-5060341'; }
     const galleryPortrait = document.querySelector('.masonry img:nth-child(3)');
     if (galleryPortrait) { galleryPortrait.src = 'images_for_website/1%20(26).jpeg'; galleryPortrait.alt = 'Beacon Light School students celebrating Pakistan Day'; galleryPortrait.classList.add('gallery-portrait'); }
-    document.querySelector('.masonry')?.insertAdjacentHTML('beforeend', '<img src="images_for_website/1%20(34).jpeg" alt="Beacon Light School students taking part in a classroom activity">');
     document.querySelector('.menu').onclick=()=>document.querySelector('.navlinks').classList.toggle('open');document.querySelectorAll('.navlinks a').forEach(a=>a.onclick=()=>document.querySelector('.navlinks').classList.remove('open'));
   </script>
 </body>
