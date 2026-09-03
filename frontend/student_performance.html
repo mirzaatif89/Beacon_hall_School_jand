@@ -252,7 +252,10 @@
         const subjects = subjectsForClass();
         subjectStepSelect.disabled = !subjects.length;
         subjectStepSelect.innerHTML = '<option value="">Select Subject</option>' + subjects.map(subject => `<option value="${esc(subject)}">${esc(subject)}</option>`).join('');
-        subjectStepSelect.value = '';
+        const preferredSubject = Array.isArray(teacherAssignedSubjects)
+            ? subjects.find(subject => teacherAssignedSubjects.some(assigned => norm(assigned) === norm(subject))) || ''
+            : '';
+        subjectStepSelect.value = preferredSubject;
         subjectStepSelect.onchange = () => subjectStepSelect.value && renderSkillEditor(subjectStepSelect.value);
         const countFor = subject => saved.filter(record => norm(record.subject) === norm(subject) && record.skill).length;
         const sections = ['Portfolio Skills Assessment Summary','Performance Task','Learning Attitude'];
@@ -261,6 +264,7 @@
         workspace.querySelectorAll('.subject-section-btn').forEach(block => block.onclick = event => { event.stopPropagation(); const ratingBlock = event.target.closest('.assessment-rating-block'); if (!ratingBlock) { selectedSubject = block.dataset.subject; selectedSection = block.dataset.section; printReport(selectedSection); return; } selectedSection = block.dataset.section; selectedSubject = block.dataset.subject; const item = sectionItems[selectedSection][0]; openPerformanceModal({ assessmentSection: selectedSection, assessmentItem: item, assessmentRating: ratingBlock.dataset.rating }); });
         workspace.querySelectorAll('.section-update-btn').forEach(button => button.onclick = event => { event.stopPropagation(); const block = button.closest('.subject-section-btn'); const item = block.querySelector('.section-item-select').value; if (!item) { showAppAlert('Select an assessment item first.', 'Item Required'); return; } selectedSection = block.dataset.section; selectedSubject = block.dataset.subject; openPerformanceModal({ assessmentSection: selectedSection, assessmentItem: item, assessmentRating: block.querySelector('.section-rating-select').value }); });
         if (window.lucide) lucide.createIcons();
+        if (preferredSubject) renderSkillEditor(preferredSubject);
     }
 
     function renderLegacySkillEditor(subject) {
@@ -581,10 +585,14 @@
         try {
             const loggedInUser = JSON.parse(sessionStorage.getItem('loggedInUser') || 'null');
             if (loggedInUser?.role === 'Teacher') {
+                const assignedFromPortal = new URLSearchParams(location.search).get('assignedSubjects');
+                if (assignedFromPortal) teacherAssignedSubjects = String(assignedFromPortal).split(/[,|]/).map(value => value.trim()).filter(Boolean);
                 const teacherResponse = await fetch(`${apiBase}/teacher/me`, { headers: headers(), cache: 'no-store' });
                 const teacherData = await teacherResponse.json().catch(() => ({}));
-                const assigned = teacherData?.subject || teacherData?.subjects || '';
-                teacherAssignedSubjects = String(assigned).split(/[,|]/).map(value => value.trim()).filter(Boolean);
+                if (!Array.isArray(teacherAssignedSubjects) || !teacherAssignedSubjects.length) {
+                    const assigned = teacherData?.subject || teacherData?.subjects || '';
+                    teacherAssignedSubjects = String(assigned).split(/[,|]/).map(value => value.trim()).filter(Boolean);
+                }
             }
             const [studentResponse, courseResponse, attendanceResponse, resultResponse] = await Promise.all([
                 fetch(`${apiBase}/students`, { cache:'no-store' }),
