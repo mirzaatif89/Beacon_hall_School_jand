@@ -197,7 +197,11 @@
                         </div>
                         <div class="input-group">
                             <label>Lecture / Subject</label>
-                            <input type="text" id="teacherScheduleSubject" required placeholder="e.g. Mathematics">
+                            <select id="teacherScheduleSubject" required>
+                                <option value="">Select Subject</option>
+                                <option>English</option><option>Urdu</option><option>Mathematics</option><option>Science</option>
+                                <option>Social Study</option><option>Islamiyat</option><option>Nazra</option><option>Math</option>
+                            </select>
                         </div>
                         <div class="input-group">
                             <label>Start Time</label>
@@ -279,6 +283,8 @@
 
             teacherSelect.innerHTML = '<option value="">Select Teacher</option>' + teachers.map((teacher) => `<option value="${teacher.id}">${teacher.fullName || 'Teacher'}${teacher.subject ? ` - ${teacher.subject}` : ''}</option>`).join('');
             classSelect.innerHTML = '<option value="">Select Class</option>' + classNames.map((name) => `<option value="${name}">${name}</option>`).join('');
+            const subjectSelect = document.getElementById('teacherScheduleSubject');
+            if (subjectSelect) subjectSelect.innerHTML = '<option value="">Select Subject</option>' + ['English', 'Urdu', 'Mathematics', 'Science', 'Social Study', 'Islamiyat', 'Nazra', 'Math'].map((subject) => `<option value="${subject}">${subject}</option>`).join('');
         }
 
         function getAllTeacherScheduleRows() {
