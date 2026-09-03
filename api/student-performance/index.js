@@ -67,7 +67,8 @@ module.exports = createHandler({
             if (user.role === 'Teacher') {
                 const teacher = await db.models.Teacher.findByPk(user.id, { attributes: ['subject'] });
                 const assignedSubjects = String(teacher?.subject || '').split(/[,|]/).map(value => value.trim().toLowerCase()).filter(Boolean);
-                if (!assignedSubjects.includes(subject.toLowerCase())) {
+                const specialTeacherReports = ['co-curriculum', 'participation'];
+                if (!assignedSubjects.includes(subject.toLowerCase()) && !specialTeacherReports.includes(subject.toLowerCase())) {
                     const error = new Error('You can only add performance for your assigned subject.');
                     error.statusCode = 403;
                     throw error;

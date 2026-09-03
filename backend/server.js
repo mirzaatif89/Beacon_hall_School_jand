@@ -3485,7 +3485,8 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
             if (req.user?.role === 'Teacher') {
                 const teacher = await sequelize.models.Teacher.findByPk(req.user.id, { attributes: ['subject'] });
                 const assignedSubjects = String(teacher?.subject || '').split(/[,|]/).map(value => value.trim().toLowerCase()).filter(Boolean);
-                if (!assignedSubjects.includes(subject.toLowerCase())) {
+                const specialTeacherReports = ['co-curriculum', 'participation'];
+                if (!assignedSubjects.includes(subject.toLowerCase()) && !specialTeacherReports.includes(subject.toLowerCase())) {
                     return res.status(403).json({ success: false, message: 'You can only add performance for your assigned subject.' });
                 }
             }
