@@ -6551,10 +6551,17 @@ function buildStudentFullPortfolioReport(student, records, esc) {
     const reportOnlySubjects = new Set(['co-curriculum', 'co curriculum', 'participation']);
     const allSubjects = [...new Set([...standardSubjects, ...records.map(row => String(row.subject || '').trim()).filter(subject => subject && !reportOnlySubjects.has(subject.toLowerCase()))])];
     const categoryFor = (rows) => {
-        if (rows.some(row => String(row.excellentDescription || '').trim())) return 0;
-        if (rows.some(row => String(row.satisfactoryDescription || '').trim())) return 1;
-        if (rows.some(row => String(row.needsPracticeDescription || '').trim())) return 2;
-        return -1;
+        if (!rows.length) return -1;
+        const scores = rows.map(row => {
+            const grade = String(row.grade || row.assessmentRating || '').toLowerCase();
+            if (grade.includes('below') || grade.includes('beginning')) return 40;
+            if (String(row.needsPracticeDescription || '').trim() || grade.includes('developing') || String(row.rating || '').toLowerCase() === 'needs practice') return 60;
+            if (String(row.satisfactoryDescription || '').trim() || grade.includes('proficient') || String(row.rating || '').toLowerCase() === 'satisfactory') return 77;
+            if (String(row.excellentDescription || '').trim() || grade.includes('advance') || String(row.rating || '').toLowerCase() === 'excellent') return 92;
+            return 0;
+        });
+        const average = scores.reduce((total, score) => total + score, 0) / scores.length;
+        return average >= 85 ? 0 : average >= 70 ? 1 : average >= 50 ? 2 : 3;
     };
     const assessmentRows = (items) => items.map(label => {
         const category = categoryFor(records.filter(row => String(row.subject || '').trim().toLowerCase() === label.toLowerCase()));

@@ -452,6 +452,9 @@
         const hasExcellent = Boolean(record.excellentDescription);
         const hasSatisfactory = Boolean(record.satisfactoryDescription);
         const hasNeedsPractice = Boolean(record.needsPracticeDescription);
+        if (hasExcellent) { record.rating = 'Excellent'; record.assessmentRating = 'Advance'; record.percentage = 92; record.grade = 'Advance'; }
+        else if (hasSatisfactory) { record.rating = 'Satisfactory'; record.assessmentRating = 'Proficient'; record.percentage = 77; record.grade = 'Proficient'; }
+        else if (hasNeedsPractice) { record.rating = 'Needs Practice'; record.assessmentRating = 'Developing'; record.percentage = 60; record.grade = 'Developing'; }
         if (!record.skill || !record.learningOutcome || (hasExcellent && hasSatisfactory) || (!hasExcellent && !hasSatisfactory && !hasNeedsPractice)) {
             showAppAlert('Fill Skills and Learning Outcome. Enter Excellent, or enter Satisfactory and/or Needs Practice.', 'Incomplete Form');
             return;
