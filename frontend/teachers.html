@@ -578,32 +578,45 @@
         .teacher-table-container { overflow-x: hidden !important; scrollbar-width: none !important; }
         .teacher-table-container::-webkit-scrollbar { display: none !important; height: 0 !important; }
         #teachersTable { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; }
-        #teachersTable th, #teachersTable td { min-width: 0 !important; width: auto !important; padding: .55rem .4rem !important; font-size: .74rem !important; overflow: hidden; text-overflow: ellipsis; }
+        #teachersTable th, #teachersTable td { min-width: 0 !important; padding: .48rem .55rem !important; font-size: .78rem !important; overflow: hidden; text-overflow: ellipsis; vertical-align: middle !important; }
+
+        /* Balanced widths for the nine columns in the teacher list. */
+        #teachersTable th:nth-child(1), #teachersTable td:nth-child(1) { width: 17% !important; }
+        #teachersTable th:nth-child(2), #teachersTable td:nth-child(2) { width: 11% !important; }
+        #teachersTable th:nth-child(3), #teachersTable td:nth-child(3) { width: 10% !important; }
+        #teachersTable th:nth-child(4), #teachersTable td:nth-child(4) { width: 11% !important; }
+        #teachersTable th:nth-child(5), #teachersTable td:nth-child(5) { width: 11% !important; }
+        #teachersTable th:nth-child(6), #teachersTable td:nth-child(6) { width: 12% !important; }
+        #teachersTable th:nth-child(7), #teachersTable td:nth-child(7) { width: 10% !important; }
+        #teachersTable th:nth-child(8), #teachersTable td:nth-child(8) { width: 10% !important; }
+        #teachersTable th:nth-child(9), #teachersTable td:nth-child(9) { width: 8% !important; }
 
         /* Compact teacher rows so the list stays dense and easy to scan. */
         #teachersTable th {
-            padding-top: .3rem !important;
-            padding-bottom: .3rem !important;
+            padding-top: .42rem !important;
+            padding-bottom: .42rem !important;
         }
 
         #teachersTable td {
-            padding-top: .22rem !important;
-            padding-bottom: .22rem !important;
-            line-height: 1.08 !important;
+            padding-top: .46rem !important;
+            padding-bottom: .46rem !important;
+            line-height: 1.22 !important;
         }
 
         #teachersTable .teacher-name-cell {
-            gap: .4rem;
+            gap: .55rem;
         }
 
         #teachersTable .teacher-avatar {
-            width: 30px;
-            height: 30px;
-            font-size: .78rem;
+            width: 34px;
+            height: 34px;
+            font-size: .82rem;
         }
 
         #teachersTable .teacher-name-text {
-            line-height: 1.08 !important;
+            line-height: 1.2 !important;
+            word-break: normal;
+            overflow-wrap: anywhere;
         }
 
         #teachersTable .table-action-select {
