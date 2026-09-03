@@ -1430,7 +1430,9 @@
             <h3>Student Manager</h3>
             <p class="muted">Manage students from your assigned classes and lectures.</p>
             <div class="student-manager-module-grid" aria-label="Student management modules">
-                <button class="student-manager-module" type="button" data-module-page="student_performance.html"><i data-lucide="trending-up"></i><span><strong>Performance</strong>Review student results and performance history.</span></button>
+                <button class="student-manager-module" type="button" data-module-page="student_performance.html"><i data-lucide="trending-up"></i><span><strong>Subject Wise Performance</strong>Create performance reports for your assigned subjects.</span></button>
+                <button class="student-manager-module" type="button" data-module-page="student_performance.html#co-curriculum"><i data-lucide="trophy"></i><span><strong>Co-Curriculum Performance</strong>Add projects, presentations, practical tasks, and activities.</span></button>
+                <button class="student-manager-module" type="button" data-module-page="student_performance.html#participation"><i data-lucide="users-round"></i><span><strong>Participations</strong>Record participation, homework, behaviour, hygiene, and regularity.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="student_diary.html"><i data-lucide="book-open"></i><span><strong>Diary</strong>Manage class diary, homework, and notes.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="quiz_uploading.html"><i data-lucide="circle-help"></i><span><strong>Quiz</strong>Upload and manage class quizzes.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="lecture_uploading.html"><i data-lucide="presentation"></i><span><strong>Upload Lecture</strong>Add lecture files and class material.</span></button>
@@ -2165,7 +2167,8 @@
             const query = new URLSearchParams({ embedded: 'teacher', assignedClasses: assignedClasses.join('|') });
             if (context.studentId) query.set('studentId', context.studentId);
             if (context.studentClass) query.set('class', context.studentClass);
-            frame.src = `${page}?${query.toString()}`;
+            const [pagePath, pageHash = ''] = String(page || '').split('#');
+            frame.src = `${pagePath}?${query.toString()}${pageHash ? `#${pageHash}` : ''}`;
             workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
             frame.onload = () => {
                 try {
