@@ -594,19 +594,11 @@
                     teacherAssignedSubjects = String(assigned).split(/[,|]/).map(value => value.trim()).filter(Boolean);
                 }
             }
-            const [studentResponse, courseResponse, attendanceResponse, resultResponse] = await Promise.all([
-                fetch(`${apiBase}/students`, { cache:'no-store' }),
-                fetch(`${apiBase}/student-courses`, { cache:'no-store' }),
-                fetch(`${apiBase}/student-attendance`, { cache:'no-store' }),
-                fetch(`${apiBase}/student-results`, { cache:'no-store' })
-            ]);
+            const studentResponse = await fetch(`${apiBase}/students`, { cache:'no-store' });
             const studentData = await studentResponse.json().catch(() => ({}));
-            const courseData = await courseResponse.json().catch(() => ({}));
-            const attendanceData = await attendanceResponse.json().catch(() => ({}));
-            const resultData = await resultResponse.json().catch(() => ({}));
-            courses = courseResponse.ok && courseData.success && Array.isArray(courseData.courses) ? courseData.courses : [];
-            attendanceStore = attendanceData.attendance || {};
-            examResults = resultData.results || [];
+            courses = [];
+            attendanceStore = {};
+            examResults = [];
             if (!studentResponse.ok) {
                 students = [];
                 renderClasses();

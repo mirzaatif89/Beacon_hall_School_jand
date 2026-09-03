@@ -2528,20 +2528,24 @@
                 if (!response.ok) throw new Error('Unable to load teacher profile.');
                 const teacher = normalizeTeacherProfilePayload(await response.json());
                 applyTeacherData(teacher);
-                await loadTeacherAssignedClasses();
-                await loadTeacherMessages();
-                await loadTeacherComplaints();
-                await loadTeacherSalaries();
-                await loadTeacherLeaveRequests();
+                await Promise.all([
+                    loadTeacherAssignedClasses(),
+                    loadTeacherMessages(),
+                    loadTeacherComplaints(),
+                    loadTeacherSalaries(),
+                    loadTeacherLeaveRequests()
+                ]);
             } catch (_error) {
                 const fallback = getTeacherFallback();
                 if (fallback) {
                     applyTeacherData(fallback);
-                    await loadTeacherAssignedClasses();
-                    await loadTeacherMessages();
-                    await loadTeacherComplaints();
-                    await loadTeacherSalaries();
-                    await loadTeacherLeaveRequests();
+                    await Promise.all([
+                        loadTeacherAssignedClasses(),
+                        loadTeacherMessages(),
+                        loadTeacherComplaints(),
+                        loadTeacherSalaries(),
+                        loadTeacherLeaveRequests()
+                    ]);
                     return;
                 }
                 await showAppAlert('The teacher profile could not be loaded. Please sign in again.');
