@@ -1531,6 +1531,7 @@
             document.body.classList.add('students-status-view');
             const heading = document.getElementById('studentsPageHeading');
             if (heading) heading.textContent = 'Students Performances';
+            document.querySelector('.student-print-btn')?.remove();
         }
         window.togglePasswordVisibility = window.togglePasswordVisibility || function (targetId, toggleBtn) {
             const input = document.getElementById(targetId);
