@@ -6583,10 +6583,12 @@ function buildStudentFullPortfolioReport(student, records, esc) {
         return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${category === index ? '✓' : ''}</td>`).join('')}</tr>`;
     }).join('');
     const genericRows = (items, reportSubject) => items.map(label => {
-        const row = records.find(record => String(record.subject || '').trim().toLowerCase() === reportSubject.toLowerCase() && String(record.skill || '').trim().toLowerCase() === label.toLowerCase());
-        const storedLevel = String(row?.grade || row?.assessmentRating || '').toLowerCase();
-        const category = storedLevel.includes('advance') ? 0 : storedLevel.includes('proficient') ? 1 : storedLevel.includes('developing') ? 2 : storedLevel.includes('below') ? 3 : categoryFor(row ? [row] : []);
-        return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${category === index ? '✓' : ''}</td>`).join('')}</tr>`;
+        const rowRecords = records.filter(record => String(record.subject || '').trim().toLowerCase() === reportSubject.toLowerCase() && String(record.skill || '').trim().toLowerCase().startsWith(`${label.toLowerCase()}__`));
+        const categories = rowRecords.map(row => {
+            const storedLevel = String(row?.grade || row?.assessmentRating || '').toLowerCase();
+            return storedLevel.includes('advance') ? 0 : storedLevel.includes('proficient') ? 1 : storedLevel.includes('developing') ? 2 : storedLevel.includes('below') ? 3 : categoryFor([row]);
+        });
+        return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${categories.includes(index) ? '✓' : ''}</td>`).join('')}</tr>`;
     }).join('');
     const year = new Date().getFullYear();
     const session = `${year}-${year + 1}`;

@@ -179,13 +179,14 @@
     }
 
     function subjectsForClass() {
+        const excludedReportSubjects = new Set(['participation', 'co-curriculum', 'co curriculum']);
         const assignedToStudent = Array.isArray(selectedStudent?.subjects)
             ? selectedStudent.subjects
             : String(selectedStudent?.subjects || '').split(/[,|]/).map(value => value.trim()).filter(Boolean);
         const titles = [
             ...courses.filter(c => norm(c.classGrade) === norm(selectedClass)).map(c => String(c.title || c.subject || '').trim()),
             ...saved.map(record => String(record.subject || '').trim())
-        ].filter(Boolean);
+        ].filter(value => value && !excludedReportSubjects.has(norm(value)));
         const fixedSubjects = ['Play Group','Nursarry','Prep'].some(name => norm(name) === norm(selectedClass)) ? juniorSubjects : seniorSubjects;
         const baseSubjects = [...new Map([...fixedSubjects, ...assignedToStudent, ...titles].map(value => [norm(value), value])).values()];
         if (Array.isArray(teacherAssignedSubjects)) {
@@ -276,8 +277,8 @@
         setSteps(4);
         const items = ['Project', 'Presentation', 'Practical Task', 'Activities'];
         const levels = ['Advance', 'Proficient', 'Developing', 'Below 50% Beginning'];
-        const savedFor = item => saved.find(record => String(record.assessmentSection || '').toLowerCase() === 'co-curriculum' && String(record.assessmentItem || record.skill || '').toLowerCase() === item.toLowerCase());
-        workspace.innerHTML = `<div class="performance-heading"><div><h2>Co-Curriculum Performance</h2><span class="choice-meta">${esc(selectedStudent.fullName)} - ${esc(selectedClass)}</span></div></div><div style="overflow:auto;border:1px solid #cfe3dc;border-radius:12px;background:#fff"><table class="schedule-table" style="min-width:720px"><thead><tr><th colspan="5" style="text-align:center">Performance Task</th></tr><tr><th>Co-Curricular Activities</th>${levels.map(level => `<th>${esc(level)}${level === 'Advance' ? '<br>85-100%' : level === 'Proficient' ? '<br>70-84%' : level === 'Developing' ? '<br>50-69%' : '<br>Beginning'}</th>`).join('')}</tr></thead><tbody>${items.map(item => { const record = savedFor(item); const value = record?.assessmentRating || ''; return `<tr><th>${esc(item)}</th>${levels.map(level => `<td style="text-align:center"><input type="radio" name="co-${esc(item)}" value="${esc(level)}" ${value === level ? 'checked' : ''}></td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="action-row"><button type="button" class="action-button" id="saveCoCurriculum"><i data-lucide="save" width="18"></i> Save Co-Curriculum Performance</button></div>`;
+        const savedRatings = item => saved.filter(record => String(record.subject || '').toLowerCase() === 'co-curriculum' && String(record.skill || '').toLowerCase().startsWith(`${item.toLowerCase()}__`)).map(record => String(record.skill || '').split('__')[1] || '');
+        workspace.innerHTML = `<div class="performance-heading"><div><h2>Co-Curriculum Performance</h2><span class="choice-meta">${esc(selectedStudent.fullName)} - ${esc(selectedClass)}</span></div></div><div style="overflow:auto;border:1px solid #cfe3dc;border-radius:12px;background:#fff"><table class="schedule-table" style="min-width:720px"><thead><tr><th colspan="5" style="text-align:center">Performance Task</th></tr><tr><th>Co-Curricular Activities</th>${levels.map(level => `<th>${esc(level)}${level === 'Advance' ? '<br>85-100%' : level === 'Proficient' ? '<br>70-84%' : level === 'Developing' ? '<br>50-69%' : '<br>Beginning'}</th>`).join('')}</tr></thead><tbody>${items.map(item => { const checked = savedRatings(item); return `<tr><th>${esc(item)}</th>${levels.map(level => `<td style="text-align:center"><input type="checkbox" name="co-${esc(item)}" value="${esc(level)}" ${checked.includes(level) ? 'checked' : ''}></td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="action-row"><button type="button" class="action-button" id="saveCoCurriculum"><i data-lucide="save" width="18"></i> Save Co-Curriculum Performance</button></div>`;
         document.getElementById('saveCoCurriculum').onclick = saveCoCurriculumPerformance;
         if (window.lucide) lucide.createIcons();
     }
@@ -285,13 +286,12 @@
     async function saveCoCurriculumPerformance() {
         const items = ['Project', 'Presentation', 'Practical Task', 'Activities'];
         const date = today();
-        const records = items.map(item => {
-            const rating = workspace.querySelector(`input[name="co-${item}"]:checked`)?.value || '';
-            if (!rating) return null;
-            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Co-Curriculum', assessmentSection:'Co-Curriculum', assessmentItem:item, assessmentRating:rating, skill:item, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating:rating === 'Advance' ? 'Excellent' : rating === 'Proficient' ? 'Satisfactory' : 'Needs Practice', grade:rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
+        const records = items.flatMap(item => [...workspace.querySelectorAll(`input[name="co-${item}"]:checked`)].map(input => {
+            const rating = input.value;
+            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Co-Curriculum', assessmentSection:'Co-Curriculum', assessmentItem:item, assessmentRating:rating, skill:`${item}__${rating}`, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating:rating === 'Advance' ? 'Excellent' : rating === 'Proficient' ? 'Satisfactory' : 'Needs Practice', grade:rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
             record.id = performanceIdFor(record);
             return record;
-        }).filter(Boolean);
+        }));
         if (!records.length) { showAppAlert('Select a rating for at least one activity.', 'Nothing Selected'); return; }
         try {
             for (const record of records) {
@@ -310,8 +310,8 @@
         setSteps(4);
         const items = ['Home Task Completion', 'Classroom Behavior', 'Hygiene Condition', 'Regularity'];
         const levels = ['Advance', 'Proficient', 'Developing', 'Below 50% Beginning'];
-        const savedFor = item => saved.find(record => String(record.assessmentSection || '').toLowerCase() === 'participation' && String(record.assessmentItem || record.skill || '').toLowerCase() === item.toLowerCase());
-        workspace.innerHTML = `<div class="performance-heading"><div><h2>Participant Report</h2><span class="choice-meta">${esc(selectedStudent.fullName)} - ${esc(selectedClass)}</span></div></div><div style="overflow:auto;border:1px solid #cfe3dc;border-radius:12px;background:#fff"><table class="schedule-table" style="min-width:720px"><thead><tr><th colspan="5" style="text-align:center">Learning Attitude</th></tr><tr><th>Participation</th>${levels.map(level => `<th>${esc(level)}${level === 'Advance' ? '<br>85-100%' : level === 'Proficient' ? '<br>70-84%' : level === 'Developing' ? '<br>50-69%' : '<br>Beginning'}</th>`).join('')}</tr></thead><tbody>${items.map(item => { const record = savedFor(item); const value = record?.assessmentRating || ''; return `<tr><th>${esc(item)}</th>${levels.map(level => `<td style="text-align:center"><input type="radio" name="part-${esc(item)}" value="${esc(level)}" ${value === level ? 'checked' : ''}></td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="action-row"><button type="button" class="action-button" id="saveParticipation"><i data-lucide="save" width="18"></i> Save Participations</button></div>`;
+        const savedRatings = item => saved.filter(record => String(record.subject || '').toLowerCase() === 'participation' && String(record.skill || '').toLowerCase().startsWith(`${item.toLowerCase()}__`)).map(record => String(record.skill || '').split('__')[1] || '');
+        workspace.innerHTML = `<div class="performance-heading"><div><h2>Participant Report</h2><span class="choice-meta">${esc(selectedStudent.fullName)} - ${esc(selectedClass)}</span></div></div><div style="overflow:auto;border:1px solid #cfe3dc;border-radius:12px;background:#fff"><table class="schedule-table" style="min-width:720px"><thead><tr><th colspan="5" style="text-align:center">Learning Attitude</th></tr><tr><th>Participation</th>${levels.map(level => `<th>${esc(level)}${level === 'Advance' ? '<br>85-100%' : level === 'Proficient' ? '<br>70-84%' : level === 'Developing' ? '<br>50-69%' : '<br>Beginning'}</th>`).join('')}</tr></thead><tbody>${items.map(item => { const checked = savedRatings(item); return `<tr><th>${esc(item)}</th>${levels.map(level => `<td style="text-align:center"><input type="checkbox" name="part-${esc(item)}" value="${esc(level)}" ${checked.includes(level) ? 'checked' : ''}></td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="action-row"><button type="button" class="action-button" id="saveParticipation"><i data-lucide="save" width="18"></i> Save Participations</button></div>`;
         document.getElementById('saveParticipation').onclick = saveParticipationPerformance;
         if (window.lucide) lucide.createIcons();
     }
@@ -319,13 +319,12 @@
     async function saveParticipationPerformance() {
         const items = ['Home Task Completion', 'Classroom Behavior', 'Hygiene Condition', 'Regularity'];
         const date = today();
-        const records = items.map(item => {
-            const rating = workspace.querySelector(`input[name="part-${item}"]:checked`)?.value || '';
-            if (!rating) return null;
-            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Participation', assessmentSection:'Participation', assessmentItem:item, assessmentRating:rating, skill:item, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating:rating === 'Advance' ? 'Excellent' : rating === 'Proficient' ? 'Satisfactory' : 'Needs Practice', grade:rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
+        const records = items.flatMap(item => [...workspace.querySelectorAll(`input[name="part-${item}"]:checked`)].map(input => {
+            const rating = input.value;
+            const record = { studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || '', classGrade:selectedClass, subject:'Participation', assessmentSection:'Participation', assessmentItem:item, assessmentRating:rating, skill:`${item}__${rating}`, learningOutcome:rating, excellentDescription:rating === 'Advance' ? 'Advance' : '', satisfactoryDescription:rating === 'Proficient' ? 'Proficient' : '', needsPracticeDescription:['Developing','Below 50% Beginning'].includes(rating) ? rating : '', rating:rating === 'Advance' ? 'Excellent' : rating === 'Proficient' ? 'Satisfactory' : 'Needs Practice', grade:rating, performanceDate:date, performanceMonth:date.slice(0,7), percentage:0, remarks:'' };
             record.id = performanceIdFor(record);
             return record;
-        }).filter(Boolean);
+        }));
         if (!records.length) { showAppAlert('Select a rating for at least one item.', 'Nothing Selected'); return; }
         try {
             for (const record of records) {
