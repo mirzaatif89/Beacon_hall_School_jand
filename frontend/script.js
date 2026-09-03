@@ -6513,6 +6513,19 @@ async function openStudentPerformanceReportFromEncoded(encodedPayload, reportMod
         modal.classList.add('performance-report-fullscreen');
         subjectsBox.style.display = 'none';
         details.innerHTML = `<div style="border:1px solid #cfe3dc;border-radius:12px;padding:16px;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><h3 style="margin:0;color:#153d2e">${escReport(subject)} Performance</h3><small style="color:#64748b">Portfolio · ${escReport(student.fullName || 'Student')}</small></div><button type="button" class="btn btn-outline" onclick="window.print()">Print</button></div>${rows.length ? `<div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse;font-size:13px"><thead><tr style="background:#eef6f1"><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Skills</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">Learning Outcome</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">😊 Excellent</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">🙂 Satisfactory</th><th style="border:1px solid #9fb4aa;padding:9px;text-align:left">😐 Needs Practice</th></tr></thead><tbody>${rows.map(item => `<tr><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top"><strong>${escReport(item.skill || '-')}</strong><br><small>${escReport(item.performanceDate || '')}</small></td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.learningOutcome || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.excellentDescription || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.satisfactoryDescription || '-')}</td><td style="border:1px solid #9fb4aa;padding:10px;vertical-align:top">${escReport(item.needsPracticeDescription || '-')}</td></tr>`).join('')}</tbody></table></div><div style="display:flex;justify-content:space-between;gap:50px;margin-top:34px;text-align:center;font-size:12px"><div style="border-top:1px solid #334155;flex:1;padding-top:8px">Teacher's Signature</div><strong style="flex:1">Beacon Light School System</strong><div style="border-top:1px solid #334155;flex:1;padding-top:8px">Parent Signature</div></div>` : '<p>No performance record found.</p>'}</div>`;
+        const subjectPrintButton = details.querySelector('button');
+        if (subjectPrintButton) subjectPrintButton.onclick = null;
+        subjectPrintButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            const printable = details.firstElementChild.cloneNode(true);
+            printable.querySelector('button')?.remove();
+            const win = window.open('', '_blank', 'width=1000,height=800');
+            if (!win) return;
+            win.document.open();
+            win.document.write(`<!doctype html><html><head><title>${escReport(subject)} Subject Report</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#173b2d;padding:18px}</style></head><body>${printable.outerHTML}</body></html>`);
+            win.document.close();
+            win.onload = () => { win.focus(); win.print(); };
+        }, { once: true });
     };
     if (reportMode === 'full') {
         modal.classList.add('performance-report-fullscreen');
