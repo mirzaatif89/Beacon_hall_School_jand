@@ -1433,6 +1433,7 @@
                 <button class="student-manager-module" type="button" data-module-page="student_performance.html"><i data-lucide="trending-up"></i><span><strong>Subject Wise Performance</strong>Create performance reports for your assigned subjects.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="student_performance.html#co-curriculum"><i data-lucide="trophy"></i><span><strong>Co-Curriculum Performance</strong>Add projects, presentations, practical tasks, and activities.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="student_performance.html#participation"><i data-lucide="users-round"></i><span><strong>Participations</strong>Record participation, homework, behaviour, hygiene, and regularity.</span></button>
+                <button class="student-manager-module" type="button" data-module-page="teacher_testing_result.html"><i data-lucide="clipboard-check"></i><span><strong>Testing Result</strong>Create and print reports for students in your assigned classes.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="student_attendance.html"><i data-lucide="calendar-check-2"></i><span><strong>Student Attendance</strong>Mark attendance for students in your assigned classes.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="student_diary.html"><i data-lucide="book-open"></i><span><strong>Diary</strong>Manage class diary, homework, and notes.</span></button>
                 <button class="student-manager-module" type="button" data-module-page="quiz_uploading.html"><i data-lucide="circle-help"></i><span><strong>Quiz</strong>Upload and manage class quizzes.</span></button>
@@ -2261,6 +2262,7 @@
             const assignedSubjects = uniqueSubjects();
             frame.dataset.assignedSubjects = JSON.stringify(assignedSubjects);
             const query = new URLSearchParams({ embedded: 'teacher', assignedClasses: assignedClasses.join('|'), assignedSubjects: assignedSubjects.join('|') });
+            if (page === 'teacher_testing_result.html') query.set('teacherTestingResult', '1');
             if (context.studentId) query.set('studentId', context.studentId);
             if (context.studentClass) query.set('class', context.studentClass);
             const [pagePath, pageHash = ''] = String(page || '').split('#');

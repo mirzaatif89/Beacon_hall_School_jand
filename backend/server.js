@@ -1443,6 +1443,103 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
+function parseTeacherReportAssignments(teacher) {
+    const assignments = [];
+    const add = (value = {}) => {
+        if (typeof value === 'string') {
+            const text = value.trim();
+            if (!text) return;
+            const separator = text.indexOf('||');
+            value = separator >= 0
+                ? { classGrade: text.slice(0, separator), section: text.slice(separator + 2) }
+                : { classGrade: text };
+        }
+        if (!value || typeof value !== 'object') return;
+        const rawClass = String(value.classGrade || value.className || value.class || '').trim();
+        const combined = rawClass.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+        const classGrade = String(combined ? combined[1] : rawClass).trim();
+        const section = String(value.section || value.classSection || combined?.[2] || '').trim();
+        if (!classGrade) return;
+        assignments.push({ classGrade, section, campusName: String(value.campusName || value.branchName || value.campus || '').trim() });
+    };
+    const parseList = (raw) => {
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw !== 'string') return [raw];
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [parsed];
+        } catch (_error) {
+            return raw.split(/[;,\n]/).filter(Boolean);
+        }
+    };
+
+    parseList(teacher?.assignedSections).forEach(add);
+    parseList(teacher?.schedule).forEach(add);
+    readMobileStore('teacher_assigned_classes')
+        .filter((record) => String(record.teacherId || '').trim() === String(teacher?.id || '').trim())
+        .forEach(add);
+
+    const unique = new Map();
+    assignments.forEach((assignment) => {
+        const key = `${assignment.classGrade.toLowerCase()}|${assignment.section.toLowerCase()}|${assignment.campusName.toLowerCase()}`;
+        if (!unique.has(key)) unique.set(key, assignment);
+    });
+    return Array.from(unique.values());
+}
+
+function teacherReportAssignmentMatches(assignment, classGrade, section, student = null, teacherCampus = '') {
+    const norm = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (norm(assignment.classGrade) !== norm(classGrade)) return false;
+    const assignedSection = norm(assignment.section);
+    if (assignedSection && assignedSection !== 'general' && assignedSection !== norm(section)) return false;
+    const studentCampus = norm(student?.campusName || student?.branchName || '');
+    const assignmentCampus = norm(assignment.campusName);
+    const teacherCampusName = norm(teacherCampus);
+    if (studentCampus && assignmentCampus && studentCampus !== assignmentCampus) return false;
+    if (studentCampus && !assignmentCampus && teacherCampusName && studentCampus !== teacherCampusName) return false;
+    return true;
+}
+
+async function getTeacherReportAccess(req) {
+    const role = String(req.user?.role || '').toLowerCase();
+    if (['admin', 'principal', 'superadmin', 'root'].includes(role)) return { isAdmin: true, assignments: [] };
+    if (role !== 'teacher') return null;
+    const teacher = await sequelize.models.Teacher.findByPk(req.user.id);
+    if (!teacher) return null;
+    return {
+        isAdmin: false,
+        assignments: parseTeacherReportAssignments(teacher),
+        campusName: String(teacher.campusName || teacher.branchName || req.user.campusName || '').trim()
+    };
+}
+
+app.get('/api/teacher/testing-result-students', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    try {
+        const access = await getTeacherReportAccess(req);
+        if (!access || access.isAdmin) return res.status(403).json({ success: false, message: 'Teacher access required.' });
+        const students = await sequelize.models.Student.findAll();
+        const visibleStudents = students.filter((student) => access.assignments.some((assignment) =>
+            teacherReportAssignmentMatches(assignment, student.classGrade, student.section, student, access.campusName)));
+        return res.json({
+            success: true,
+            assignments: access.assignments,
+            students: visibleStudents.map((student) => ({
+                id: student.id,
+                studentCode: student.studentCode,
+                fullName: student.fullName,
+                classGrade: student.classGrade,
+                section: student.section,
+                campusName: student.campusName,
+                rollNo: student.rollNo
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Could not load assigned students.' });
+    }
+});
+
 app.get('/api/testing-result-reports', authenticateToken, async (req, res) => {
     if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
     const { classGrade = '', section = '', skill = '', reportDate = '' } = req.query;
@@ -1455,7 +1552,22 @@ app.get('/api/testing-result-reports', authenticateToken, async (req, res) => {
         if (section) filters.section = section;
         if (skill) filters.skill = skill;
         const rows = await sequelize.models.TestingResultReport.findAll({ where: filters, order: [['classGrade', 'ASC'], ['section', 'ASC'], ['skill', 'ASC']] });
-        const reports = rows.map((row) => ({ ...row.get(), ratings: JSON.parse(row.ratings || '{}') }));
+        let reports = rows.map((row) => ({ ...row.get(), ratings: JSON.parse(row.ratings || '{}') }));
+        const access = await getTeacherReportAccess(req);
+        if (!access) return res.status(403).json({ success: false, message: 'Teacher access is not configured.' });
+        if (access && !access.isAdmin) {
+            const assignedStudentIds = new Set((await sequelize.models.Student.findAll()).filter((student) =>
+                access.assignments.some((assignment) => teacherReportAssignmentMatches(assignment, student.classGrade, student.section, student, access.campusName)))
+                .map((student) => String(student.id)));
+            reports = reports.filter((report) => access.assignments.some((assignment) =>
+                teacherReportAssignmentMatches(assignment, report.classGrade, report.section, null, access.campusName))
+                && (() => {
+                    const reportStudentIds = Array.isArray(report.ratings?._studentIds)
+                        ? report.ratings._studentIds.map(String)
+                        : Object.keys(report.ratings || {}).filter((key) => key !== '_studentIds');
+                    return reportStudentIds.length > 0 && reportStudentIds.every((studentId) => assignedStudentIds.has(studentId));
+                })());
+        }
         res.json({ success: true, reports, report: reports.length === 1 ? reports[0] : null });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message || 'Could not load testing result report.' });
@@ -1464,11 +1576,38 @@ app.get('/api/testing-result-reports', authenticateToken, async (req, res) => {
 
 app.post('/api/testing-result-reports', authenticateToken, async (req, res) => {
     if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
-    const { classGrade = '', section = '', skill = '', reportDate = '', ratings = {} } = req.body || {};
+    const { classGrade = '', section = '', skill = '', reportDate = '', ratings = {}, studentIds = [] } = req.body || {};
     if (!classGrade || !section || !skill || !/^\d{4}-\d{2}-\d{2}$/.test(reportDate) || !ratings || typeof ratings !== 'object' || Array.isArray(ratings)) {
         return res.status(400).json({ success: false, message: 'Valid class, section, skill, date, and student ratings are required.' });
     }
     try {
+        const access = await getTeacherReportAccess(req);
+        if (!access) return res.status(403).json({ success: false, message: 'Teacher access is not configured.' });
+        if (access && !access.isAdmin) {
+            const studentsById = new Map((await sequelize.models.Student.findAll()).map((student) => [String(student.id), student]));
+            const authorizedAssignment = access.assignments.some((assignment) =>
+                teacherReportAssignmentMatches(assignment, classGrade, section, null, access.campusName));
+            if (!authorizedAssignment) return res.status(403).json({ success: false, message: 'This class or section is not assigned to your account.' });
+            const submittedStudentIds = Array.isArray(studentIds) ? studentIds.map(String) : [];
+            if (!submittedStudentIds.length) return res.status(400).json({ success: false, message: 'Select students for this report.' });
+            const everyStudentAuthorized = submittedStudentIds.every((studentId) => {
+                const student = studentsById.get(String(studentId));
+                return Boolean(student
+                    && String(student.classGrade || '').trim().toLowerCase() === String(classGrade).trim().toLowerCase()
+                    && String(student.section || '').trim().toLowerCase() === String(section).trim().toLowerCase()
+                    && access.assignments.some((assignment) => teacherReportAssignmentMatches(assignment, classGrade, section, student, access.campusName)));
+            });
+            const ratingStudentIds = Object.keys(ratings).filter((studentId) => studentId !== '_studentIds');
+            const everyRatedStudentAuthorized = ratingStudentIds.every((studentId) => {
+                const student = studentsById.get(String(studentId));
+                return Boolean(student
+                    && String(student.classGrade || '').trim().toLowerCase() === String(classGrade).trim().toLowerCase()
+                    && String(student.section || '').trim().toLowerCase() === String(section).trim().toLowerCase()
+                    && access.assignments.some((assignment) => teacherReportAssignmentMatches(assignment, classGrade, section, student, access.campusName)));
+            });
+            if (!everyStudentAuthorized || !everyRatedStudentAuthorized) return res.status(403).json({ success: false, message: 'Report contains a student outside your assigned class or section.' });
+            ratings._studentIds = submittedStudentIds;
+        }
         const key = [classGrade, section, skill, reportDate].join('|');
         const id = `TEST-${crypto.createHash('sha256').update(key).digest('hex').slice(0, 48)}`;
         const values = {

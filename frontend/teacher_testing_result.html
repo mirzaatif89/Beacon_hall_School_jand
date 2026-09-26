@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testing Result | Teacher Portal</title>
+  <style>
+    :root{--green:#16865c;--deep:#155d42;--ink:#172d22;--muted:#64776b;--line:#d5e6dc;--soft:#eff8f3}
+    *{box-sizing:border-box}body{margin:0;background:#f4f8f5;color:var(--ink);font:15px/1.5 Arial,sans-serif;padding:22px}
+    .page{max-width:1200px;margin:auto}.back{display:inline-block;color:var(--green);font-weight:700;text-decoration:none;margin:0 0 16px}.heading h1{margin:0;color:var(--deep);font-size:26px}.heading p{margin:6px 0 20px;color:var(--muted)}
+    .filters{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin-bottom:16px}.field,.panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 5px 16px #183b2710}.field{padding:14px}.field label{display:block;font-weight:700;margin-bottom:7px}.field select,.field input{width:100%;height:44px;border:1px solid #c9ded1;border-radius:9px;padding:0 11px;font:inherit;color:var(--ink);background:#fff}
+    .panel{padding:16px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.panel-head h2{font-size:18px;margin:0}.muted{color:var(--muted)}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{border-bottom:1px solid #e0ebe4;padding:11px 10px;text-align:left}.table th{background:var(--soft);color:var(--deep);font-size:13px;text-transform:uppercase;letter-spacing:.03em}.table td:nth-child(n+3),.table th:nth-child(n+3){text-align:center}.checks{display:flex;justify-content:center;gap:12px}.checks input{width:18px;height:18px;accent-color:#2fa66f;cursor:pointer}.empty{text-align:center;padding:34px 14px;color:var(--muted)}
+    .actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:15px}.message{margin-right:auto;color:var(--muted)}button{border:0;border-radius:9px;padding:11px 17px;font:inherit;font-weight:700;cursor:pointer}.save{background:var(--green);color:white}.print{border:1px solid var(--line);background:white;color:var(--deep)}button:disabled{opacity:.55;cursor:not-allowed}.print-brand{display:none}
+    @media(max-width:800px){body{padding:13px}.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.heading h1{font-size:22px}}
+    @media(max-width:460px){.filters{grid-template-columns:1fr}.actions{flex-wrap:wrap}.message{width:100%}}
+    @media print{@page{size:A4 landscape;margin:12mm}body{padding:0;background:#fff}.back,.filters,.actions{display:none!important}.print-brand{display:flex;align-items:center;justify-content:center;gap:12px;padding-bottom:12px;margin-bottom:14px;border-bottom:2px solid var(--green)}.print-brand img{width:48px;height:48px;object-fit:contain}.print-brand strong,.print-brand span{display:block}.print-brand strong{font-size:19px;color:var(--deep)}.panel{box-shadow:none;padding:0;border:0}.table{min-width:0}.table th,.table td{padding:8px 6px;border:1px solid #b8c9bf}.table th{background:#eaf4ed!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.checks input{display:none}.checks .mark{display:none}.checks input:checked + .mark{display:inline!important}.checks .mark{font-size:15px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back" href="#" id="backLink">← Student Manager</a>
+    <header class="heading"><h1>Testing Result</h1><p>Prepare a performance report for students in classes assigned to you.</p></header>
+    <div class="print-brand"><img src="images/logo.jpeg" alt=""><div><strong>Beacon Light School System</strong><span>Student Performance Report</span></div></div>
+    <section class="filters" aria-label="Report filters">
+      <div class="field"><label for="classSelect">Class</label><select id="classSelect"><option value="">Select class</option></select></div>
+      <div class="field"><label for="sectionSelect">Section</label><select id="sectionSelect" disabled><option value="">Select class first</option></select></div>
+      <div class="field"><label for="skillSelect">Skill</label><select id="skillSelect"><option value="Co-curriculum Performance">Co-curriculum Performance</option><option value="Participation">Participation</option></select></div>
+      <div class="field"><label for="dateSelect">Report date</label><input type="date" id="dateSelect"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 id="listTitle">Students</h2><span id="count" class="muted">Loading assigned students…</span></div>
+      <div id="studentList" class="empty">Loading assigned students…</div>
+      <div class="actions"><span id="message" class="message" aria-live="polite"></span><button class="print" id="printBtn" type="button">Print Report</button><button class="save" id="saveBtn" type="button">Save Report</button></div>
+    </section>
+  </main>
+<script>
+(() => {
+  const token = sessionStorage.getItem('eduCore_token') || '';
+  const classEl = document.getElementById('classSelect');
+  const sectionEl = document.getElementById('sectionSelect');
+  const skillEl = document.getElementById('skillSelect');
+  const dateEl = document.getElementById('dateSelect');
+  const listEl = document.getElementById('studentList');
+  const messageEl = document.getElementById('message');
+  const saveBtn = document.getElementById('saveBtn');
+  const norm = value => String(value || '').trim().toLowerCase().replace(/\s+/g,' ');
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let assignments = [];
+  let students = [];
+  let ratings = {};
+  let loadingSaved = false;
+  const headers = () => ({'Content-Type':'application/json', ...(token ? {Authorization:`Bearer ${token}`} : {})});
+  const selectedStudents = () => students.filter(student => norm(student.classGrade) === norm(classEl.value) && norm(student.section || 'General') === norm(sectionEl.value));
+  function setOptions(el, values, placeholder) {
+    el.innerHTML = `<option value="">${esc(placeholder)}</option>` + values.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+  }
+  function currentReportKey() { return `${classEl.value}||${sectionEl.value}||${skillEl.value}||${dateEl.value}`; }
+  function ratingHTML(studentId, label) {
+    const selected = new Set(Array.isArray(ratings[studentId]?.[label]) ? ratings[studentId][label] : []);
+    return `<div class="checks">${[1,2,3].map(index => `<label><input type="checkbox" data-student="${esc(studentId)}" data-rating="${esc(label)}" value="${index}" ${selected.has(index) ? 'checked' : ''}><span class="mark" aria-hidden="true">${selected.has(index) ? '☑' : '□'}</span></label>`).join('')}</div>`;
+  }
+  function render() {
+    const records = selectedStudents();
+    const ready = Boolean(classEl.value && sectionEl.value);
+    document.getElementById('listTitle').textContent = ready ? `${classEl.value} · ${sectionEl.value}` : 'Students';
+    document.getElementById('count').textContent = ready ? `${records.length} student${records.length === 1 ? '' : 's'}` : 'Select a class and section.';
+    saveBtn.disabled = !ready || !skillEl.value || !dateEl.value || records.length === 0;
+    if (!ready) { listEl.className='empty'; listEl.textContent='Choose a class and section to view your assigned students.'; return; }
+    if (!records.length) { listEl.className='empty'; listEl.textContent='No assigned students found in this class and section.'; return; }
+    listEl.className='table-wrap';
+    listEl.innerHTML = `<table class="table"><thead><tr><th>ID</th><th>Student Name</th><th>Excellent</th><th>Satisfactory</th><th>Below Average</th></tr></thead><tbody>${records.map(student => {
+      const id = String(student.id || '');
+      return `<tr><td>${esc(student.studentCode || id || '-')}</td><td><strong>${esc(student.fullName || 'Student')}</strong></td><td>${ratingHTML(id,'Excellent')}</td><td>${ratingHTML(id,'Satisfactory')}</td><td>${ratingHTML(id,'Below Average')}</td></tr>`;
+    }).join('')}</tbody></table>`;
+    listEl.querySelectorAll('input[type=checkbox]').forEach(input => input.addEventListener('change', () => {
+      const id=input.dataset.student, label=input.dataset.rating;
+      if (!ratings[id]) ratings[id]={};
+      const values=new Set(Array.isArray(ratings[id][label]) ? ratings[id][label] : []);
+      input.checked ? values.add(Number(input.value)) : values.delete(Number(input.value));
+      ratings[id][label]=[...values].sort();
+      const mark=input.nextElementSibling; if(mark) mark.textContent=input.checked?'☑':'□';
+    }));
+  }
+  async function loadReport() {
+    ratings={};
+    if (!classEl.value || !sectionEl.value || !skillEl.value || !dateEl.value) { render(); return; }
+    messageEl.textContent='Checking saved report…';
+    try {
+      const query=new URLSearchParams({classGrade:classEl.value,section:sectionEl.value,skill:skillEl.value,reportDate:dateEl.value});
+      const response=await fetch(`/api/testing-result-reports?${query}`,{headers:headers()});
+      const result=await response.json();
+      if(!response.ok) throw new Error(result.message || 'Could not load saved report.');
+      const report=result.reports?.find(item => norm(item.classGrade)===norm(classEl.value) && norm(item.section)===norm(sectionEl.value) && norm(item.skill)===norm(skillEl.value));
+      if(report) ratings=report.ratings || {};
+      messageEl.textContent=report ? 'Saved report loaded. You can update it and save again.' : 'No saved report for this date yet.';
+    } catch(error) { messageEl.textContent=error.message || 'Could not load saved report.'; }
+    render();
+  }
+  async function loadAssignedStudents() {
+    if (!token) { messageEl.textContent='Please sign in to your teacher portal again.'; listEl.textContent='Teacher authentication is required.'; saveBtn.disabled=true; return; }
+    try {
+      const response=await fetch('/api/teacher/testing-result-students',{headers:headers()});
+      const result=await response.json();
+      if(!response.ok || !result.success) throw new Error(result.message || 'Assigned students could not be loaded.');
+      assignments=result.assignments || [];
+      students=result.students || [];
+      const classNames=[...new Map(assignments.map(item=>[norm(item.classGrade),item.classGrade])).values()].filter(Boolean).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+      setOptions(classEl,classNames,'Select class');
+      dateEl.value=new Date().toISOString().slice(0,10);
+      if(!classNames.length) { listEl.textContent='No classes have been assigned to your teacher account.'; document.getElementById('count').textContent='No assigned classes'; }
+      render();
+    } catch(error) { listEl.textContent=error.message || 'Could not load assigned students.'; document.getElementById('count').textContent='Unable to load students'; messageEl.textContent=error.message || ''; saveBtn.disabled=true; }
+  }
+  classEl.addEventListener('change', () => {
+    const sections=[...new Map(students.filter(item=>norm(item.classGrade)===norm(classEl.value)).map(item=>[norm(item.section || 'General'),item.section || 'General'])).values()].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    setOptions(sectionEl,sections,classEl.value?'Select section':'Select class first');
+    sectionEl.disabled=!classEl.value || !sections.length;
+    loadReport();
+  });
+  sectionEl.addEventListener('change',loadReport);
+  skillEl.addEventListener('change',loadReport);
+  dateEl.addEventListener('change',loadReport);
+  saveBtn.addEventListener('click',async () => {
+    const records=selectedStudents();
+    if(!records.length || !classEl.value || !sectionEl.value || !skillEl.value || !dateEl.value) return;
+    saveBtn.disabled=true; messageEl.textContent='Saving report…';
+    try {
+      const response=await fetch('/api/testing-result-reports',{method:'POST',headers:headers(),body:JSON.stringify({classGrade:classEl.value,section:sectionEl.value,skill:skillEl.value,reportDate:dateEl.value,ratings,studentIds:records.map(student=>String(student.id))})});
+      const result=await response.json();
+      if(!response.ok || !result.success) throw new Error(result.message || 'Report could not be saved.');
+      messageEl.textContent='Report saved successfully.';
+    } catch(error) { messageEl.textContent=error.message || 'Report could not be saved.'; }
+    render();
+  });
+  document.getElementById('printBtn').addEventListener('click',() => {
+    if(!classEl.value || !sectionEl.value) { messageEl.textContent='Select a class and section before printing.'; return; }
+    window.print();
+  });
+  document.getElementById('backLink').addEventListener('click',event => { event.preventDefault(); if(window.parent!==window) window.parent.document.getElementById('studentManagerWorkspaceClose')?.click(); else history.back(); });
+  loadAssignedStudents();
+})();
+</script>
+</body>
+</html>
