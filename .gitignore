@@ -25,6 +25,7 @@ npm-debug.log*
 
 # Local API data stores
 data/mobile_api_store/
+data/local_store/
 
 # Build outputs (if any)
 dist/

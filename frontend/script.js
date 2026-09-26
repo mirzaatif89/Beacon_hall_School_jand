@@ -8484,7 +8484,6 @@ function toggleTeacherForm(editMode = false) {
             document.getElementById('teacherId').value = '';
             const teacherCodeField = document.getElementById('teacherCode');
             if (teacherCodeField) teacherCodeField.value = generateEntityCode(STORAGE_KEY_TEACHERS, 'TCH');
-            populateTeacherAssignedSectionOptions();
             title.innerText = 'Add New Teacher';
         } else {
             title.innerText = 'Edit Teacher Details';
@@ -8676,7 +8675,8 @@ async function handleTeacherFormSubmit(e) {
         designation: document.getElementById('tDesignation')?.value || 'Teacher',
         groupKey: getDesignationGroup('tDesignation', 'teacher'),
         subject: document.getElementById('tSubject').value,
-        assignedSections: JSON.stringify(getSelectedTeacherAssignedSections()),
+        // Class and section assignments are managed from Teacher Scheduling.
+        assignedSections: existingTeacher?.assignedSections || '[]',
         fingerprintData: document.getElementById('tFingerprintData') ? document.getElementById('tFingerprintData').value.trim() : (existingTeacher?.fingerprintData || ''),
         salary: salaryValInput,
         username: usernameInput,
@@ -9004,7 +9004,6 @@ function editTeacher(t) {
     document.getElementById('tGender').value = t.gender || '';
     setDesignationSelectValue('tDesignation', normalizedTeacherDesignation.designation, normalizedTeacherDesignation.groupKey);
     document.getElementById('tSubject').value = t.subject;
-    populateTeacherAssignedSectionOptions(t.assignedSections);
     if (document.getElementById('tFingerprintData')) document.getElementById('tFingerprintData').value = t.fingerprintData || '';
     document.getElementById('tSalary').value = t.salary || '0';
     if (document.getElementById('tBankName')) document.getElementById('tBankName').value = t.bankName || '';

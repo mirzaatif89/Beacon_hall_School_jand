@@ -4611,6 +4611,14 @@ async function startServer() {
     try {
         startupError = null;
         startupErrorCode = null;
+        // An empty DB_HOST opts into local file-backed mode. This lets the app
+        // start with `npm start` on a fresh machine without requiring MySQL.
+        if (!String(process.env.DB_HOST || '').trim()) {
+            isInitialized = true;
+            console.log('MySQL is not configured; server started in local mode. Database-backed features are unavailable.');
+            return;
+        }
+
         console.log('Initializing database...');
         await initializeDatabase();
 

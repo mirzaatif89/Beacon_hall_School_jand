@@ -4,6 +4,7 @@
   "description": "Real-time SQL backend for Beacon Light School System",
   "main": "app.js",
   "scripts": {
+    "postinstall": "node -e \"console.log('Dependencies installed. Run npm start to launch Beacon Light School System.')\"",
     "start": "node app.js",
     "dev": "nodemon backend/server.js"
   },
