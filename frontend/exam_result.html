@@ -277,6 +277,9 @@
                                 <label>Class
                                     <select id="resultClassFilter"></select>
                                 </label>
+                                <label>Section
+                                    <select id="resultSectionFilter" disabled><option value="">Select class first</option></select>
+                                </label>
                                 <label>Student
                                     <select id="resultStudentSelect"></select>
                                 </label>
@@ -296,6 +299,14 @@
                                 <label>Principal Signature Name<input type="text" id="principalSignature" placeholder="Enter principal signature name"></label>
                                 <label>Parent Signature Name<input type="text" id="parentSignature" placeholder="Enter parent signature name"></label>
                             </div>
+                        </div>
+
+                        <div class="result-form-section result-form-full" id="resultStudentsListSection">
+                            <div class="section-head-inline">
+                                <h4>Students in Selected Section</h4>
+                                <span id="resultStudentCount" aria-live="polite">Select a class and section to view students.</span>
+                            </div>
+                            <div class="dynamic-table" id="resultStudentsList" aria-live="polite"></div>
                         </div>
 
                         <div class="result-form-section result-form-full">
@@ -852,6 +863,42 @@
 
         .result-form-section h4 {
             margin: 0;
+        }
+
+        .result-students-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .result-student-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color, #dbe5df);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text-primary, #173b2a);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .result-student-item:hover,
+        .result-student-item.selected {
+            border-color: var(--primary-color, #2e9d69);
+            background: #f0faf4;
+        }
+
+        .result-student-item span,
+        .result-students-empty {
+            color: var(--text-secondary, #66776d);
+            font-size: 0.9rem;
+        }
+
+        #resultStudentCount {
+            color: var(--text-secondary, #66776d);
+            font-size: 0.9rem;
         }
 
         .result-form-fields {
@@ -1834,6 +1881,10 @@
             return student.classGrade || student.className || student.grade || '';
         }
 
+        function getStudentSection(student = {}) {
+            return student.section || student.sectionName || student.classSection || '';
+        }
+
         function getStudentLookup(student = {}) {
             return student.studentCode || student.rollNo || student.id || '';
         }
@@ -2433,6 +2484,7 @@
             setSelectOptions('campusName', campuses, 'Select campus');
             setSelectOptions('resultCampusFilter', campuses, 'All campuses');
             setSelectOptions('resultClassFilter', classes, 'All classes');
+            populateResultSectionSelect();
             setSelectOptions('resultScheduleCampus', campuses, 'Select campus');
             setSelectOptions('resultScheduleClass', classes, 'Select class');
             setSelectOptions('resultHistoryCampusFilter', campuses, 'All campuses');
@@ -2440,22 +2492,81 @@
             populateResultStudentSelect();
         }
 
+        function populateResultSectionSelect() {
+            const sectionSelect = document.getElementById('resultSectionFilter');
+            const className = document.getElementById('resultClassFilter')?.value || '';
+            if (!sectionSelect) return;
+            if (!className) {
+                sectionSelect.innerHTML = '<option value="">Select class first</option>';
+                sectionSelect.disabled = true;
+                renderResultStudentsList([]);
+                return;
+            }
+
+            const campusFilter = normalizeResultValue(document.getElementById('resultCampusFilter')?.value || '');
+            const classFilter = normalizeResultClass(className);
+            const sections = getUniqueValues(readResultStudents()
+                .filter((student) => normalizeResultClass(getStudentClass(student)) === classFilter)
+                .filter((student) => !campusFilter || normalizeResultValue(getStudentCampus(student)) === campusFilter)
+                .map((student) => getStudentSection(student) || 'No section'));
+            const previousValue = sectionSelect.value;
+            sectionSelect.innerHTML = '<option value="">Select section</option>' + sections.map((section) => (
+                `<option value="${escapeHtml(section)}">${escapeHtml(section)}</option>`
+            )).join('');
+            sectionSelect.disabled = !sections.length;
+            if (sections.includes(previousValue)) sectionSelect.value = previousValue;
+            renderResultStudentsList([]);
+        }
+
+        function getFilteredResultStudents() {
+            const campusFilter = normalizeResultValue(document.getElementById('resultCampusFilter')?.value || '');
+            const classFilter = normalizeResultClass(document.getElementById('resultClassFilter')?.value || '');
+            const sectionFilter = normalizeResultValue(document.getElementById('resultSectionFilter')?.value || '');
+            if (!classFilter || !sectionFilter) return [];
+            return readResultStudents().filter((student) => (
+                (!campusFilter || normalizeResultValue(getStudentCampus(student)) === campusFilter) &&
+                normalizeResultClass(getStudentClass(student)) === classFilter &&
+                normalizeResultValue(getStudentSection(student) || 'No section') === sectionFilter
+            )).sort((a, b) => String(a.fullName || a.name || '').localeCompare(String(b.fullName || b.name || '')));
+        }
+
+        function renderResultStudentsList(students = getFilteredResultStudents()) {
+            const list = document.getElementById('resultStudentsList');
+            const count = document.getElementById('resultStudentCount');
+            if (!list || !count) return;
+            const className = document.getElementById('resultClassFilter')?.value || '';
+            const sectionName = document.getElementById('resultSectionFilter')?.value || '';
+            if (!className || !sectionName) {
+                count.textContent = 'Select a class and section to view students.';
+                list.innerHTML = '';
+                return;
+            }
+            count.textContent = `${students.length} student${students.length === 1 ? '' : 's'}`;
+            if (!students.length) {
+                list.innerHTML = '<p class="result-students-empty">No students found in this class and section.</p>';
+                return;
+            }
+            list.innerHTML = `<div class="result-students-grid">${students.map((student) => {
+                const lookup = getStudentLookup(student);
+                const selected = document.getElementById('resultStudentSelect')?.value === lookup;
+                return `<button type="button" class="result-student-item${selected ? ' selected' : ''}" data-student-lookup="${escapeHtml(lookup)}">
+                    <strong>${escapeHtml(student.fullName || student.name || 'Student')}</strong>
+                    <span>ID: ${escapeHtml(student.studentCode || lookup || '-')} | Roll: ${escapeHtml(student.rollNo || '-')}</span>
+                </button>`;
+            }).join('')}</div>`;
+        }
+
         function populateResultStudentSelect() {
             const select = document.getElementById('resultStudentSelect');
             if (!select) return;
-            const campusFilter = normalizeResultValue(document.getElementById('resultCampusFilter')?.value || '');
-            const classFilter = normalizeResultClass(document.getElementById('resultClassFilter')?.value || '');
-            const students = readResultStudents().filter((student) => {
-                if (campusFilter && normalizeResultValue(getStudentCampus(student)) !== campusFilter) return false;
-                if (classFilter && normalizeResultClass(getStudentClass(student)) !== classFilter) return false;
-                return true;
-            });
+            const students = getFilteredResultStudents();
 
             select.innerHTML = '<option value="">Select student</option>' + students.map((student) => {
                 const value = getStudentLookup(student);
                 const label = `${student.fullName || student.name || value || 'Student'} - ID: ${student.studentCode || value || '-'} - Roll: ${student.rollNo || '-'} - ${getStudentClass(student) || '-'} - ${getStudentCampus(student) || '-'}`;
                 return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
             }).join('');
+            renderResultStudentsList(students);
         }
 
         function syncStudentFiltersFromStudent(student = {}) {
@@ -2465,6 +2576,7 @@
             ensureSelectOption(document.getElementById('resultClassFilter'), className);
             document.getElementById('resultCampusFilter').value = campus || '';
             document.getElementById('resultClassFilter').value = className || '';
+            populateResultSectionSelect();
             populateResultStudentSelect();
             ensureSelectOption(document.getElementById('resultStudentSelect'), getStudentLookup(student));
             document.getElementById('resultStudentSelect').value = getStudentLookup(student) || '';
@@ -2605,7 +2717,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             clearLegacyResultArchive();
-            const initialSectionId = window.location.hash === '#resultHistoryCard' ? 'resultHistoryCard' : 'resultBuilderCard';
+            const initialSectionId = window.location.hash === '#resultHistoryCard'
+                ? 'resultHistoryCard'
+                : (window.location.hash === '#examSchedulingCard' ? 'examSchedulingCard' : 'resultBuilderCard');
             toggleExamSection(initialSectionId);
             const dateSheetState = loadDateSheetState();
             const savedState = loadResultCardState();
@@ -2636,12 +2750,28 @@
             document.getElementById('resetDateSheetBtn').addEventListener('click', resetDateSheet);
             document.getElementById('resultCardForm').addEventListener('input', refreshResultCardPreview);
             document.getElementById('resultCampusFilter')?.addEventListener('change', () => {
+                document.getElementById('resultSectionFilter').value = '';
+                populateResultSectionSelect();
                 populateResultStudentSelect();
             });
             document.getElementById('resultClassFilter')?.addEventListener('change', () => {
+                document.getElementById('resultSectionFilter').value = '';
+                populateResultSectionSelect();
                 populateResultStudentSelect();
             });
+            document.getElementById('resultSectionFilter')?.addEventListener('change', populateResultStudentSelect);
             document.getElementById('resultStudentSelect')?.addEventListener('change', loadSelectedStudentIntoResultCard);
+            document.getElementById('resultStudentsList')?.addEventListener('click', (event) => {
+                const studentButton = event.target.closest('[data-student-lookup]');
+                if (!studentButton) return;
+                const selectedStudent = readResultStudents().find((student) => getStudentLookup(student) === studentButton.dataset.studentLookup);
+                if (!selectedStudent) return;
+                const studentSelect = document.getElementById('resultStudentSelect');
+                ensureSelectOption(studentSelect, getStudentLookup(selectedStudent));
+                studentSelect.value = getStudentLookup(selectedStudent);
+                loadSelectedStudentIntoResultCard();
+                renderResultStudentsList();
+            });
             document.getElementById('campusName')?.addEventListener('change', () => {
                 applyBranchDetailsToResultCard(document.getElementById('campusName').value);
                 refreshResultCardPreview();

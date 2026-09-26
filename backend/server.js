@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const http = require('http');
+const crypto = require('crypto');
 const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -1439,6 +1440,50 @@ app.get('/api/students', async (req, res) => {
         res.json(students);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/testing-result-reports', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    const { classGrade = '', section = '', skill = '', reportDate = '' } = req.query;
+    if (!reportDate) {
+        return res.status(400).json({ success: false, message: 'Report date is required.' });
+    }
+    try {
+        const filters = { reportDate };
+        if (classGrade) filters.classGrade = classGrade;
+        if (section) filters.section = section;
+        if (skill) filters.skill = skill;
+        const rows = await sequelize.models.TestingResultReport.findAll({ where: filters, order: [['classGrade', 'ASC'], ['section', 'ASC'], ['skill', 'ASC']] });
+        const reports = rows.map((row) => ({ ...row.get(), ratings: JSON.parse(row.ratings || '{}') }));
+        res.json({ success: true, reports, report: reports.length === 1 ? reports[0] : null });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message || 'Could not load testing result report.' });
+    }
+});
+
+app.post('/api/testing-result-reports', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    const { classGrade = '', section = '', skill = '', reportDate = '', ratings = {} } = req.body || {};
+    if (!classGrade || !section || !skill || !/^\d{4}-\d{2}-\d{2}$/.test(reportDate) || !ratings || typeof ratings !== 'object' || Array.isArray(ratings)) {
+        return res.status(400).json({ success: false, message: 'Valid class, section, skill, date, and student ratings are required.' });
+    }
+    try {
+        const key = [classGrade, section, skill, reportDate].join('|');
+        const id = `TEST-${crypto.createHash('sha256').update(key).digest('hex').slice(0, 48)}`;
+        const values = {
+            id,
+            classGrade: String(classGrade).trim(),
+            section: String(section).trim(),
+            skill: String(skill).trim(),
+            reportDate,
+            ratings: JSON.stringify(ratings),
+            updatedAtLabel: new Date().toISOString()
+        };
+        await sequelize.models.TestingResultReport.upsert(values);
+        res.json({ success: true, message: 'Testing result report saved.', report: { ...values, ratings } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message || 'Could not save testing result report.' });
     }
 });
 
@@ -4147,6 +4192,18 @@ function defineStudentPerformanceModel(db) {
     });
 }
 
+function defineTestingResultReportModel(db) {
+    return db.define('TestingResultReport', {
+        id: { type: DataTypes.STRING(64), primaryKey: true },
+        classGrade: { type: DataTypes.STRING(80), allowNull: false },
+        section: { type: DataTypes.STRING(50), allowNull: false },
+        skill: { type: DataTypes.STRING(100), allowNull: false },
+        reportDate: { type: DataTypes.STRING(10), allowNull: false },
+        ratings: { type: DataTypes.TEXT('long'), allowNull: false },
+        updatedAtLabel: { type: DataTypes.STRING(40), allowNull: false }
+    }, { indexes: [{ unique: true, fields: ['classGrade', 'section', 'skill', 'reportDate'] }] });
+}
+
 function defineStudentAttendanceModel(db) {
     return db.define('StudentAttendance', {
         id: { type: DataTypes.STRING, primaryKey: true },
@@ -4644,6 +4701,7 @@ async function startServer() {
         defineClassFeeHistoryModel(sequelize);
         defineStudentDiaryModel(sequelize);
         defineStudentPerformanceModel(sequelize);
+        defineTestingResultReportModel(sequelize);
         defineStudentAttendanceModel(sequelize);
         defineTeacherAttendanceModel(sequelize);
         defineSpecialNoticeModel(sequelize);
