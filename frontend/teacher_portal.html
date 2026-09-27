@@ -1735,13 +1735,8 @@
             try {
                 const response = await fetch(`${API_BASE_URL}/teacher-assigned-classes`, { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
                 const result = response.ok ? await response.json() : {};
+                if (!response.ok || result.success === false) throw new Error(result.message || 'Assigned classes could not be loaded.');
                 teacherAssignedClassRecords = Array.isArray(result.assignedClasses) ? result.assignedClasses : [];
-                if (!teacherAssignedClassRecords.length) {
-                    try {
-                        const localRecords = JSON.parse(localStorage.getItem('eduCore_teacher_class_assignments') || '[]');
-                        teacherAssignedClassRecords = localRecords.filter((item) => String(item.teacherId || '').trim() === String(currentTeacherProfile?.id || loggedInUser?.id || '').trim());
-                    } catch (_error) { /* Ignore malformed legacy cache. */ }
-                }
             } catch (_error) {
                 teacherAssignedClassRecords = [];
             }

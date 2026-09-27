@@ -1443,7 +1443,7 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
-function parseTeacherReportAssignments(teacher) {
+function parseTeacherReportAssignments(teacher, databaseAssignments = []) {
     const assignments = [];
     const add = (value = {}) => {
         if (typeof value === 'string') {
@@ -1476,9 +1476,7 @@ function parseTeacherReportAssignments(teacher) {
 
     parseList(teacher?.assignedSections).forEach(add);
     parseList(teacher?.schedule).forEach(add);
-    readMobileStore('teacher_assigned_classes')
-        .filter((record) => String(record.teacherId || '').trim() === String(teacher?.id || '').trim())
-        .forEach(add);
+    databaseAssignments.forEach(add);
 
     const unique = new Map();
     assignments.forEach((assignment) => {
@@ -1507,9 +1505,10 @@ async function getTeacherReportAccess(req) {
     if (role !== 'teacher') return null;
     const teacher = await sequelize.models.Teacher.findByPk(req.user.id);
     if (!teacher) return null;
+    const databaseAssignments = await sequelize.models.TeacherClassAssignment.findAll({ where: { teacherId: String(teacher.id) } });
     return {
         isAdmin: false,
-        assignments: parseTeacherReportAssignments(teacher),
+        assignments: parseTeacherReportAssignments(teacher, databaseAssignments),
         campusName: String(teacher.campusName || teacher.branchName || req.user.campusName || '').trim()
     };
 }
@@ -3628,7 +3627,136 @@ registerMobileCollectionRoutes({ route: 'student-quizzes', storeName: 'student_q
 registerMobileCollectionRoutes({ route: 'student-quiz-submissions', storeName: 'student_quiz_submissions', recordsKey: 'submissions', itemKey: 'submission', prefix: 'QUIZ-SUB' });
 registerMobileCollectionRoutes({ route: 'student-results', storeName: 'student_results', recordsKey: 'results', itemKey: 'result', prefix: 'RESULT' });
 registerMobileCollectionRoutes({ route: 'student-syllabus', storeName: 'student_syllabus', recordsKey: 'syllabus', itemKey: 'syllabusItem', prefix: 'SYL' });
-registerMobileCollectionRoutes({ route: 'teacher-assigned-classes', storeName: 'teacher_assigned_classes', recordsKey: 'assignedClasses', itemKey: 'assignedClass', prefix: 'TCLASS' });
+
+function teacherClassAssignmentKey(item = {}) {
+    const norm = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    return [item.teacherId, item.classGrade, item.section || 'General', item.campusName].map(norm).join('|');
+}
+
+function isTeacherClassAssignmentAdmin(req) {
+    const role = String(req.user?.role || '').trim().toLowerCase();
+    return ['admin', 'administrator', 'principal', 'superadmin', 'super admin', 'root', 'system administrator', 'system_admin'].includes(role);
+}
+
+async function migrateLegacyTeacherClassAssignments() {
+    const Assignment = sequelize.models.TeacherClassAssignment;
+    const legacy = readMobileStore('teacher_assigned_classes');
+    if (!legacy.length) return;
+    const existing = await Assignment.findAll();
+    const seenIds = new Set(existing.map((item) => String(item.id)));
+    const seenKeys = new Set(existing.map((item) => teacherClassAssignmentKey(item)));
+    const teacherIds = [...new Set(legacy.map((item) => String(item.teacherId || '').trim()).filter(Boolean))];
+    const teachers = teacherIds.length ? await sequelize.models.Teacher.findAll({ where: { id: teacherIds } }) : [];
+    const teacherMap = new Map(teachers.map((teacher) => [String(teacher.id), teacher]));
+    const imports = [];
+    for (const item of legacy) {
+        const teacherId = String(item.teacherId || '').trim();
+        const classGrade = String(item.classGrade || item.className || '').trim();
+        const section = String(item.section || 'General').trim() || 'General';
+        const teacher = teacherMap.get(teacherId);
+        if (!teacher || !classGrade) continue;
+        const normalized = { ...item, teacherId, classGrade, section, campusName: String(item.campusName || teacher.campusName || '').trim() };
+        const key = teacherClassAssignmentKey(normalized);
+        if (seenIds.has(String(item.id)) || seenKeys.has(key)) continue;
+        imports.push({
+            id: String(item.id || `TCLASS-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+            teacherId,
+            teacherName: String(item.teacherName || teacher.fullName || 'Teacher'),
+            classGrade,
+            section,
+            campusName: normalized.campusName,
+            note: String(item.note || ''),
+            updatedAtLabel: String(item.updatedAt || new Date().toISOString())
+        });
+        seenIds.add(String(item.id));
+        seenKeys.add(key);
+    }
+    if (imports.length) await Assignment.bulkCreate(imports, { ignoreDuplicates: true });
+    writeMobileStore('teacher_assigned_classes', []);
+}
+
+app.get('/api/teacher-assigned-classes', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    try {
+        await sequelize.models.TeacherClassAssignment.sync();
+        const role = String(req.user?.role || '').trim().toLowerCase();
+        let where = {};
+        if (role === 'teacher') {
+            where.teacherId = String(req.user.id);
+        } else {
+            if (!isTeacherClassAssignmentAdmin(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+            const allowed = await enforceActionPermission(req, res, 'teachers', 'view');
+            if (!allowed) return;
+            await migrateLegacyTeacherClassAssignments();
+        }
+        const assignedClasses = await sequelize.models.TeacherClassAssignment.findAll({ where, order: [['classGrade', 'ASC'], ['section', 'ASC']] });
+        return res.json({ success: true, assignedClasses });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Could not load teacher class assignments.' });
+    }
+});
+
+app.post('/api/teacher-assigned-classes/', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    try {
+        if (!isTeacherClassAssignmentAdmin(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+        await sequelize.models.TeacherClassAssignment.sync();
+        const item = req.body || {};
+        const teacherId = String(item.teacherId || '').trim();
+        const classGrade = String(item.classGrade || item.className || '').trim();
+        const section = String(item.section || 'General').trim() || 'General';
+        if (!teacherId || !classGrade) return res.status(400).json({ success: false, message: 'Teacher and class are required.' });
+        const teacher = await sequelize.models.Teacher.findByPk(teacherId);
+        if (!teacher) return res.status(404).json({ success: false, message: 'Teacher not found.' });
+        const id = String(item.id || `TCLASS-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        const existing = await sequelize.models.TeacherClassAssignment.findByPk(id);
+        const allowed = await enforceActionPermission(req, res, 'teachers', existing ? 'edit' : 'add');
+        if (!allowed) return;
+        const assignment = {
+            id,
+            teacherId,
+            teacherName: String(item.teacherName || teacher.fullName || 'Teacher'),
+            classGrade,
+            section,
+            campusName: String(item.campusName || teacher.campusName || '').trim(),
+            note: String(item.note || '').trim(),
+            updatedAtLabel: new Date().toISOString()
+        };
+        await sequelize.models.TeacherClassAssignment.upsert(assignment);
+        const assignedClasses = await sequelize.models.TeacherClassAssignment.findAll({ order: [['classGrade', 'ASC'], ['section', 'ASC']] });
+        return res.json({ success: true, assignedClass: assignment, assignedClasses });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Could not save teacher class assignment.' });
+    }
+});
+
+app.delete('/api/teacher-assigned-classes/:id', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    try {
+        if (!isTeacherClassAssignmentAdmin(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+        const allowed = await enforceActionPermission(req, res, 'teachers', 'edit');
+        if (!allowed) return;
+        const deleted = await sequelize.models.TeacherClassAssignment.destroy({ where: { id: String(req.params.id) } });
+        if (!deleted) return res.status(404).json({ success: false, message: 'Teacher class assignment not found.' });
+        return res.json({ success: true, deleted: true });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Could not delete teacher class assignment.' });
+    }
+});
+
+app.get('/api/teacher-directory', authenticateToken, async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Database offline' });
+    if (!isTeacherClassAssignmentAdmin(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+    try {
+        const teachers = await sequelize.models.Teacher.findAll({
+            attributes: ['id', 'fullName', 'subject', 'campusName'],
+            order: [['fullName', 'ASC']]
+        });
+        return res.json({ success: true, teachers });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Could not load teachers from the database.' });
+    }
+});
 
 app.get('/api/student-performance', authenticateToken, async (req, res) => {
     try {
@@ -4215,6 +4343,19 @@ function defineTeacherModel(db) {
         groupKey: DataTypes.STRING,
         role: { type: DataTypes.STRING, defaultValue: 'Teacher' }
     }, { engine: 'InnoDB', rowFormat: 'DYNAMIC' });
+}
+
+function defineTeacherClassAssignmentModel(db) {
+    return db.define('TeacherClassAssignment', {
+        id: { type: DataTypes.STRING(80), primaryKey: true },
+        teacherId: { type: DataTypes.STRING(80), allowNull: false },
+        teacherName: { type: DataTypes.STRING(160), allowNull: true },
+        classGrade: { type: DataTypes.STRING(120), allowNull: false },
+        section: { type: DataTypes.STRING(120), allowNull: false, defaultValue: 'General' },
+        campusName: { type: DataTypes.STRING(160), allowNull: true },
+        note: { type: DataTypes.TEXT, allowNull: true },
+        updatedAtLabel: { type: DataTypes.STRING(40), allowNull: true }
+    }, { engine: 'InnoDB', rowFormat: 'DYNAMIC', indexes: [{ fields: ['teacherId'] }] });
 }
 
 function defineUserModel(db) {
@@ -4858,6 +4999,7 @@ async function startServer() {
 
         defineStudentModel(sequelize);
         defineTeacherModel(sequelize);
+        defineTeacherClassAssignmentModel(sequelize);
         defineUserModel(sequelize);
         defineStaffModel(sequelize);
         defineFeePaymentModel(sequelize);

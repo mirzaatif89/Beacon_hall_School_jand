@@ -133,6 +133,8 @@
     <script src="script.js?v=20260814-local-runtime-fix6"></script>
     <script>
         const CLASS_ASSIGNMENT_KEY = 'eduCore_teacher_class_assignments';
+        let classAssignments = [];
+        let databaseTeachers = [];
         const DEFAULT_ASSIGNMENT_CLASSES = [
             'Play Group', 'Nursarry', 'Prep',
             'Class One', 'Class Two', 'Class Three', 'Class Four', 'Class Five',
@@ -140,6 +142,8 @@
         ];
 
         function assignmentData(key) {
+            if (key === CLASS_ASSIGNMENT_KEY) return classAssignments.map((item) => ({ ...item }));
+            if (key === 'eduCore_teachers') return databaseTeachers.map((item) => ({ ...item }));
             try {
                 const stored = JSON.parse(localStorage.getItem(key) || '[]');
                 return Array.isArray(stored) ? stored : [];
@@ -148,8 +152,103 @@
             }
         }
 
-        function saveAssignments(assignments) {
-            localStorage.setItem(CLASS_ASSIGNMENT_KEY, JSON.stringify(assignments));
+        async function syncAssignmentsToServer(assignments, removedIds = []) {
+            const token = sessionStorage.getItem('eduCore_token') || '';
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+            };
+            let persistedAssignments = null;
+            for (const assignment of assignments) {
+                const response = await fetch(`${API_BASE_URL}/teacher-assigned-classes/`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(assignment)
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || result.success === false) {
+                    throw new Error(result.message || `Assignment save failed (HTTP ${response.status}).`);
+                }
+                if (Array.isArray(result.assignedClasses)) persistedAssignments = result.assignedClasses;
+            }
+            for (const id of removedIds) {
+                const response = await fetch(`${API_BASE_URL}/teacher-assigned-classes/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    headers
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || result.success === false) {
+                    throw new Error(result.message || `Assignment delete failed (HTTP ${response.status}).`);
+                }
+            }
+            return persistedAssignments;
+        }
+
+        async function fetchDatabaseAssignments() {
+            const token = sessionStorage.getItem('eduCore_token') || '';
+            const response = await fetch(`${API_BASE_URL}/teacher-assigned-classes`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                cache: 'no-store'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.success === false) throw new Error(result.message || 'Assignments could not be loaded from the database.');
+            return Array.isArray(result.assignedClasses) ? result.assignedClasses : [];
+        }
+
+        async function loadDatabaseTeachers() {
+            const token = sessionStorage.getItem('eduCore_token') || '';
+            const response = await fetch(`${API_BASE_URL}/teacher-directory`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                cache: 'no-store'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.success === false) throw new Error(result.message || 'Teachers could not be loaded from the database.');
+            databaseTeachers = Array.isArray(result.teachers) ? result.teachers : [];
+        }
+
+        function assignmentIdentity(item = {}) {
+            return [item.teacherId, item.classGrade || item.className, item.section || 'General']
+                .map((value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')).join('|');
+        }
+
+        async function loadClassAssignments() {
+            let databaseRows = await fetchDatabaseAssignments();
+            let legacyRows = [];
+            try {
+                const stored = JSON.parse(localStorage.getItem(CLASS_ASSIGNMENT_KEY) || '[]');
+                if (Array.isArray(stored)) legacyRows = stored;
+            } catch (_error) { /* Ignore malformed legacy cache during migration. */ }
+
+            const knownIds = new Set(databaseRows.map((item) => String(item.id)));
+            const knownAssignments = new Set(databaseRows.map(assignmentIdentity));
+            const missingLegacyRows = legacyRows.filter((item) => {
+                const identity = assignmentIdentity(item);
+                if (knownIds.has(String(item.id)) || knownAssignments.has(identity)) return false;
+                knownIds.add(String(item.id));
+                knownAssignments.add(identity);
+                return true;
+            });
+            if (missingLegacyRows.length) await syncAssignmentsToServer(missingLegacyRows);
+            if (missingLegacyRows.length) databaseRows = await fetchDatabaseAssignments();
+
+            classAssignments = databaseRows;
+            localStorage.removeItem(CLASS_ASSIGNMENT_KEY);
+        }
+
+        async function saveAssignments(assignments) {
+            const previous = classAssignments;
+            const nextIds = new Set(assignments.map((item) => String(item.id)));
+            const removedIds = previous.filter((item) => !nextIds.has(String(item.id))).map((item) => item.id);
+            try {
+                const persistedAssignments = await syncAssignmentsToServer(assignments, removedIds);
+                classAssignments = persistedAssignments || await fetchDatabaseAssignments();
+                localStorage.removeItem(CLASS_ASSIGNMENT_KEY);
+                return true;
+            } catch (error) {
+                console.error('Teacher class assignment sync failed:', error);
+                showAppAlert(error.message || 'The assignment could not be saved to the database. Please check the server connection and try again.', 'Assignment Save Failed');
+                return false;
+            }
         }
 
         function escapeAssignmentText(value) {
@@ -309,12 +408,12 @@
             if (window.lucide) window.lucide.createIcons();
         }
 
-        function deleteClassAssignment(id) {
-            saveAssignments(assignmentData(CLASS_ASSIGNMENT_KEY).filter((item) => String(item.id) !== String(id)));
+        async function deleteClassAssignment(id) {
+            await saveAssignments(assignmentData(CLASS_ASSIGNMENT_KEY).filter((item) => String(item.id) !== String(id)));
             renderClassAssignments();
         }
 
-        classAssignmentForm.addEventListener('submit', (event) => {
+        classAssignmentForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const teachers = assignmentData('eduCore_teachers');
             const teacher = teachers.find((item) => String(item.id) === String(classAssignmentTeacher.value));
@@ -350,7 +449,7 @@
                 if (editIndex >= 0) assignments[editIndex] = assignment;
                 else assignments.push(assignment);
             }
-            saveAssignments(assignments);
+            if (!await saveAssignments(assignments)) return;
             resetClassAssignmentForm();
             renderClassAssignments();
             showSuccessModal('Class Assigned!', `${assignment.teacherName} is assigned as class incharge for ${formatAssignmentClassSection(assignment.classGrade, assignment.section)}.`);
@@ -358,7 +457,14 @@
 
         populateClassAssignmentOptions();
         classAssignmentClass.addEventListener('change', () => populateClassAssignmentSectionOptions());
-        renderClassAssignments();
+        document.getElementById('classAssignmentList').innerHTML = '<div class="empty-note">Loading class assignments...</div>';
+        Promise.all([loadDatabaseTeachers(), loadClassAssignments()]).then(() => {
+            populateClassAssignmentOptions();
+            renderClassAssignments();
+        }).catch((error) => {
+            renderClassAssignments();
+            showAppAlert(error.message || 'Assignments could not be loaded from the database.', 'Assignment Load Failed');
+        });
         if (window.lucide) window.lucide.createIcons();
     </script>
 </body>

@@ -115,7 +115,6 @@
     const apiBase = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : `${location.origin}/api`;
     const token = sessionStorage.getItem('eduCore_token') || '';
     const headers = () => ({ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) });
-    const PERFORMANCE_CACHE_KEY = 'eduCore_student_skill_performance';
     const canonicalClasses = ['Play Group','Nursarry','Prep','Class One','Class Two','Class Three','Class Four','Class Five','Class Six','Class Seven','Class Eight','Class Nine','Class 10'];
     const juniorSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
     const seniorSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
@@ -158,6 +157,7 @@
     let examResults = [];
     let teacherAssignedSubjects = null;
     let teacherAssignments = [];
+    const teacherPortalClasses = [...new Set(String(new URLSearchParams(location.search).get('assignedClasses') || '').split('|').map(value => value.trim()).filter(Boolean))];
     let isTeacherUser = false;
     const classStepSelect = document.getElementById('classStepSelect');
     const sectionStepSelect = document.getElementById('sectionStepSelect');
@@ -184,11 +184,6 @@
     const thisMonth = () => today().slice(0, 7);
     const performanceIdFor = record => String(record.id || `PERF-${record.studentId}-${record.subject}-${record.performanceDate}-${record.skill || 'summary'}`).replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
 
-    function getLocalPerformanceRecords(studentId = '') {
-        const records = JSON.parse(localStorage.getItem(PERFORMANCE_CACHE_KEY) || '[]');
-        return records.filter(record => !studentId || String(record.studentId) === String(studentId));
-    }
-
     function mergePerformanceRecords(primary = [], fallback = []) {
         const merged = new Map();
         [...fallback, ...primary].forEach(record => {
@@ -199,25 +194,17 @@
         return [...merged.values()].sort((a, b) => String(b.performanceDate || '').localeCompare(String(a.performanceDate || '')));
     }
 
-    function saveLocalPerformanceRecord(record) {
-        const normalized = { ...record, id: performanceIdFor(record) };
-        const records = JSON.parse(localStorage.getItem(PERFORMANCE_CACHE_KEY) || '[]');
-        const next = [normalized, ...records.filter(item => String(item.id) !== String(normalized.id))];
-        localStorage.setItem(PERFORMANCE_CACHE_KEY, JSON.stringify(next));
-        return normalized;
-    }
-
-    function deleteLocalPerformanceRecord(recordId) {
-        const records = JSON.parse(localStorage.getItem(PERFORMANCE_CACHE_KEY) || '[]');
-        localStorage.setItem(PERFORMANCE_CACHE_KEY, JSON.stringify(records.filter(record => String(record.id) !== String(recordId))));
-    }
-
     function setSteps(number) {
         steps.forEach((el, index) => el.classList.toggle('active', index < number));
     }
 
     function classNames() {
-        if (isTeacherUser) return [...new Map(teacherAssignments.map(item => [norm(item.classGrade), String(item.classGrade || '').trim()]).filter(([, name]) => name)).values()];
+        if (isTeacherUser) {
+            const assignedNames = [...teacherAssignments.map(item => item.classGrade), ...teacherPortalClasses]
+                .map(value => String(value || '').trim())
+                .filter(Boolean);
+            return [...new Map(assignedNames.map(name => [norm(name), name])).values()];
+        }
         const found = [...canonicalClasses, ...students.map(s => s.classGrade), ...courses.map(c => c.classGrade)]
             .map(value => String(value || '').trim())
             .filter(Boolean);
@@ -263,7 +250,14 @@
         classStepSelect.innerHTML = '<option value="">Select Class</option>' + classNames().map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
         classStepSelect.value = selectedClass;
         classStepSelect.onchange = () => selectClass(classStepSelect.value, '');
-        let sectionOptions = [...new Set(students.filter(student => norm(student.classGrade) === norm(selectedClass) && teacherCanAccessStudent(student)).map(student => String(student.section || 'General').trim()).filter(Boolean))].sort();
+        const studentSections = students.filter(student => norm(student.classGrade) === norm(selectedClass) && teacherCanAccessStudent(student))
+            .map(student => String(student.section || 'General').trim()).filter(Boolean);
+        const assignmentSections = isTeacherUser ? teacherAssignments
+            .filter(assignment => norm(assignment.classGrade) === norm(selectedClass))
+            .map(assignment => String(assignment.section || 'General').trim()).filter(Boolean) : [];
+        const portalHasClass = isTeacherUser && teacherPortalClasses.some(name => norm(name) === norm(selectedClass));
+        const fallbackSection = portalHasClass && !studentSections.length && !assignmentSections.length ? ['General'] : [];
+        let sectionOptions = [...new Set([...studentSections, ...assignmentSections, ...fallbackSection])].sort();
         sectionStepSelect.disabled = !selectedClass || !sectionOptions.length;
         sectionStepSelect.innerHTML = '<option value="">Select Section</option>' + sectionOptions.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
         sectionStepSelect.value = selectedStudentSection;
@@ -302,9 +296,10 @@
             const response = await fetch(`${apiBase}/student-performance?studentId=${encodeURIComponent(id)}`, { headers: headers() });
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.message || 'Performance could not be loaded.');
-            saved = mergePerformanceRecords(result.performances || [], getLocalPerformanceRecords(id));
+            saved = mergePerformanceRecords(result.performances || []);
         } catch (error) {
-            saved = getLocalPerformanceRecords(id);
+            saved = [];
+            showAppAlert(error.message || 'Performance could not be loaded from the server.', 'Load Failed');
         }
         renderStudentRoster();
     }
@@ -414,13 +409,11 @@
                     const response = await fetch(`${apiBase}/student-performance`, { method:'POST', headers:headers(), body:JSON.stringify(record) });
                     const result = await response.json().catch(() => ({}));
                     if (!response.ok || !result.success) throw new Error(result.message || `Could not save ${rating} for ${change.student.fullName}.`);
-                    saveLocalPerformanceRecord(record);
                     classPerformanceRecords = mergePerformanceRecords([record], classPerformanceRecords);
                 } else if (!change.checked && matches.length) {
                     for (const record of matches) {
                         const response = await fetch(`${apiBase}/student-performance?recordId=${encodeURIComponent(record.id)}`, { method:'DELETE', headers:headers() });
                         if (!response.ok) throw new Error(`Could not remove ${rating} for ${change.student.fullName}.`);
-                        deleteLocalPerformanceRecord(record.id);
                         classPerformanceRecords = classPerformanceRecords.filter(item => String(item.id) !== String(record.id));
                     }
                 }
@@ -441,9 +434,10 @@
             try {
                 const response = await fetch(`${apiBase}/student-performance?studentId=${encodeURIComponent(student.id)}`, { headers: headers() });
                 const result = await response.json();
-                return response.ok && result.success ? mergePerformanceRecords(result.performances || [], getLocalPerformanceRecords(student.id)) : getLocalPerformanceRecords(student.id);
+                if (!response.ok || !result.success) throw new Error(result.message || 'Performance could not be loaded.');
+                return mergePerformanceRecords(result.performances || []);
             } catch (_) {
-                return getLocalPerformanceRecords(student.id);
+                return [];
             }
         }));
         classPerformanceRecords = lists.flat();
@@ -481,7 +475,6 @@
         if (!records.length) { showAppAlert('Select a rating for at least one activity.', 'Nothing Selected'); return; }
         try {
             for (const record of records) {
-                saveLocalPerformanceRecord(record);
                 const response = await fetch(`${apiBase}/student-performance`, { method:'POST', headers:headers(), body:JSON.stringify(record) });
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || result.success === false) throw new Error(result.message || 'Could not save record.');
@@ -514,7 +507,6 @@
         if (!records.length) { showAppAlert('Select a rating for at least one item.', 'Nothing Selected'); return; }
         try {
             for (const record of records) {
-                saveLocalPerformanceRecord(record);
                 const response = await fetch(`${apiBase}/student-performance`, { method:'POST', headers:headers(), body:JSON.stringify(record) });
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || result.success === false) throw new Error(result.message || 'Could not save record.');
@@ -671,15 +663,13 @@
         }
         const button = document.getElementById('saveSkill');
         button.disabled = true;
-        const localRecord = saveLocalPerformanceRecord(record);
-        saved = mergePerformanceRecords([localRecord], saved);
         try {
             const response = await fetch(`${apiBase}/student-performance`, { method:'POST', headers:headers(), body:JSON.stringify(record) });
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.message || 'Performance could not be saved.');
             classPerformanceRecords = mergePerformanceRecords([record], classPerformanceRecords);
             const returned = Array.isArray(result.performances) ? result.performances : [];
-            saved = mergePerformanceRecords(returned.some(item => item.skill) ? returned : [record], getLocalPerformanceRecords(selectedStudent.id));
+            saved = mergePerformanceRecords(returned.some(item => item.skill) ? returned : [record]);
             await loadClassPerformanceRecords();
             renderStudentRoster();
             if (keepAdding) {
@@ -701,7 +691,6 @@
         if (!(await showAppConfirm('Delete this performance record?'))) return;
         const beforeDelete = saved;
         saved = saved.filter(record => String(record.id) !== String(recordId));
-        deleteLocalPerformanceRecord(recordId);
         renderSkillEditor(selectedSubject);
         try {
             const response = await fetch(`${apiBase}/student-performance?recordId=${encodeURIComponent(recordId)}`, { method:'DELETE', headers:headers() });
@@ -709,7 +698,6 @@
             if (!response.ok || result.success === false) throw new Error(result.message || 'Performance record could not be deleted.');
         } catch (error) {
             saved = beforeDelete;
-            localStorage.setItem(PERFORMANCE_CACHE_KEY, JSON.stringify(mergePerformanceRecords(beforeDelete, getLocalPerformanceRecords())));
             renderSkillEditor(selectedSubject);
             showAppAlert(error.message, 'Delete Failed');
         }
