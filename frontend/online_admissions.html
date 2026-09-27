@@ -213,7 +213,7 @@
 
         function getFilteredApplications() {
             const filter = document.getElementById('applicationStatusFilter')?.value || 'all';
-            const records = [...applications].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+            const records = [...applications].sort((a, b) => String(b.createdAtLabel || b.createdAt || '').localeCompare(String(a.createdAtLabel || a.createdAt || '')));
             return filter === 'all' ? records : records.filter((item) => String(item.status || 'New') === filter);
         }
 
@@ -243,21 +243,21 @@
                         <div class="application-head">
                             <div>
                                 <h3>${escapeHtml(application.studentName || 'Student')}</h3>
-                                <span style="color: var(--text-secondary);">Applied: ${escapeHtml(formatDate(application.createdAt))}</span>
+                                <span style="color: var(--text-secondary);">Applied: ${escapeHtml(formatDate(application.createdAtLabel || application.createdAt))}</span>
                             </div>
                             <span class="status-pill${statusClass(status)}">${escapeHtml(status)}</span>
                         </div>
                         <div class="application-meta">
-                            <span><small>Parent Name</small><strong>${escapeHtml(application.parentName || '-')}</strong></span>
-                            <span><small>Class</small><strong>${escapeHtml(application.className || '-')}</strong></span>
-                            <span><small>Campus</small><strong>${escapeHtml(application.campus || '-')}</strong></span>
+                            <span><small>Parent Name</small><strong>${escapeHtml(application.fatherName || application.parentName || '-')}</strong></span>
+                            <span><small>Class</small><strong>${escapeHtml(application.applyingClass || application.className || '-')}</strong></span>
+                            <span><small>Campus</small><strong>${escapeHtml(application.campusName || application.campus || '-')}</strong></span>
                             <span><small>Phone</small><strong>${escapeHtml(application.phone || '-')}</strong></span>
                             <span><small>Email</small><strong>${escapeHtml(application.email || '-')}</strong></span>
-                            <span><small>Student Age</small><strong>${escapeHtml(application.studentAge || '-')}</strong></span>
-                            <span><small>Previous School</small><strong>${escapeHtml(application.previousSchool || '-')}</strong></span>
+                            <span><small>Date of Birth</small><strong>${escapeHtml(application.dateOfBirth || '-')}</strong></span>
+                            <span><small>Gender</small><strong>${escapeHtml(application.gender || '-')}</strong></span>
                             <span><small>Address</small><strong>${escapeHtml(application.address || '-')}</strong></span>
                         </div>
-                        ${application.message ? `<p class="application-message">${escapeHtml(application.message)}</p>` : ''}
+                        ${application.notes || application.message ? `<p class="application-message">${escapeHtml(application.notes || application.message)}</p>` : ''}
                         <div class="application-actions">
                             <a class="btn btn-outline" href="tel:${escapeHtml(application.phone || '')}"><i data-lucide="phone"></i> Call</a>
                             <button class="btn btn-outline" type="button" onclick="updateApplicationStatus('${escapeHtml(application.id)}', 'Contacted')"><i data-lucide="phone-call"></i> Mark Contacted</button>
@@ -271,7 +271,7 @@
         }
 
         async function loadApplications() {
-            const response = await fetch(`${API_BASE_URL}/online-admissions`);
+            const response = await fetch(`${API_BASE_URL}/online-admissions`, { headers: { Authorization: `Bearer ${sessionStorage.getItem('eduCore_token') || ''}` } });
             const data = await response.json();
             applications = Array.isArray(data.applications) ? data.applications : [];
             renderApplications();
@@ -280,7 +280,7 @@
         async function updateApplicationStatus(id, status) {
             const response = await fetch(`${API_BASE_URL}/online-admissions/${encodeURIComponent(id)}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('eduCore_token') || ''}` },
                 body: JSON.stringify({ status })
             });
             const data = await response.json();
@@ -294,7 +294,7 @@
 
         async function deleteApplication(id) {
             if (!confirm('Delete this admission application?')) return;
-            const response = await fetch(`${API_BASE_URL}/online-admissions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const response = await fetch(`${API_BASE_URL}/online-admissions/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${sessionStorage.getItem('eduCore_token') || ''}` } });
             const data = await response.json();
             applications = Array.isArray(data.applications) ? data.applications : applications.filter((item) => String(item.id) !== String(id));
             renderApplications();

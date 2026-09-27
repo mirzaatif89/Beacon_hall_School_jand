@@ -3579,27 +3579,104 @@ registerMobileCollectionRoutes({
     socketEvent: 'ads_update'
 });
 
-registerMobileCollectionRoutes({
-    route: 'online-admissions',
-    storeName: 'online_admissions',
-    recordsKey: 'applications',
-    itemKey: 'application',
-    prefix: 'ADM',
-    socketEvent: 'online_admissions_update'
+function isAdmissionsManager(req) {
+    return ['admin', 'administrator', 'principal', 'superadmin', 'super admin', 'root', 'system administrator', 'system_admin']
+        .includes(String(req.user?.role || '').trim().toLowerCase());
+}
+
+app.post('/api/online-admissions/apply', async (req, res) => {
+    if (!sequelize || !isInitialized) return res.status(503).json({ success: false, message: 'Online applications are temporarily unavailable. Please call the school.' });
+    try {
+        const studentName = String(req.body?.studentName || '').trim();
+        const fatherName = String(req.body?.fatherName || '').trim();
+        const phone = String(req.body?.phone || '').trim();
+        const applyingClass = String(req.body?.applyingClass || '').trim();
+        if (!studentName || !fatherName || !phone || !applyingClass) {
+            return res.status(400).json({ success: false, message: 'Student name, parent name, phone, and class are required.' });
+        }
+        const application = await sequelize.models.OnlineAdmission.create({
+            id: `ADM-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+            studentName: studentName.slice(0, 160),
+            fatherName: fatherName.slice(0, 160),
+            applyingClass: applyingClass.slice(0, 100),
+            phone: phone.slice(0, 40),
+            email: String(req.body?.email || '').trim().slice(0, 160) || null,
+            dateOfBirth: String(req.body?.dateOfBirth || '').trim().slice(0, 20) || null,
+            gender: String(req.body?.gender || '').trim().slice(0, 30) || null,
+            campusName: String(req.body?.campusName || 'Main Campus').trim().slice(0, 120),
+            address: String(req.body?.address || '').trim().slice(0, 500) || null,
+            notes: String(req.body?.notes || '').trim().slice(0, 1000) || null,
+            status: 'New',
+            createdAtLabel: new Date().toISOString()
+        });
+        io.emit('online_admissions_update', await sequelize.models.OnlineAdmission.findAll({ order: [['createdAt', 'DESC']] }));
+        return res.status(201).json({ success: true, applicationId: application.id, message: 'Application submitted. The school will contact you soon.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'We could not submit the application. Please try again or call the school.' });
+    }
 });
 
-app.post('/api/online-admissions/:id', (req, res) => {
-    const records = readMobileStore('online_admissions');
-    const index = records.findIndex((item) => String(item.id) === String(req.params.id));
-    if (index < 0) return res.status(404).json({ success: false, message: 'Application not found.' });
-    records[index] = {
-        ...records[index],
-        ...req.body,
-        updatedAt: new Date().toISOString()
-    };
-    const applications = writeMobileStore('online_admissions', records);
-    io.emit('online_admissions_update', applications);
-    res.json({ success: true, application: records[index], applications });
+app.get('/api/online-admissions', authenticateToken, async (req, res) => {
+    if (!isAdmissionsManager(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+    try {
+        const Admission = sequelize.models.OnlineAdmission;
+        const legacyRows = readMobileStore('online_admissions');
+        if (legacyRows.length) {
+            const existing = await Admission.findAll({ attributes: ['id'] });
+            const ids = new Set(existing.map(item => String(item.id)));
+            const imports = legacyRows.filter(item => !ids.has(String(item.id))).map(item => ({
+                id: String(item.id || `ADM-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`),
+                studentName: String(item.studentName || item.student || 'Student').slice(0, 160),
+                fatherName: String(item.fatherName || item.parentName || 'Not provided').slice(0, 160),
+                applyingClass: String(item.applyingClass || item.classGrade || 'Not specified').slice(0, 100),
+                phone: String(item.phone || item.mobile || 'Not provided').slice(0, 40),
+                email: String(item.email || '').slice(0, 160) || null,
+                dateOfBirth: String(item.dateOfBirth || '').slice(0, 20) || null,
+                gender: String(item.gender || '').slice(0, 30) || null,
+                campusName: String(item.campusName || 'Main Campus').slice(0, 120),
+                address: String(item.address || '').slice(0, 500) || null,
+                notes: String(item.notes || item.message || '').slice(0, 1000) || null,
+                status: ['New', 'Contacted', 'Closed'].includes(item.status) ? item.status : 'New',
+                createdAtLabel: String(item.createdAt || new Date().toISOString())
+            }));
+            if (imports.length) await Admission.bulkCreate(imports, { ignoreDuplicates: true });
+            writeMobileStore('online_admissions', []);
+        }
+        const applications = await Admission.findAll({ order: [['createdAt', 'DESC']] });
+        return res.json({ success: true, applications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Applications could not be loaded.' });
+    }
+});
+
+app.post('/api/online-admissions/:id', authenticateToken, async (req, res) => {
+    if (!isAdmissionsManager(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+    try {
+        const application = await sequelize.models.OnlineAdmission.findByPk(String(req.params.id));
+        if (!application) return res.status(404).json({ success: false, message: 'Application not found.' });
+        const status = String(req.body?.status || '').trim();
+        if (!['New', 'Contacted', 'Closed'].includes(status)) return res.status(400).json({ success: false, message: 'Invalid application status.' });
+        application.status = status;
+        await application.save();
+        const applications = await sequelize.models.OnlineAdmission.findAll({ order: [['createdAt', 'DESC']] });
+        io.emit('online_admissions_update', applications);
+        return res.json({ success: true, application, applications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Application could not be updated.' });
+    }
+});
+
+app.delete('/api/online-admissions/:id', authenticateToken, async (req, res) => {
+    if (!isAdmissionsManager(req)) return res.status(403).json({ success: false, message: 'Admin access required.' });
+    try {
+        const deleted = await sequelize.models.OnlineAdmission.destroy({ where: { id: String(req.params.id) } });
+        if (!deleted) return res.status(404).json({ success: false, message: 'Application not found.' });
+        const applications = await sequelize.models.OnlineAdmission.findAll({ order: [['createdAt', 'DESC']] });
+        io.emit('online_admissions_update', applications);
+        return res.json({ success: true, applications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Application could not be deleted.' });
+    }
 });
 
 registerMobileCollectionRoutes({ route: 'library/issues', storeName: 'library_issues', recordsKey: 'issues', itemKey: 'issue', prefix: 'LIB' });
@@ -4498,6 +4575,24 @@ function defineStudentPerformanceModel(db) {
     });
 }
 
+function defineOnlineAdmissionModel(db) {
+    return db.define('OnlineAdmission', {
+        id: { type: DataTypes.STRING(80), primaryKey: true },
+        studentName: { type: DataTypes.STRING(160), allowNull: false },
+        fatherName: { type: DataTypes.STRING(160), allowNull: false },
+        applyingClass: { type: DataTypes.STRING(100), allowNull: false },
+        phone: { type: DataTypes.STRING(40), allowNull: false },
+        email: { type: DataTypes.STRING(160), allowNull: true },
+        dateOfBirth: { type: DataTypes.STRING(20), allowNull: true },
+        gender: { type: DataTypes.STRING(30), allowNull: true },
+        campusName: { type: DataTypes.STRING(120), allowNull: true },
+        address: { type: DataTypes.STRING(500), allowNull: true },
+        notes: { type: DataTypes.STRING(1000), allowNull: true },
+        status: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'New' },
+        createdAtLabel: { type: DataTypes.STRING(40), allowNull: true }
+    }, { engine: 'InnoDB', rowFormat: 'DYNAMIC' });
+}
+
 function defineTestingResultReportModel(db) {
     return db.define('TestingResultReport', {
         id: { type: DataTypes.STRING(64), primaryKey: true },
@@ -5008,6 +5103,7 @@ async function startServer() {
         defineClassFeeHistoryModel(sequelize);
         defineStudentDiaryModel(sequelize);
         defineStudentPerformanceModel(sequelize);
+        defineOnlineAdmissionModel(sequelize);
         defineTestingResultReportModel(sequelize);
         defineStudentAttendanceModel(sequelize);
         defineTeacherAttendanceModel(sequelize);
