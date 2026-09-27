@@ -3635,6 +3635,13 @@ app.get('/api/student-performance', authenticateToken, async (req, res) => {
         await sequelize.models.StudentPerformance.sync();
         const studentId = String(req.query.studentId || '').trim();
         const subject = String(req.query.subject || '').trim();
+        if (String(req.user?.role || '').toLowerCase() === 'teacher') {
+            if (!studentId) return res.status(403).json({ success: false, message: 'Teacher access is limited to assigned students.' });
+            const access = await getTeacherReportAccess(req);
+            const student = await sequelize.models.Student.findByPk(studentId);
+            const allowed = student && access?.assignments?.some(assignment => teacherReportAssignmentMatches(assignment, student.classGrade, student.section, student, access.campusName));
+            if (!allowed) return res.status(403).json({ success: false, message: 'This student is not assigned to your account.' });
+        }
         const where = {
             ...(studentId ? { studentId } : {}),
             ...(subject ? { subject } : {})
@@ -3654,6 +3661,7 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
         await sequelize.models.StudentPerformance.sync();
         const items = Array.isArray(req.body) ? req.body : [req.body];
         if (!items.length) return res.status(400).json({ success: false, message: 'Performance records are required.' });
+        const teacherAccess = String(req.user?.role || '').toLowerCase() === 'teacher' ? await getTeacherReportAccess(req) : null;
 
         for (const item of items) {
             const studentId = String(item.studentId || '').trim();
@@ -3669,6 +3677,11 @@ app.post('/api/student-performance', authenticateToken, async (req, res) => {
             const percentage = Number(item.percentage ?? 0);
             if (!studentId || !subject) {
                 return res.status(400).json({ success: false, message: 'Student and subject are required.' });
+            }
+            if (teacherAccess) {
+                const student = await sequelize.models.Student.findByPk(studentId);
+                const allowed = student && teacherAccess.assignments.some(assignment => teacherReportAssignmentMatches(assignment, student.classGrade, student.section, student, teacherAccess.campusName));
+                if (!allowed) return res.status(403).json({ success: false, message: 'This student is not assigned to your account.' });
             }
             if (req.user?.role === 'Teacher') {
                 const teacher = await sequelize.models.Teacher.findByPk(req.user.id, { attributes: ['subject'] });
@@ -3727,6 +3740,13 @@ app.delete('/api/student-performance', authenticateToken, async (req, res) => {
     try {
         const recordId = String(req.query.recordId || '').trim();
         if (!recordId) return res.status(400).json({ success: false, message: 'Performance record id is required.' });
+        if (String(req.user?.role || '').toLowerCase() === 'teacher') {
+            const access = await getTeacherReportAccess(req);
+            const record = await sequelize.models.StudentPerformance.findByPk(recordId);
+            const student = record ? await sequelize.models.Student.findByPk(record.studentId) : null;
+            const allowed = student && access?.assignments?.some(assignment => teacherReportAssignmentMatches(assignment, student.classGrade, student.section, student, access.campusName));
+            if (!allowed) return res.status(403).json({ success: false, message: 'This record is not assigned to your account.' });
+        }
         await sequelize.models.StudentPerformance.destroy({ where: { id: recordId } });
         return res.json({ success: true, message: 'Performance record deleted.' });
     } catch (error) {
@@ -3737,6 +3757,12 @@ app.delete('/api/student-performance', authenticateToken, async (req, res) => {
 app.delete('/api/student-performance/:studentId', authenticateToken, async (req, res) => {
     try {
         const studentId = String(req.params.studentId || '').trim();
+        if (String(req.user?.role || '').toLowerCase() === 'teacher') {
+            const access = await getTeacherReportAccess(req);
+            const student = await sequelize.models.Student.findByPk(studentId);
+            const allowed = student && access?.assignments?.some(assignment => teacherReportAssignmentMatches(assignment, student.classGrade, student.section, student, access.campusName));
+            if (!allowed) return res.status(403).json({ success: false, message: 'This student is not assigned to your account.' });
+        }
         await sequelize.models.StudentPerformance.destroy({ where: { studentId } });
         return res.json({ success: true, message: 'Student performance records deleted.' });
     } catch (error) {

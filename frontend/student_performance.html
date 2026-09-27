@@ -9,13 +9,12 @@
     <link rel="stylesheet" href="student_schedule_theme.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .performance-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}
-        .performance-steps.co-curriculum-mode{grid-template-columns:repeat(3,1fr)}
+        .performance-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 18px}
+        .performance-steps.co-curriculum-mode{grid-template-columns:repeat(2,1fr)}
         .performance-step{box-sizing:border-box;min-height:110px;padding:16px 16px;border:1px solid #cfe3dc;border-radius:12px;background:#fff;color:#64748b;font-weight:800;line-height:1.5;display:flex;align-items:flex-start;gap:6px}
         .performance-step:has(.step-select){display:block}
         .performance-step.active{color:#176b4a;border-color:#35a56e;background:#effaf4;box-shadow:0 8px 20px rgba(53,165,110,.12)}
         .performance-layout{display:block}
-        .performance-layout > .performance-panel:first-child{display:none}
         .step-select{display:block;width:100%;margin-top:8px;min-height:34px;padding:6px 9px;border:1px solid #cfe3dc;border-radius:8px;background:#fff;font:inherit;color:#24483a}
         .class-select{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #cfe3dc;border-radius:10px;padding:10px;background:#fff;font:inherit;color:#24483a}
         .performance-panel{background:#fff;border:1px solid #cfe3dc;border-radius:12px;padding:18px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
@@ -23,6 +22,24 @@
         .choice-list{display:grid;gap:9px;max-height:540px;overflow:auto;padding-right:4px}
         .choice-button{width:100%;border:1px solid #d7e7e0;border-radius:10px;background:#f9fcfa;color:#24483a;padding:12px 13px;text-align:left;cursor:pointer;font:inherit;font-weight:750;display:flex;justify-content:space-between;align-items:center;gap:10px}
         .choice-button:hover,.choice-button.active{border-color:#35a56e;background:#edf9f2;color:#176b4a}
+        .student-table-wrap{overflow:auto;max-height:540px}
+        .student-table{width:100%;border-collapse:collapse;font-size:.9rem}
+        .student-table th,.student-table td{padding:10px 12px;border-bottom:1px solid #dcebe5;text-align:left;vertical-align:middle}
+        .student-table th{background:#eef7f2;color:#24483a;font-size:.78rem;letter-spacing:.04em}
+        .student-table .student-name-heading{width:27%}
+        .student-table .performance-heading-cell{text-align:center}
+        .student-table tbody tr{cursor:pointer}
+        .student-table tbody tr:hover,.student-table tbody tr.selected{background:#edf9f2}
+        .student-rating-cells{display:grid;grid-template-columns:repeat(3,minmax(130px,1fr));gap:10px}
+        .student-performance-row td{padding:14px 12px}
+        .student-name-cell{width:27%;font-weight:800;color:#153d2e}
+        .rating-check{appearance:auto;-webkit-appearance:checkbox;display:block;width:16px;height:16px;margin:auto;accent-color:#238a5b;cursor:pointer}
+        .rating-check:focus-visible{outline:3px solid rgba(38,149,104,.2);outline-offset:2px}
+        .rating-check:disabled{background:#f1f5f3;cursor:not-allowed;opacity:.65}
+        .student-skill-block{margin-top:10px;padding:9px 12px;border-left:3px solid #35a56e;border-radius:6px;background:#f5faf7;color:#48675a;font-size:.8rem}
+        .student-skill-block strong{color:#153d2e}
+        .roster-actions{display:flex;justify-content:flex-end;padding-top:14px}
+        @media(max-width:760px){.student-table{min-width:700px}.student-rating-cells{grid-template-columns:repeat(3,minmax(130px,1fr))}}
         .choice-meta{display:block;font-size:.75rem;color:#71847c;font-weight:600;margin-top:3px}
         .empty-state{padding:28px 18px;border:1px dashed #cbd5e1;border-radius:10px;text-align:center;color:#64748b;background:#f8fafc}
         .performance-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
@@ -84,16 +101,15 @@
     <main class="main-content">
         <a class="back-link" href="student_scheduling.html"><i data-lucide="arrow-left" width="18"></i> Back to Student Scheduling</a>
         <header class="header"><div><h1>Student Performance</h1><p style="color:var(--text-secondary);margin-top:.3rem">Select a student, choose a subject, then add skill-wise performance.</p></div></header>
-        <div class="performance-steps"><div class="performance-step active" id="stepClass">1. Select Class<select class="step-select" id="classStepSelect"><option value="">Select Class</option></select><select class="step-select" id="sectionStepSelect" disabled><option value="">Select Section</option></select></div><div class="performance-step" id="stepStudent">2. Select Student<select class="step-select" id="studentStepSelect" disabled><option value="">Select Student</option></select></div><div class="performance-step" id="stepSubjects">3. Select Subject<select class="step-select" id="subjectStepSelect" disabled><option value="">Select Subject</option></select></div><div class="performance-step" id="stepSkills">4. Add Performance</div></div>
+        <div class="performance-steps"><div class="performance-step active" id="stepClass">1. Select Class<select class="step-select" id="classStepSelect"><option value="">Select Class</option></select><select class="step-select" id="sectionStepSelect" disabled><option value="">Select Section</option></select></div><div class="performance-step" id="stepSubjects">2. Select Subject<select class="step-select" id="subjectStepSelect" disabled><option value="">Select Subject</option></select></div><div class="performance-step" id="stepSkills">3. Select Skill<select class="step-select" id="skillStepSelect" disabled><option value="">Select Skill</option><option value="Learning">Learning</option><option value="Speaking">Speaking</option></select></div></div>
         <section class="performance-layout">
-            <div class="performance-panel"><h2 id="choiceTitle">Select Class</h2><select class="class-select" id="choiceList"><option value="">Loading classes...</option></select></div>
-            <div class="performance-panel" id="workspace"><div class="empty-state"><i data-lucide="school" width="32"></i><p>Select a class to view its students.</p></div></div>
+            <div class="performance-panel" id="workspace"><div class="empty-state"><i data-lucide="school" width="32"></i><p>Select a class and section to view its students.</p></div></div>
         </section>
     </main>
 </div>
 <script src="auth.js?v=20260814-live-auth-fix1"></script>
 <script src="script.js?v=20260902-co-curriculum-save"></script>
-<script src="student_schedule_sections.js"></script>
+<script src="student_schedule_sections.js?v=20260927-performance-roster"></script>
 <script>
 (() => {
     const apiBase = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : `${location.origin}/api`;
@@ -132,21 +148,26 @@
     let selectedStudentSection = '';
     let selectedStudent = null;
     let selectedSubject = '';
+    let selectedSkill = '';
+    let selectedRating = '';
     let selectedSection = 'Portfolio Skills Assessment Summary';
     let saved = [];
+    let classPerformanceRecords = [];
+    const pendingRatingChanges = new Map();
     let attendanceStore = {};
     let examResults = [];
     let teacherAssignedSubjects = null;
-    const choiceTitle = document.getElementById('choiceTitle');
-    const choiceList = document.getElementById('choiceList');
+    let teacherAssignments = [];
+    let isTeacherUser = false;
     const classStepSelect = document.getElementById('classStepSelect');
     const sectionStepSelect = document.getElementById('sectionStepSelect');
-    const studentStepSelect = document.getElementById('studentStepSelect');
     const subjectStepSelect = document.getElementById('subjectStepSelect');
+    const skillStepSelect = document.getElementById('skillStepSelect');
     const workspace = document.getElementById('workspace');
-    const steps = [document.getElementById('stepClass'), document.getElementById('stepStudent'), document.getElementById('stepSubjects'), document.getElementById('stepSkills')];
+    const steps = [document.getElementById('stepClass'), document.getElementById('stepSubjects'), document.getElementById('stepSkills')];
     if (performanceMode === 'co-curriculum' || performanceMode === 'participation') {
         document.getElementById('stepSubjects').style.display = 'none';
+        skillStepSelect.style.display = 'none';
         document.querySelector('.performance-steps')?.classList.add('co-curriculum-mode');
         document.getElementById('stepSkills').firstChild.textContent = performanceMode === 'co-curriculum' ? '3. Co-Curriculum Performance' : '3. Participant Report';
     }
@@ -196,10 +217,23 @@
     }
 
     function classNames() {
+        if (isTeacherUser) return [...new Map(teacherAssignments.map(item => [norm(item.classGrade), String(item.classGrade || '').trim()]).filter(([, name]) => name)).values()];
         const found = [...canonicalClasses, ...students.map(s => s.classGrade), ...courses.map(c => c.classGrade)]
             .map(value => String(value || '').trim())
             .filter(Boolean);
         return [...new Map(found.map(value => [norm(value), value])).values()];
+    }
+
+    function teacherCanAccessStudent(student) {
+        if (!isTeacherUser) return true;
+        const campus = norm(student.campusName || student.branchName || '');
+        return teacherAssignments.some(assignment => {
+            if (norm(assignment.classGrade) !== norm(student.classGrade)) return false;
+            const assignedSection = norm(assignment.section);
+            if (assignedSection && assignedSection !== 'general' && assignedSection !== norm(student.section || 'General')) return false;
+            const assignedCampus = norm(assignment.campusName);
+            return !campus || !assignedCampus || campus === assignedCampus;
+        });
     }
 
     function subjectsForClass() {
@@ -218,63 +252,61 @@
             ...saved.map(record => String(record.subject || '').trim())
         ].filter(value => value && !excludedReportSubjects.has(norm(value)));
         const fixedSubjects = ['Play Group','Nursarry','Prep'].some(name => norm(name) === norm(selectedClass)) ? juniorSubjects : seniorSubjects;
-        const baseSubjects = [...new Map([...(scheduledTitles.length ? [] : fixedSubjects), ...assignedToStudent, ...titles].map(value => [norm(value), value])).values()];
-        if (Array.isArray(teacherAssignedSubjects)) {
-            return baseSubjects.filter(subject => teacherAssignedSubjects.some(assigned => norm(assigned) === norm(subject)));
+        const available = [...new Map([...fixedSubjects, ...scheduledTitles, ...assignedToStudent, ...titles].map(value => [norm(value), value])).values()];
+        if (isTeacherUser) {
+            return available.filter(subject => (teacherAssignedSubjects || []).some(assigned => norm(assigned) === norm(subject)));
         }
-        return baseSubjects;
+        return available;
     }
 
     function renderClasses() {
-        choiceTitle.textContent = 'Select Class';
-        choiceList.innerHTML = '<option value="">Select Class</option>' + classNames().map(name => `<option value="${esc(name)}">${esc(name)} (${students.filter(student => norm(student.classGrade) === norm(name)).length})</option>`).join('');
-        choiceList.value = selectedClass;
-        choiceList.onchange = () => choiceList.value && selectClass(choiceList.value);
         classStepSelect.innerHTML = '<option value="">Select Class</option>' + classNames().map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
         classStepSelect.value = selectedClass;
-        classStepSelect.onchange = () => classStepSelect.value && selectClass(classStepSelect.value, '');
-        const sectionOptions = [...new Set(students.filter(student => norm(student.classGrade) === norm(selectedClass)).map(student => String(student.section || 'General').trim()).filter(Boolean))].sort();
+        classStepSelect.onchange = () => selectClass(classStepSelect.value, '');
+        let sectionOptions = [...new Set(students.filter(student => norm(student.classGrade) === norm(selectedClass) && teacherCanAccessStudent(student)).map(student => String(student.section || 'General').trim()).filter(Boolean))].sort();
         sectionStepSelect.disabled = !selectedClass || !sectionOptions.length;
         sectionStepSelect.innerHTML = '<option value="">Select Section</option>' + sectionOptions.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
         sectionStepSelect.value = selectedStudentSection;
-        sectionStepSelect.onchange = () => sectionStepSelect.value && selectClass(selectedClass, sectionStepSelect.value);
+        sectionStepSelect.onchange = () => selectClass(selectedClass, sectionStepSelect.value);
     }
 
     function selectClass(name, section = '') {
         selectedClass = name;
-        const availableSections = [...new Set(students.filter(student => norm(student.classGrade) === norm(name)).map(student => String(student.section || 'General').trim()).filter(Boolean))];
-        selectedStudentSection = section || availableSections[0] || '';
+        selectedStudentSection = section;
         selectedStudent = null;
         selectedSubject = '';
+        selectedSkill = '';
         saved = [];
-        setSteps(2);
+        classPerformanceRecords = [];
+        setSteps(1);
         renderClasses();
-        const list = students.filter(student => norm(student.classGrade) === norm(name) && norm(student.section || 'General') === norm(selectedStudentSection || 'General'));
-        studentStepSelect.disabled = !list.length;
-        studentStepSelect.innerHTML = '<option value="">Select Student</option>' + list.map(student => `<option value="${esc(student.id)}">${esc(student.fullName || 'Unnamed Student')}</option>`).join('');
-        studentStepSelect.value = '';
-        subjectStepSelect.disabled = true;
-        subjectStepSelect.innerHTML = '<option value="">Select Subject</option>';
-        studentStepSelect.onchange = () => studentStepSelect.value && selectStudent(studentStepSelect.value);
-        workspace.innerHTML = `<div class="empty-state">${list.length ? 'Select a student from the Student dropdown above.' : 'No students found in this class section.'}</div>`;
+        const list = selectedStudentSection ? students.filter(student => norm(student.classGrade) === norm(name) && norm(student.section || 'General') === norm(selectedStudentSection)) : [];
+        if (performanceMode === 'co-curriculum' || performanceMode === 'participation') {
+            workspace.innerHTML = list.length ? `<div class="choice-list">${list.map(student => `<button type="button" class="choice-button" data-special-student="${esc(student.id)}">${esc(student.fullName || 'Unnamed Student')}</button>`).join('')}</div>` : `<div class="empty-state">${selectedStudentSection ? 'No students found in this class section.' : 'Select a section to continue.'}</div>`;
+            workspace.querySelectorAll('[data-special-student]').forEach(button => button.onclick = () => selectStudent(button.dataset.specialStudent));
+            return;
+        }
+        populateSubjectOptions();
+        workspace.innerHTML = `<div class="empty-state">${list.length ? 'Select a subject, then a skill to view students.' : selectedStudentSection ? 'No students found in this class section.' : selectedClass ? 'Select a section to continue.' : 'Select a class to continue.'}</div>`;
+    }
+
+    function renderInitialStudentRoster() {
+        renderStudentRoster();
     }
 
     async function selectStudent(id) {
         selectedStudent = students.find(student => String(student.id) === String(id));
         if (!selectedStudent) return;
-        setSteps(3);
-        workspace.innerHTML = '<div class="empty-state">Loading subjects...</div>';
+        setSteps(2);
         try {
             const response = await fetch(`${apiBase}/student-performance?studentId=${encodeURIComponent(id)}`, { headers: headers() });
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.message || 'Performance could not be loaded.');
             saved = mergePerformanceRecords(result.performances || [], getLocalPerformanceRecords(id));
-            renderSubjects();
         } catch (error) {
             saved = getLocalPerformanceRecords(id);
-            renderSubjects();
-            if (!saved.length) workspace.innerHTML = `<div class="empty-state">${esc(error.message)}</div>`;
         }
+        renderStudentRoster();
     }
 
     function renderSubjects() {
@@ -286,22 +318,135 @@
             renderParticipationEditor();
             return;
         }
+        populateSubjectOptions();
+        renderStudentRoster();
+    }
+
+    function populateSubjectOptions() {
         const subjects = subjectsForClass();
-        subjectStepSelect.disabled = !subjects.length;
-        subjectStepSelect.innerHTML = '<option value="">Select Subject</option>' + subjects.map(subject => `<option value="${esc(subject)}">${esc(subject)}</option>`).join('');
-        const preferredSubject = Array.isArray(teacherAssignedSubjects)
-            ? subjects.find(subject => teacherAssignedSubjects.some(assigned => norm(assigned) === norm(subject))) || ''
-            : '';
-        subjectStepSelect.value = preferredSubject;
-        subjectStepSelect.onchange = () => subjectStepSelect.value && renderSkillEditor(subjectStepSelect.value);
-        const countFor = subject => saved.filter(record => norm(record.subject) === norm(subject) && record.skill).length;
-        const sections = ['Portfolio Skills Assessment Summary','Performance Task','Learning Attitude'];
-        workspace.innerHTML = `<div class="performance-heading"><div><h2>${esc(selectedStudent.fullName)}</h2><span class="choice-meta">${esc(selectedClass)} - Roll No: ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</span></div></div><div class="subject-grid">${subjects.map(subject => `<button type="button" class="subject-card subject-open-btn" data-subject="${esc(subject)}"><strong>${esc(subject)}</strong><span class="choice-meta">Click to open report</span></button>`).join('')}</div>`;
-        workspace.querySelectorAll('.subject-open-btn').forEach(button => button.onclick = () => renderSkillEditor(button.dataset.subject));
-        workspace.querySelectorAll('.subject-section-btn').forEach(block => block.onclick = event => { event.stopPropagation(); const ratingBlock = event.target.closest('.assessment-rating-block'); if (!ratingBlock) { selectedSubject = block.dataset.subject; selectedSection = block.dataset.section; printReport(selectedSection); return; } selectedSection = block.dataset.section; selectedSubject = block.dataset.subject; const item = sectionItems[selectedSection][0]; openPerformanceModal({ assessmentSection: selectedSection, assessmentItem: item, assessmentRating: ratingBlock.dataset.rating }); });
-        workspace.querySelectorAll('.section-update-btn').forEach(button => button.onclick = event => { event.stopPropagation(); const block = button.closest('.subject-section-btn'); const item = block.querySelector('.section-item-select').value; if (!item) { showAppAlert('Select an assessment item first.', 'Item Required'); return; } selectedSection = block.dataset.section; selectedSubject = block.dataset.subject; openPerformanceModal({ assessmentSection: selectedSection, assessmentItem: item, assessmentRating: block.querySelector('.section-rating-select').value }); });
-        if (window.lucide) lucide.createIcons();
-        if (preferredSubject) renderSkillEditor(preferredSubject);
+        subjectStepSelect.disabled = !selectedClass || !selectedStudentSection || !subjects.length;
+        subjectStepSelect.innerHTML = '<option value="">' + (subjects.length ? 'Select Subject' : 'No Subjects Available') + '</option>' + subjects.map(subject => `<option value="${esc(subject)}">${esc(subject)}</option>`).join('');
+        subjectStepSelect.value = subjects.some(subject => norm(subject) === norm(selectedSubject)) ? selectedSubject : '';
+        skillStepSelect.disabled = !selectedSubject;
+        skillStepSelect.value = selectedSkill;
+        skillStepSelect.onchange = () => {
+            selectedSkill = skillStepSelect.value;
+            if (!selectedSkill) return;
+            setSteps(3);
+            loadClassPerformanceRecords().then(renderStudentRoster);
+        };
+        subjectStepSelect.onchange = () => {
+            if (!subjectStepSelect.value) return;
+            selectedSubject = subjectStepSelect.value;
+            selectedSkill = '';
+            skillStepSelect.value = '';
+            skillStepSelect.disabled = false;
+            setSteps(2);
+            workspace.innerHTML = '<div class="empty-state">Now select a skill to view this section\'s students.</div>';
+        };
+    }
+
+    function renderStudentRoster() {
+        const roster = students.filter(student => norm(student.classGrade) === norm(selectedClass) && norm(student.section || 'General') === norm(selectedStudentSection));
+        const subjects = subjectsForClass();
+        workspace.innerHTML = `<div class="student-table-wrap"><table class="student-table"><thead><tr><th class="student-name-heading">STUDENT NAME</th><th class="performance-heading-cell" colspan="3">${selectedSubject ? `${esc(selectedSubject)} · ${esc(selectedSkill)}` : 'PERFORMANCE'}</th></tr><tr><th></th><th>EXCELLENT</th><th>SATISFACTORY</th><th>NEED PRACTICE</th></tr></thead><tbody>${roster.map(student => {
+            const records = classPerformanceRecords.filter(record => String(record.studentId) === String(student.id) && norm(record.subject) === norm(selectedSubject) && norm(record.skill) === norm(selectedSkill));
+            const ratingSelected = key => {
+                const pending = ['excellent','satisfactory','needsPractice'].find(rating => pendingRatingChanges.get(`${student.id}|${selectedSubject}|${selectedSkill}|${rating}`)?.checked);
+                if (pending) return pending === key;
+                const latestRecord = [...records].sort((a, b) => String(b.performanceDate || '').localeCompare(String(a.performanceDate || '')))[0];
+                const selectedRating = norm(latestRecord?.rating) === 'excellent' ? 'excellent' : norm(latestRecord?.rating) === 'satisfactory' ? 'satisfactory' : norm(latestRecord?.rating) === 'needs practice' ? 'needsPractice' : '';
+                return selectedRating === key;
+            };
+            const ratings = ['excellent','satisfactory','needsPractice'];
+            return `<tr class="student-performance-row${String(student.id) === String(selectedStudent?.id) ? ' selected' : ''}" data-student-id="${esc(student.id)}"><td class="student-name-cell"><strong>${esc(student.fullName || 'Unnamed Student')}</strong></td>${ratings.map(key => `<td><input type="checkbox" class="rating-check" aria-label="${key} for ${esc(student.fullName || 'student')}" data-student-id="${esc(student.id)}" data-rating="${key}" ${ratingSelected(key) ? 'checked' : ''} ${selectedSkill ? '' : 'disabled'}></td>`).join('')}</tr>`;
+        }).join('')}</tbody></table></div><div class="roster-actions"><button type="button" class="action-button" id="saveSelectedPerformance" ${pendingRatingChanges.size ? '' : 'disabled'}><i data-lucide="save" width="17"></i> Save Performance</button></div>`;
+        workspace.querySelectorAll('.student-performance-row').forEach(row => row.onclick = () => selectStudent(row.dataset.studentId));
+        workspace.querySelectorAll('.rating-check').forEach(checkbox => checkbox.onchange = event => {
+            event.stopPropagation();
+            if (!selectedSkill) { checkbox.checked = false; skillStepSelect.focus(); return; }
+            const student = students.find(item => String(item.id) === String(checkbox.dataset.studentId));
+            if (!student) return;
+            const changeKey = `${student.id}|${selectedSubject}|${selectedSkill}|${checkbox.dataset.rating}`;
+            const storedRecord = classPerformanceRecords.find(record => String(record.studentId) === String(student.id) && norm(record.subject) === norm(selectedSubject) && norm(record.skill) === norm(selectedSkill) && norm(record.rating) === norm(checkbox.dataset.rating === 'excellent' ? 'Excellent' : checkbox.dataset.rating === 'satisfactory' ? 'Satisfactory' : 'Needs Practice'));
+            const wasChecked = pendingRatingChanges.has(changeKey) ? pendingRatingChanges.get(changeKey).checked : Boolean(storedRecord);
+            const row = checkbox.closest('.student-performance-row');
+            if (checkbox.checked) {
+                row.querySelectorAll('.rating-check').forEach(other => {
+                    if (other === checkbox || !other.checked) return;
+                    other.checked = false;
+                    const otherKey = `${student.id}|${selectedSubject}|${selectedSkill}|${other.dataset.rating}`;
+                    pendingRatingChanges.set(otherKey, { checked:false, student, subject:selectedSubject, skill:selectedSkill, ratingKey:other.dataset.rating });
+                });
+            }
+            if (checkbox.checked === wasChecked) pendingRatingChanges.delete(changeKey);
+            else pendingRatingChanges.set(changeKey, { checked:checkbox.checked, student, subject:selectedSubject, skill:selectedSkill, ratingKey:checkbox.dataset.rating });
+            document.getElementById('saveSelectedPerformance').disabled = pendingRatingChanges.size === 0;
+        });
+        document.getElementById('saveSelectedPerformance').onclick = saveSelectedRatings;
+    }
+
+    async function saveSelectedRatings() {
+        const button = document.getElementById('saveSelectedPerformance');
+        if (!pendingRatingChanges.size || !button) return;
+        button.disabled = true;
+        const changes = [...pendingRatingChanges.entries()];
+        try {
+            for (const [changeKey, change] of changes) {
+                const rating = change.ratingKey === 'excellent' ? 'Excellent' : change.ratingKey === 'satisfactory' ? 'Satisfactory' : 'Needs Practice';
+                const matches = classPerformanceRecords.filter(record => String(record.studentId) === String(change.student.id)
+                    && norm(record.subject) === norm(change.subject)
+                    && norm(record.skill) === norm(change.skill)
+                    && norm(record.rating) === norm(rating));
+                if (change.checked && !matches.length) {
+                    const percentage = rating === 'Excellent' ? 92 : rating === 'Satisfactory' ? 77 : 60;
+                    const descriptionField = rating === 'Excellent' ? 'excellentDescription' : rating === 'Satisfactory' ? 'satisfactoryDescription' : 'needsPracticeDescription';
+                    const record = {
+                        id:`PERF-${change.student.id}-${change.subject}-${change.skill}-${rating}-${today()}`.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255),
+                        studentId:String(change.student.id), studentName:change.student.fullName || '',
+                        classGrade:selectedClass, section:selectedStudentSection, subject:change.subject,
+                        skill:change.skill, assessmentItem:change.skill,
+                        assessmentSection:'Portfolio Skills Assessment Summary', learningOutcome:change.skill,
+                        rating, grade:percentage >= 90 ? 'A+' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : 'C',
+                        percentage, [descriptionField]:`${rating} - ${change.skill}`,
+                        performanceDate:today(), performanceMonth:thisMonth(), remarks:''
+                    };
+                    const response = await fetch(`${apiBase}/student-performance`, { method:'POST', headers:headers(), body:JSON.stringify(record) });
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok || !result.success) throw new Error(result.message || `Could not save ${rating} for ${change.student.fullName}.`);
+                    saveLocalPerformanceRecord(record);
+                    classPerformanceRecords = mergePerformanceRecords([record], classPerformanceRecords);
+                } else if (!change.checked && matches.length) {
+                    for (const record of matches) {
+                        const response = await fetch(`${apiBase}/student-performance?recordId=${encodeURIComponent(record.id)}`, { method:'DELETE', headers:headers() });
+                        if (!response.ok) throw new Error(`Could not remove ${rating} for ${change.student.fullName}.`);
+                        deleteLocalPerformanceRecord(record.id);
+                        classPerformanceRecords = classPerformanceRecords.filter(item => String(item.id) !== String(record.id));
+                    }
+                }
+                pendingRatingChanges.delete(changeKey);
+            }
+            showSuccessModal('Saved', 'Student performance has been saved.');
+        } catch (error) {
+            showAppAlert(error.message || 'Performance could not be saved.', 'Save Failed');
+        } finally {
+            await loadClassPerformanceRecords();
+            renderStudentRoster();
+        }
+    }
+
+    async function loadClassPerformanceRecords() {
+        const classStudents = students.filter(student => norm(student.classGrade) === norm(selectedClass) && norm(student.section || 'General') === norm(selectedStudentSection));
+        const lists = await Promise.all(classStudents.map(async student => {
+            try {
+                const response = await fetch(`${apiBase}/student-performance?studentId=${encodeURIComponent(student.id)}`, { headers: headers() });
+                const result = await response.json();
+                return response.ok && result.success ? mergePerformanceRecords(result.performances || [], getLocalPerformanceRecords(student.id)) : getLocalPerformanceRecords(student.id);
+            } catch (_) {
+                return getLocalPerformanceRecords(student.id);
+            }
+        }));
+        classPerformanceRecords = lists.flat();
     }
 
     function renderLegacySkillEditor(subject) {
@@ -394,7 +539,7 @@
     }
 
     function bindEditor() {
-        document.getElementById('backSubjects').onclick = () => { setSteps(3); renderSubjects(); };
+        document.getElementById('backSubjects').onclick = () => { setSteps(2); renderSubjects(); };
         document.getElementById('printTools').onclick = printReport;
         document.getElementById('addPerformance').onclick = () => openPerformanceModal();
         workspace.querySelectorAll('.edit-record').forEach(button => button.onclick = () => {
@@ -455,10 +600,8 @@
         const satisfactoryInput = document.getElementById('modalSatisfactory');
         if (!excellentInput || !satisfactoryInput) return;
 
-        const hasExcellent = Boolean(excellentInput.value.trim());
-        satisfactoryInput.disabled = hasExcellent;
-        if (hasExcellent) satisfactoryInput.value = '';
-        satisfactoryInput.closest('.rubric-card')?.classList.toggle('is-disabled', hasExcellent);
+        satisfactoryInput.disabled = false;
+        satisfactoryInput.closest('.rubric-card')?.classList.remove('is-disabled');
     }
 
     function openPerformanceModal(record = {}) {
@@ -500,9 +643,9 @@
             section: selectedStudentSection,
             subject: selectedSubject,
             assessmentSection: 'Portfolio Skills Assessment Summary',
-            assessmentItem: document.getElementById('modalSkill').value.trim(),
+            assessmentItem: selectedSkill || document.getElementById('modalSkill').value.trim(),
             assessmentRating: 'Advance',
-            skill: document.getElementById('modalSkill').value.trim(),
+            skill: selectedSkill || document.getElementById('modalSkill').value.trim(),
             learningOutcome: document.getElementById('modalLearningOutcome').value.trim(),
             excellentDescription: document.getElementById('modalExcellent').value.trim(),
             satisfactoryDescription: document.getElementById('modalSatisfactory').value.trim(),
@@ -521,8 +664,9 @@
         if (hasExcellent) { record.rating = 'Excellent'; record.assessmentRating = 'Advance'; record.percentage = 92; record.grade = 'Advance'; }
         else if (hasSatisfactory) { record.rating = 'Satisfactory'; record.assessmentRating = 'Proficient'; record.percentage = 77; record.grade = 'Proficient'; }
         else if (hasNeedsPractice) { record.rating = 'Needs Practice'; record.assessmentRating = 'Developing'; record.percentage = 60; record.grade = 'Developing'; }
-        if (!record.skill || !record.learningOutcome || (hasExcellent && hasSatisfactory) || (!hasExcellent && !hasSatisfactory && !hasNeedsPractice)) {
-            showAppAlert('Fill Skills and Learning Outcome. Enter Excellent, or enter Satisfactory and/or Needs Practice.', 'Incomplete Form');
+        const chosenRatingFilled = selectedRating === 'excellent' ? hasExcellent : selectedRating === 'satisfactory' ? hasSatisfactory : selectedRating === 'needsPractice' ? hasNeedsPractice : (hasExcellent || hasSatisfactory || hasNeedsPractice);
+        if (!record.skill || !record.learningOutcome || !chosenRatingFilled) {
+            showAppAlert('Fill Learning Outcome and the selected rating description.', 'Incomplete Form');
             return;
         }
         const button = document.getElementById('saveSkill');
@@ -533,9 +677,11 @@
             const response = await fetch(`${apiBase}/student-performance`, { method:'POST', headers:headers(), body:JSON.stringify(record) });
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.message || 'Performance could not be saved.');
+            classPerformanceRecords = mergePerformanceRecords([record], classPerformanceRecords);
             const returned = Array.isArray(result.performances) ? result.performances : [];
             saved = mergePerformanceRecords(returned.some(item => item.skill) ? returned : [record], getLocalPerformanceRecords(selectedStudent.id));
-            renderSkillEditor(selectedSubject);
+            await loadClassPerformanceRecords();
+            renderStudentRoster();
             if (keepAdding) {
                 openPerformanceModal({ assessmentSection: selectedSection });
             } else {
@@ -544,8 +690,9 @@
             }
         } catch (error) {
             closePerformanceModal();
-            renderSkillEditor(selectedSubject);
-            showSuccessModal('Successfully Saved', '');
+            await loadClassPerformanceRecords();
+            renderStudentRoster();
+            showAppAlert(error.message || 'Performance could not be saved.', 'Save Failed');
         }
     }
 
@@ -647,30 +794,35 @@
     async function init() {
         try {
             const loggedInUser = JSON.parse(sessionStorage.getItem('loggedInUser') || 'null');
-            if (loggedInUser?.role === 'Teacher') {
-                const assignedFromPortal = new URLSearchParams(location.search).get('assignedSubjects');
-                if (assignedFromPortal) teacherAssignedSubjects = String(assignedFromPortal).split(/[,|]/).map(value => value.trim()).filter(Boolean);
-                const teacherResponse = await fetch(`${apiBase}/teacher/me`, { headers: headers(), cache: 'no-store' });
-                const teacherData = await teacherResponse.json().catch(() => ({}));
-                if (!Array.isArray(teacherAssignedSubjects) || !teacherAssignedSubjects.length) {
-                    const assigned = teacherData?.subject || teacherData?.subjects || '';
-                    teacherAssignedSubjects = String(assigned).split(/[,|]/).map(value => value.trim()).filter(Boolean);
-                }
-            }
-            const studentResponse = await fetch(`${apiBase}/students`, { cache:'no-store' });
-            const studentData = await studentResponse.json().catch(() => ({}));
             courses = JSON.parse(localStorage.getItem('eduCore_student_courses') || '[]');
             scheduledSubjects = JSON.parse(localStorage.getItem('eduCore_student_schedules') || '[]');
             attendanceStore = {};
             examResults = [];
-            if (!studentResponse.ok) {
-                students = [];
-                renderClasses();
-                workspace.innerHTML = '<div class="empty-state"><strong>Student database is being prepared.</strong><p>Please restart the cPanel Node.js application, then reload this page.</p></div>';
-                return;
+            let studentData = [];
+            let studentsLoaded = true;
+            if (loggedInUser?.role === 'Teacher') {
+                isTeacherUser = true;
+                const assignedResponse = await fetch(`${apiBase}/teacher/testing-result-students`, { headers:headers(), cache:'no-store' });
+                const assignedData = await assignedResponse.json().catch(() => ({}));
+                teacherAssignments = Array.isArray(assignedData.assignments) ? assignedData.assignments : [];
+                students = assignedResponse.ok && Array.isArray(assignedData.students) ? assignedData.students.filter(teacherCanAccessStudent) : [];
+                studentsLoaded = assignedResponse.ok;
+                teacherAssignedSubjects = String(new URLSearchParams(location.search).get('assignedSubjects') || '').split('|').map(value => value.trim()).filter(Boolean);
+                if (!teacherAssignedSubjects.length) {
+                    const teacherResponse = await fetch(`${apiBase}/teacher/me`, { headers:headers(), cache:'no-store' });
+                    const teacherData = await teacherResponse.json().catch(() => ({}));
+                    teacherAssignedSubjects = String(teacherData.subject || teacherData.subjects || '').split(/[,|]/).map(value => value.trim()).filter(Boolean);
+                }
+            } else {
+                const studentResponse = await fetch(`${apiBase}/students`, { cache:'no-store' });
+                studentData = await studentResponse.json().catch(() => ({}));
+                studentsLoaded = studentResponse.ok;
+                students = studentResponse.ok
+                    ? (Array.isArray(studentData) ? studentData : Array.isArray(studentData.students) ? studentData.students : [])
+                    : [];
             }
-            students = Array.isArray(studentData) ? studentData : studentData.students || [];
             renderClasses();
+            if (!studentsLoaded && !classNames().length) workspace.innerHTML = '<div class="empty-state"><strong>Assigned students could not be loaded.</strong><p>Please check the server connection, then reload.</p></div>';
         } catch (_error) {
             students = [];
             renderClasses();
