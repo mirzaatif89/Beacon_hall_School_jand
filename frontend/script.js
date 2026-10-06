@@ -88,6 +88,7 @@ const FALLBACK_ROUTE_TO_PAGE = {
     student_leave_requests: 'student_leave_requests.html',
     student_courses: 'student_courses.html',
     student_performance: 'student_performance.html',
+    student_full_report: 'student_full_report.html',
     quiz_uploading: 'quiz_uploading.html',
     lecture_uploading: 'lecture_uploading.html',
     banners: 'banners.html',
@@ -3610,6 +3611,7 @@ function renderAdminSidebarSequence() {
             'student_leave_requests.html',
             'student_courses.html',
             'student_performance.html',
+            'student_full_report.html',
             'quiz_uploading.html',
             'lecture_uploading.html',
             'exam_schedule.html',
@@ -3748,7 +3750,7 @@ function ensureSchedulingNav() {
     if (navLinks.querySelector('[data-scheduling-nav]')) return;
 
     const currentPage = getCurrentPageName();
-    const studentSchedulingPages = ['student_scheduling.html', 'assignments.html', 'assignment_uploading.html', 'student_timetable.html', 'student_diary.html', 'student_leave_requests.html', 'student_courses.html', 'student_performance.html', 'quiz_uploading.html', 'lecture_uploading.html', 'exam_schedule.html', 'stuck_off.html'];
+    const studentSchedulingPages = ['student_scheduling.html', 'assignments.html', 'assignment_uploading.html', 'student_timetable.html', 'student_diary.html', 'student_leave_requests.html', 'student_courses.html', 'student_performance.html', 'student_full_report.html', 'quiz_uploading.html', 'lecture_uploading.html', 'exam_schedule.html', 'stuck_off.html'];
     const isStudentSchedulingPage = studentSchedulingPages.includes(currentPage);
     const teacherSchedulingPages = ['teacher_scheduling.html', 'teacher_timetable.html', 'teacher_assigned_classes.html', 'teacher_leave_requests.html'];
     const isTeacherSchedulingPage = teacherSchedulingPages.includes(currentPage);
@@ -6917,8 +6919,20 @@ function buildStudentFullPortfolioReport(student, records, esc) {
     const standardSubjects = ['English', 'Urdu', 'Mathematics', 'Science', 'Social Study', 'Islamiyat', 'Nazra'];
     const reportOnlySubjects = new Set(['co-curriculum', 'co curriculum', 'participation']);
     const allSubjects = [...new Set([...standardSubjects, ...records.map(row => String(row.subject || '').trim()).filter(subject => subject && !reportOnlySubjects.has(subject.toLowerCase()))])];
+    const manualReportMarker = row => {
+        const match = String(row?.remarks || '').match(/^FULL_REPORT_MANUAL:([^:]+):([^:]+):(.+)$/);
+        return match ? { section: match[1], item: match[2], level: match[3] } : null;
+    };
+    const manualReportCategory = level => {
+        const value = String(level || '').toLowerCase();
+        return value.includes('advance') ? 0 : value.includes('proficient') ? 1 : value.includes('developing') ? 2 : value.includes('beginning') || value.includes('below') ? 3 : -1;
+    };
     const categoryFor = (rows) => {
         if (!rows.length) return -1;
+        const manualRows = rows.map(row => ({ row, marker: manualReportMarker(row) }))
+            .filter(item => item.marker?.section === 'subject')
+            .sort((left, right) => String(right.row.performanceDate || '').localeCompare(String(left.row.performanceDate || '')));
+        if (manualRows.length) return manualReportCategory(manualRows[0].marker.level);
         const scores = rows.map(row => {
             const grade = String(row.grade || row.assessmentRating || '').toLowerCase();
             if (grade.includes('below') || grade.includes('beginning')) return 40;
@@ -6932,15 +6946,24 @@ function buildStudentFullPortfolioReport(student, records, esc) {
     };
     const assessmentRows = (items) => items.map(label => {
         const category = categoryFor(records.filter(row => String(row.subject || '').trim().toLowerCase() === label.toLowerCase()));
-        return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${category === index ? '✓' : ''}</td>`).join('')}</tr>`;
+        return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${category === index ? '&#10003;' : ''}</td>`).join('')}</tr>`;
     }).join('');
     const genericRows = (items, reportSubject) => items.map(label => {
+        const manualSection = reportSubject === 'Co-Curriculum' ? 'co-curriculum' : 'learning-attitude';
+        const manualRecord = records.map(row => ({ row, marker: manualReportMarker(row) }))
+            .filter(entry => String(entry.row.subject || '').trim().toLowerCase() === reportSubject.toLowerCase()
+                && entry.marker?.section === manualSection && entry.marker.item === label)
+            .sort((left, right) => String(right.row.performanceDate || '').localeCompare(String(left.row.performanceDate || '')))[0];
+        if (manualRecord) {
+            const category = manualReportCategory(manualRecord.marker.level);
+            return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${category === index ? '&#10003;' : ''}</td>`).join('')}</tr>`;
+        }
         const rowRecords = records.filter(record => String(record.subject || '').trim().toLowerCase() === reportSubject.toLowerCase() && String(record.skill || '').trim().toLowerCase().startsWith(`${label.toLowerCase()}__`));
         const categories = rowRecords.map(row => {
             const storedLevel = String(row?.grade || row?.assessmentRating || '').toLowerCase();
             return storedLevel.includes('advance') ? 0 : storedLevel.includes('proficient') ? 1 : storedLevel.includes('developing') ? 2 : storedLevel.includes('below') ? 3 : categoryFor([row]);
         });
-        return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${categories.includes(index) ? '✓' : ''}</td>`).join('')}</tr>`;
+        return `<tr><th>${esc(label)}</th>${[0, 1, 2, 3].map(index => `<td>${categories.includes(index) ? '&#10003;' : ''}</td>`).join('')}</tr>`;
     }).join('');
     const year = new Date().getFullYear();
     const session = `${year}-${year + 1}`;

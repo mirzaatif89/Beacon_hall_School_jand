@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Full Report of Student - Beacon Light School System</title>
+    <link rel="icon" type="image/png" href="images/logo.jpeg">
+    <link rel="stylesheet" href="style.css?v=20260814-centered-school-name">
+    <link rel="stylesheet" href="student_schedule_theme.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .full-report-steps{display:grid;grid-template-columns:minmax(260px,420px);margin:0 0 18px}
+        .full-report-step{box-sizing:border-box;padding:16px;border:1px solid #35a56e;border-radius:12px;background:#effaf4;color:#176b4a;font-weight:800;line-height:1.5}
+        .full-report-select{display:block;width:100%;min-height:40px;margin-top:8px;padding:8px 10px;border:1px solid #cfe3dc;border-radius:8px;background:#fff;color:#24483a;font:inherit}
+        .full-report-select:disabled{background:#f5f8f6;color:#83948c}
+        .full-report-panel{min-height:110px;padding:18px;background:#fff;border:1px solid #cfe3dc;border-radius:12px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+        .full-report-empty{padding:28px 18px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;color:#64748b;text-align:center}
+        .full-report-table-wrap{overflow:auto}
+        .full-report-table{width:100%;border-collapse:collapse;font-size:.9rem}
+        .full-report-table th,.full-report-table td{padding:11px 12px;border-bottom:1px solid #dcebe5;text-align:left;vertical-align:middle}
+        .full-report-table th{background:#eef7f2;color:#24483a;font-size:.78rem;letter-spacing:.04em}
+        .full-report-table tbody tr:hover{background:#f5faf7}
+        .full-report-student-name{font-weight:800;color:#153d2e}
+        .full-report-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .full-report-actions .full-report-action-select{width:178px;min-height:40px;padding:8px 34px 8px 12px;border:1px solid #bfe2d0;border-radius:9px;background:#fff;color:#176b4a;font:inherit;font-size:.84rem;font-weight:750;cursor:pointer;box-shadow:0 2px 5px rgba(22,107,74,.06)}
+        .full-report-actions .full-report-action-select:focus{outline:3px solid rgba(38,149,104,.18);border-color:#35a56e}
+        .success-overlay.performance-report-fullscreen{position:fixed!important;inset:0!important;z-index:10000!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;box-sizing:border-box;padding:clamp(8px,2vw,24px)!important}
+        .success-overlay.performance-report-fullscreen>.success-modal{box-sizing:border-box!important;width:min(900px,calc(100vw - 32px))!important;max-width:900px!important;max-height:calc(100vh - 32px)!important;max-height:calc(100dvh - 32px)!important;height:auto!important;min-height:0!important;margin:0!important;padding:clamp(12px,2vw,24px)!important;overflow:auto!important;border-radius:16px!important;text-align:left!important}
+        .success-overlay.performance-report-fullscreen .success-modal>div:first-of-type{flex-wrap:wrap;gap:10px}
+        .success-overlay.performance-report-fullscreen .portfolio-report{box-sizing:border-box!important;width:100%!important;max-width:210mm!important;min-height:0!important;margin:0 auto!important;padding:clamp(8px,1.2vw,14px)!important;font-size:clamp(9px,.82vw,11px)!important;overflow-wrap:anywhere}
+        .success-overlay.performance-report-fullscreen .portfolio-header{grid-template-columns:clamp(44px,7vw,78px) minmax(0,1fr)!important;min-height:64px!important}
+        .success-overlay.performance-report-fullscreen .portfolio-logo{width:clamp(38px,5vw,54px)!important;height:clamp(38px,5vw,54px)!important}
+        .success-overlay.performance-report-fullscreen .portfolio-title{font-size:clamp(17px,2.2vw,25px)!important}
+        .success-overlay.performance-report-fullscreen .portfolio-school{font-size:clamp(12px,1.5vw,17px)!important}
+        .success-overlay.performance-report-fullscreen .portfolio-profile{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:8px!important;font-size:clamp(10px,1.2vw,14px)!important}
+        .success-overlay.performance-report-fullscreen .portfolio-line{min-width:0!important;overflow-wrap:anywhere}
+        .success-overlay.performance-report-fullscreen .portfolio-table{table-layout:fixed!important;font-size:clamp(8px,.82vw,12px)!important}
+        .success-overlay.performance-report-fullscreen .portfolio-table th,.success-overlay.performance-report-fullscreen .portfolio-table td{padding:clamp(2px,.4vw,5px)!important;overflow-wrap:anywhere;word-break:break-word}
+        .success-overlay.performance-report-fullscreen .portfolio-table td:not(:empty){font-size:clamp(13px,1.5vw,22px)!important}
+        @media(max-width:560px){.success-overlay.performance-report-fullscreen{align-items:flex-start!important;padding:8px!important}.success-overlay.performance-report-fullscreen>.success-modal{width:100%!important;max-width:none!important;max-height:calc(100vh - 16px)!important;max-height:calc(100dvh - 16px)!important;padding:12px!important;border-radius:12px!important}.success-overlay.performance-report-fullscreen .portfolio-profile{grid-template-columns:1fr!important}.success-overlay.performance-report-fullscreen .policy{padding:6px!important}.success-overlay.performance-report-fullscreen .policy-text{padding:8px!important;font-size:10px!important;line-height:1.25!important}.success-overlay.performance-report-fullscreen .portfolio-bar{font-size:12px!important}.success-overlay.performance-report-fullscreen .remark-row span{padding:3px!important}}
+        .manual-full-report-overlay{position:fixed;inset:0;z-index:11000;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:clamp(8px,2vw,24px);background:rgba(15,23,42,.6);backdrop-filter:blur(4px)}
+        .manual-full-report-dialog{box-sizing:border-box;width:min(1000px,calc(100vw - 24px));max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #cfe3dc;border-radius:16px;background:#fff;padding:clamp(12px,2vw,24px);box-shadow:0 24px 70px rgba(15,23,42,.25)}
+        .manual-full-report-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:12px;border-bottom:1px solid #e3eee9}
+        .manual-full-report-header h2{margin:0;color:#153d2e;font-size:clamp(1.05rem,2vw,1.35rem)}
+        .manual-full-report-header p{margin:5px 0 0;color:#64748b;font-size:.88rem}
+        .manual-full-report-close{flex:0 0 auto;min-width:40px;min-height:40px;border:1px solid #cfe3dc;border-radius:9px;background:#fff;color:#176b4a;font-size:1.25rem;cursor:pointer}
+        .manual-full-report-note{margin:12px 0;color:#48675a;font-size:.88rem}
+        .manual-full-report-table-wrap{overflow:auto;border:1px solid #dcebe5;border-radius:9px}
+        .manual-full-report-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(9px,.9vw,12px)}
+        .manual-full-report-table th,.manual-full-report-table td{padding:clamp(4px,.7vw,9px);border:1px solid #d5e4dc;overflow-wrap:anywhere;word-break:break-word}
+        .manual-full-report-table thead th{background:#eef7f2;color:#24483a;text-align:center}
+        .manual-full-report-table thead th:first-child,.manual-full-report-table tbody th{text-align:left}
+        .manual-full-report-table thead th:first-child{width:34%}
+        .manual-full-report-table thead th:not(:first-child){width:16.5%}
+        .manual-full-report-table tbody tr:not(.manual-report-section-row) td{text-align:center}
+        .manual-report-section-row th{background:#e7f1eb;text-align:center!important;color:#176b4a;font-size:clamp(10px,1vw,13px)}
+        .manual-full-report-rating-cell{height:34px;text-align:center;vertical-align:middle;color:#087a4b;cursor:pointer;transition:background .15s ease,box-shadow .15s ease}
+        .manual-full-report-rating-cell:hover{background:#f0faf4}
+        .manual-full-report-rating-cell[aria-checked="true"]{background:#e9f7ef;box-shadow:inset 0 0 0 2px #72c79c}
+        .manual-report-tick{display:inline-block;color:#087a4b;font-size:clamp(18px,2vw,25px);font-family:Arial,sans-serif;font-weight:900;line-height:1}
+        .manual-full-report-rating-cell:focus-visible{outline:3px solid rgba(38,149,104,.3);outline-offset:-3px}
+        .manual-full-report-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:12px 0 2px;background:#fff;border-top:1px solid #e3eee9}
+        .manual-full-report-dialog .action-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:9px 14px;border:1px solid #25875a;border-radius:9px;background:#25875a;color:#fff;font:inherit;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(37,135,90,.16);transition:background .15s ease,transform .15s ease}
+        .manual-full-report-dialog .action-button:hover:not(:disabled){background:#176b4a;transform:translateY(-1px)}
+        .manual-full-report-dialog .action-button.secondary{border-color:#cfe3dc;background:#f5faf7;color:#176b4a;box-shadow:none}
+        .manual-full-report-dialog .action-button.secondary:hover:not(:disabled){background:#eaf5ef}
+        .manual-full-report-dialog .action-button:disabled{opacity:.6;cursor:wait}
+        .manual-full-report-status{color:#176b4a;font-size:.85rem;font-weight:750}
+        .manual-full-report-hidden{display:none!important}
+        @media(max-width:560px){.manual-full-report-dialog{width:100%;max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);padding:12px;border-radius:12px}.manual-full-report-table{font-size:8px}.manual-full-report-table th,.manual-full-report-table td{padding:4px 2px}.manual-full-report-table thead th:first-child{width:36%}.manual-full-report-table thead th:not(:first-child){width:16%}.manual-full-report-note{font-size:.8rem}.manual-full-report-actions{align-items:stretch;flex-direction:column}.manual-full-report-actions>div{width:100%}.manual-full-report-dialog .action-button{flex:1}}
+        @media(max-width:560px){.full-report-actions .full-report-action-select{width:100%;min-width:160px}}
+        @media(max-width:720px){.full-report-steps{grid-template-columns:1fr}.full-report-table{min-width:620px}}
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <aside class="sidebar">
+        <div class="logo-section"><img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo"></div>
+        <nav class="nav-links"></nav>
+        <a href="settings.html" class="user-profile"><div class="avatar">A</div><div class="user-info"><h4>Administrator</h4><p>Admin</p></div></a>
+    </aside>
+    <main class="main-content">
+        <a class="back-link" href="student_scheduling.html"><i data-lucide="arrow-left" width="18"></i> Back to Student Scheduling</a>
+        <header class="header">
+            <div>
+                <h1>Add Full Report of Student</h1>
+                <p style="color:var(--text-secondary);margin-top:.3rem">Select a class and section to show students, then open a student's full report.</p>
+            </div>
+        </header>
+        <section class="full-report-steps" aria-label="Choose class and section">
+            <div class="full-report-step">
+                1. Select Class
+                <select class="full-report-select" id="fullReportClass"><option value="">Select Class</option></select>
+                <select class="full-report-select" id="fullReportSection" disabled><option value="">Select Section</option></select>
+            </div>
+        </section>
+        <section class="full-report-panel" aria-live="polite">
+            <div class="full-report-empty" id="fullReportWorkspace">Select a class and section to view its students.</div>
+        </section>
+    </main>
+</div>
+<script src="auth.js?v=20261006-full-report-page"></script>
+<script src="script.js?v=20261006-manual-full-report-v3"></script>
+<script>
+(() => {
+    const apiBase = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : `${location.origin}/api`;
+    const token = sessionStorage.getItem('eduCore_token') || '';
+    const classSelect = document.getElementById('fullReportClass');
+    const sectionSelect = document.getElementById('fullReportSection');
+    const workspace = document.getElementById('fullReportWorkspace');
+    let students = [];
+    let selectedClass = '';
+
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const normalize = value => String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const classAndSection = student => {
+        const rawClass = String(student.classGrade || student.className || '').trim();
+        const match = rawClass.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+        return {
+            className: String(student.classGrade || student.className || (match && match[1]) || '').replace(/\s*\([^()]+\)\s*$/, '').trim(),
+            section: String(student.section || student.classSection || student.sectionName || (match && match[2]) || 'General').trim() || 'General'
+        };
+    };
+    const manualReportRatings = [
+        { level:'Advance', percentage:92, rating:'Excellent' },
+        { level:'Proficient', percentage:77, rating:'Satisfactory' },
+        { level:'Developing', percentage:60, rating:'Needs Practice' },
+        { level:'Below 50% Beginning', percentage:40, rating:'Needs Practice' }
+    ];
+    const manualReportSections = [
+        { key:'subject', title:'Portfolio Skills Assessment Summary', subjectItems:['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra'] },
+        { key:'co-curriculum', title:'Performance Task', subject:'Co-Curriculum', subjectItems:['Project','Presentation','Practical Task','Activities'] },
+        { key:'learning-attitude', title:'Learning Attitude', subject:'Participation', subjectItems:['Home Task Completion','Classroom behavior','Hygiene condition','Regularity'] }
+    ];
+    const manualReportRows = manualReportSections.flatMap(group => group.subjectItems.map(item => ({
+        section:group.key,
+        item,
+        subject:group.subject || item,
+        key:`${group.key}:${item}`
+    })));
+    const today = () => {
+        const date = new Date();
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+    const reportRecordId = (student, row) => `FULL-REPORT-${student.id}-${row.section}-${row.item}`.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
+
+    function showEmpty(message) {
+        workspace.className = 'full-report-empty';
+        workspace.textContent = message;
+    }
+
+    async function openManualFullReport(student) {
+        if (!student?.id) {
+            if (typeof window.showAppAlert === 'function') window.showAppAlert('This student record is missing its ID.', 'Report Unavailable');
+            return;
+        }
+        const values = classAndSection(student);
+        const overlay = document.createElement('div');
+        overlay.className = 'manual-full-report-overlay';
+        overlay.innerHTML = `<section class="manual-full-report-dialog" role="dialog" aria-modal="true" aria-label="Add full report for ${esc(student.fullName || 'student')}"><header class="manual-full-report-header"><div><h2>Add Full Report</h2><p>${esc(student.fullName || 'Unnamed Student')} / ${esc(values.className)} / ${esc(values.section)}</p></div><button type="button" class="manual-full-report-close" aria-label="Close report form">&times;</button></header><div id="manualFullReportBody" style="padding-top:12px;color:#64748b">Loading report details...</div></section>`;
+        document.body.appendChild(overlay);
+        const close = () => {
+            overlay.remove();
+            document.removeEventListener('keydown', closeOnEscape);
+        };
+        const closeOnEscape = event => { if (event.key === 'Escape') close(); };
+        overlay.querySelector('.manual-full-report-close').addEventListener('click', close);
+        overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+        document.addEventListener('keydown', closeOnEscape);
+
+        let performances = [];
+        let loadMessage = '';
+        try {
+            const response = await fetch(`${apiBase}/student-performance?studentId=${encodeURIComponent(student.id)}`, {
+                headers: token ? { Authorization:`Bearer ${token}` } : {},
+                cache:'no-store'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.success) throw new Error(result.message || 'Saved report ratings could not be loaded.');
+            performances = Array.isArray(result.performances) ? result.performances : [];
+        } catch (error) {
+            loadMessage = `${error.message || 'Saved ratings could not be loaded.'} You can still submit new ratings.`;
+        }
+
+        const savedRatings = new Map();
+        performances.forEach(record => {
+            const match = String(record.remarks || '').match(/^FULL_REPORT_MANUAL:([^:]+):([^:]+):(.+)$/);
+            if (match) savedRatings.set(`${match[1]}:${match[2]}`, match[3]);
+        });
+        const ratingHeaders = manualReportRatings.map(rating => `<th>${esc(rating.level.replace('Below 50% Beginning', 'Beginning'))}<br><small>${rating.percentage === 92 ? '85-100%' : rating.percentage === 77 ? '70-84%' : rating.percentage === 60 ? '50-69%' : 'Below 50%'}</small></th>`).join('');
+        const reportTable = `<div class="manual-full-report-table-wrap"><table class="manual-full-report-table"><thead><tr><th>Report Item</th>${ratingHeaders}</tr></thead><tbody>${manualReportSections.map(group => `<tr class="manual-report-section-row"><th colspan="5">${esc(group.title)}</th></tr>${group.subjectItems.map(item => {
+            const row = manualReportRows.find(entry => entry.section === group.key && entry.item === item);
+            const selected = savedRatings.get(row.key);
+            return `<tr data-manual-row="${esc(row.key)}"><th scope="row">${esc(item)}</th>${manualReportRatings.map(rating => {
+                const checked = selected === rating.level;
+                return `<td class="manual-full-report-rating-cell" role="checkbox" tabindex="0" aria-checked="${checked}" aria-label="${esc(rating.level)} for ${esc(item)}" data-manual-key="${esc(row.key)}" data-manual-level="${esc(rating.level)}">${checked ? '<span class="manual-report-tick">&#10003;</span>' : ''}</td>`;
+            }).join('')}</tr>`;
+        }).join('')}`).join('')}</tbody></table></div>`;
+        const reportBody = overlay.querySelector('#manualFullReportBody');
+        reportBody.innerHTML = `<p class="manual-full-report-note">Tick one rating for each item you want to include. Leave other items blank. Your manual selections replace the generated ratings for this full report.</p>${loadMessage ? `<p style="color:#9a3412;font-size:.82rem">${esc(loadMessage)}</p>` : ''}<form id="manualFullReportForm">${reportTable}<div class="manual-full-report-actions"><span class="manual-full-report-status" id="manualFullReportStatus" role="status"></span><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="action-button secondary" id="cancelManualFullReport">Cancel</button><button type="button" class="action-button secondary manual-full-report-hidden" id="previewManualFullReport"><i data-lucide="eye" width="17"></i> View Full Report</button><button type="submit" class="action-button" id="submitManualFullReport"><i data-lucide="save" width="17"></i> Submit Report</button></div></div></form>`;
+        if (window.lucide) window.lucide.createIcons();
+
+        const selectManualRating = cell => {
+            reportBody.querySelector('#previewManualFullReport').classList.add('manual-full-report-hidden');
+            reportBody.querySelector('#manualFullReportStatus').textContent = '';
+            const row = cell.closest('tr');
+            const wasSelected = cell.getAttribute('aria-checked') === 'true';
+            row?.querySelectorAll('.manual-full-report-rating-cell').forEach(other => {
+                other.setAttribute('aria-checked', 'false');
+                other.innerHTML = '';
+            });
+            if (!wasSelected) {
+                cell.setAttribute('aria-checked', 'true');
+                cell.innerHTML = '<span class="manual-report-tick">&#10003;</span>';
+            }
+        };
+        reportBody.querySelectorAll('.manual-full-report-rating-cell').forEach(cell => {
+            cell.addEventListener('click', () => selectManualRating(cell));
+            cell.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectManualRating(cell);
+                }
+            });
+        });
+        reportBody.querySelector('#cancelManualFullReport').addEventListener('click', close);
+        reportBody.querySelector('#previewManualFullReport').addEventListener('click', async () => {
+            close();
+            if (typeof window.openStudentPerformanceReportFromEncoded === 'function') {
+                await window.openStudentPerformanceReportFromEncoded(encodeURIComponent(JSON.stringify(student)), 'full');
+            }
+        });
+        reportBody.querySelector('#manualFullReportForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const status = reportBody.querySelector('#manualFullReportStatus');
+            const submitButton = reportBody.querySelector('#submitManualFullReport');
+            const selections = new Map([...reportBody.querySelectorAll('.manual-full-report-rating-cell[aria-checked="true"]')]
+                .map(cell => [cell.dataset.manualKey, cell.dataset.manualLevel]));
+            if (!selections.size) {
+                status.textContent = 'Tick at least one rating before submitting.';
+                status.style.color = '#b45309';
+                return;
+            }
+            const date = today();
+            const reportItems = manualReportRows.map(row => {
+                const level = selections.get(row.key) || 'Unselected';
+                const rating = manualReportRatings.find(option => option.level === level);
+                return {
+                    id:reportRecordId(student, row),
+                    studentId:String(student.id),
+                    studentName:student.fullName || 'Student',
+                    classGrade:values.className || selectedClass,
+                    section:values.section,
+                    subject:row.subject,
+                    skill:'',
+                    learningOutcome:'',
+                    rating:rating?.rating || '',
+                    percentage:rating?.percentage || 0,
+                    performanceDate:date,
+                    performanceMonth:date.slice(0, 7),
+                    remarks:`FULL_REPORT_MANUAL:${row.section}:${row.item}:${level}`
+                };
+            });
+            submitButton.disabled = true;
+            reportBody.querySelector('#previewManualFullReport').classList.add('manual-full-report-hidden');
+            status.style.color = '#176b4a';
+            status.textContent = 'Submitting report...';
+            try {
+                const response = await fetch(`${apiBase}/student-performance`, {
+                    method:'POST',
+                    headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) },
+                    body:JSON.stringify(reportItems)
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result.success) throw new Error(result.message || 'The report could not be submitted.');
+                status.textContent = 'Full report submitted successfully.';
+                reportBody.querySelector('#previewManualFullReport').classList.remove('manual-full-report-hidden');
+            } catch (error) {
+                status.style.color = '#b91c1c';
+                status.textContent = error.message || 'The report could not be submitted. Please try again.';
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    }
+
+    function renderClassOptions() {
+        const classNames = [...new Set(students.map(student => classAndSection(student).className).filter(Boolean))]
+            .sort((left, right) => left.localeCompare(right, undefined, { numeric:true, sensitivity:'base' }));
+        classSelect.innerHTML = '<option value="">Select Class</option>' + classNames.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+    }
+
+    function renderSectionOptions() {
+        const sections = [...new Set(students
+            .filter(student => normalize(classAndSection(student).className) === normalize(selectedClass))
+            .map(student => classAndSection(student).section))]
+            .sort((left, right) => left.localeCompare(right, undefined, { numeric:true, sensitivity:'base' }));
+        sectionSelect.innerHTML = '<option value="">Select Section</option>' + sections.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
+        sectionSelect.disabled = !selectedClass || !sections.length;
+        sectionSelect.value = '';
+    }
+
+    function renderStudents() {
+        const selectedSection = sectionSelect.value;
+        if (!selectedClass) {
+            showEmpty('Select a class and section to view its students.');
+            return;
+        }
+        if (!selectedSection) {
+            showEmpty('Select a section to view its students.');
+            return;
+        }
+        const roster = students.filter(student => {
+            const values = classAndSection(student);
+            return normalize(values.className) === normalize(selectedClass) && normalize(values.section) === normalize(selectedSection);
+        });
+        if (!roster.length) {
+            showEmpty('No students found in this class section.');
+            return;
+        }
+
+        workspace.className = '';
+        workspace.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px"><div><h2 style="margin:0;color:#153d2e">Students</h2><span style="display:block;margin-top:4px;color:#71847c;font-size:.82rem;font-weight:600">${esc(selectedClass)} / ${esc(selectedSection)} / ${roster.length} student${roster.length === 1 ? '' : 's'}</span></div></div><div class="full-report-table-wrap"><table class="full-report-table"><thead><tr><th>STUDENT NAME</th><th>REGISTRATION NO.</th><th>ACTIONS</th></tr></thead><tbody>${roster.map(student => `<tr><td class="full-report-student-name">${esc(student.fullName || 'Unnamed Student')}</td><td>${esc(student.studentCode || student.id || '-')}</td><td><div class="full-report-actions"><select class="table-action-select full-report-action-select" aria-label="Report actions for ${esc(student.fullName || 'student')}" data-report-action="${esc(student.id)}"><option value="">More Actions</option><option value="add-full-report">Add Full Report</option><option value="view-full-report">View Full Report</option></select></div></td></tr>`).join('')}</tbody></table></div>`;
+        const openFullReport = async studentId => {
+            const student = roster.find(item => String(item.id) === String(studentId));
+            if (!student) return;
+            if (typeof window.openStudentPerformanceReportFromEncoded !== 'function') {
+                if (typeof window.showAppAlert === 'function') window.showAppAlert('The full report could not be opened. Reload this page and try again.', 'Report Unavailable');
+                return;
+            }
+            await window.openStudentPerformanceReportFromEncoded(encodeURIComponent(JSON.stringify(student)), 'full');
+        };
+        workspace.querySelectorAll('[data-report-action]').forEach(select => select.addEventListener('change', () => {
+            if (select.value === 'add-full-report') {
+                const student = roster.find(item => String(item.id) === String(select.dataset.reportAction));
+                if (student) openManualFullReport(student);
+            } else if (select.value === 'view-full-report') {
+                openFullReport(select.dataset.reportAction);
+            }
+            select.value = '';
+        }));
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    classSelect.addEventListener('change', () => {
+        selectedClass = classSelect.value;
+        renderSectionOptions();
+        renderStudents();
+    });
+    sectionSelect.addEventListener('change', renderStudents);
+
+    async function init() {
+        try {
+            const response = await fetch(`${apiBase}/students`, {
+                headers: token ? { Authorization:`Bearer ${token}` } : {},
+                cache:'no-store'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.message || 'Students could not be loaded.');
+            students = Array.isArray(result) ? result : Array.isArray(result.students) ? result.students : [];
+            renderClassOptions();
+            showEmpty(students.length ? 'Select a class and section to view its students.' : 'No students are available.');
+        } catch (error) {
+            showEmpty(error.message || 'Students could not be loaded. Check the server connection and reload.');
+        }
+    }
+
+    init();
+    if (window.lucide) window.lucide.createIcons();
+})();
+</script>
+</body>
+</html>
