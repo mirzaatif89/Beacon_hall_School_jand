@@ -33,6 +33,8 @@ $excludePrefixes = @(
     "Final-Apps/",
     "Archive\\",
     "Archive/",
+    "data\\",
+    "data/",
     "docs\\",
     "docs/",
     "node_modules\",
@@ -58,6 +60,7 @@ $filesToPack = $allFiles | Where-Object {
     }
 
     if ($relative -eq $Output) { return $false }
+    if ($relative -in @(".env", "hostinger.env", ".cpanel.yml", "vercel.json", ".vercelignore")) { return $false }
     if ($_.Extension -ieq ".zip") { return $false }
     if ($_.Extension -ieq ".log") { return $false }
     return $true

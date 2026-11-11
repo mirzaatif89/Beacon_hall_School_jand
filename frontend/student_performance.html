@@ -118,6 +118,8 @@
     const canonicalClasses = ['Play Group','Nursarry','Prep','Class One','Class Two','Class Three','Class Four','Class Five','Class Six','Class Seven','Class Eight','Class Nine','Class 10'];
     const juniorSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
     const seniorSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
+    const classNineSubjects = ['English','Urdu','Mathematics','Science','Biology','Chemistry','Computer','Social Study','Islamiyat','Nazra','Math'];
+    const classTenSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
     const ratings = ['Excellent','Satisfactory','Needs Practice'];
     const rubricSuggestions = {
         modalExcellent: [
@@ -238,7 +240,12 @@
             ...scheduledTitles,
             ...saved.map(record => String(record.subject || '').trim())
         ].filter(value => value && !excludedReportSubjects.has(norm(value)));
-        const fixedSubjects = ['Play Group','Nursarry','Prep'].some(name => norm(name) === norm(selectedClass)) ? juniorSubjects : seniorSubjects;
+        const className = norm(selectedClass);
+        const fixedSubjects = ['class nine', 'class 9', '9th', '9'].includes(className)
+            ? classNineSubjects
+            : ['class 10', 'class ten', '10th', '10'].includes(className)
+                ? classTenSubjects
+                : ['Play Group','Nursarry','Prep'].some(name => norm(name) === className) ? juniorSubjects : seniorSubjects;
         const available = [...new Map([...fixedSubjects, ...scheduledTitles, ...assignedToStudent, ...titles].map(value => [norm(value), value])).values()];
         if (isTeacherUser) {
             return available.filter(subject => (teacherAssignedSubjects || []).some(assigned => norm(assigned) === norm(subject)));

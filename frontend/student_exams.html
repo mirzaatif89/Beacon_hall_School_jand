@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Exams - Beacon Light School System</title>
+    <link rel="icon" type="image/png" href="images/logo.jpeg">
+    <link rel="stylesheet" href="style.css?v=20260814-centered-school-name">
+    <link rel="stylesheet" href="student_schedule_theme.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .exam-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}.exam-step{min-height:92px;box-sizing:border-box;padding:14px 16px;border:1px solid #cfe3dc;border-radius:12px;background:#fff;color:#426554;font-weight:800}.exam-step.active{border-color:#35a56e;background:#effaf4;color:#176b4a;box-shadow:0 8px 20px rgba(53,165,110,.1)}.exam-step select{display:block;width:100%;min-height:37px;margin-top:8px;padding:7px 9px;border:1px solid #cbded5;border-radius:8px;background:#fff;font:inherit;color:#24483a}.exams-panel{background:#fff;border:1px solid #cfe3dc;border-radius:12px;padding:18px;box-shadow:0 12px 28px rgba(15,23,42,.06)}.empty-state{padding:32px 18px;border:1px dashed #cbd5e1;border-radius:10px;text-align:center;color:#64748b;background:#f8fafc}.exam-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}.exam-heading h2{margin:0;color:#153d2e}.meta{display:block;margin-top:4px;color:#71847c;font-size:.82rem;font-weight:650}.exam-filter{display:grid;grid-template-columns:repeat(2,minmax(180px,300px)) minmax(220px,1fr);gap:12px;align-items:end;margin-bottom:14px;padding:13px;border:1px solid #dcebe5;border-radius:10px;background:#f8fcfa}.field-label{display:grid;gap:6px;color:#48675a;font-weight:800;font-size:.82rem}.exam-filter select{width:100%;min-height:40px;padding:8px 10px;border:1px solid #cbded5;border-radius:8px;background:#fff;font:inherit;color:#24483a}.marks-wrap{overflow:auto;border:1px solid #dcebe5;border-radius:10px}.marks-table{width:100%;min-width:760px;border-collapse:collapse}.marks-table th,.marks-table td{padding:10px;border-bottom:1px solid #e3eee9;text-align:left}.marks-table th{background:#f5faf7;color:#426554;font-size:.77rem;text-transform:uppercase}.marks-table input{box-sizing:border-box;width:100%;min-width:96px;padding:8px;border:1px solid #cbded5;border-radius:7px;font:inherit}.marks-table input[readonly]{background:#f0f7f3;color:#315d4a;font-weight:800}.marks-table input:disabled{background:#f5f7f6;color:#94a3b8;cursor:not-allowed}.subject-name{font-weight:850;color:#153d2e}.grade{font-weight:850;color:#176b4a}.totals-row th{border-top:2px solid #35a56e;background:#e8f5ee;color:#153d2e;font-size:.88rem;text-transform:none}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.action-button{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:9px;padding:10px 14px;background:#35a56e;color:#fff;font-weight:850;cursor:pointer}.action-button.secondary{border:1px solid #bfe2d0;background:#eef8f2;color:#176b4a}.action-button:disabled{opacity:.55;cursor:not-allowed}.back-link{display:inline-flex;align-items:center;gap:7px;margin-bottom:12px;color:#176b4a;font-weight:800;text-decoration:none}@media(max-width:760px){.exam-steps,.exam-filter{grid-template-columns:1fr}.exam-heading{display:block}}
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <aside class="sidebar"><div class="logo-section"><img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo"></div><nav class="nav-links"></nav><a href="settings.html" class="user-profile"><div class="avatar">A</div><div class="user-info"><h4>Administrator</h4><p>Admin</p></div></a></aside>
+    <main class="main-content">
+        <a class="back-link" href="exams.html"><i data-lucide="arrow-left" width="18"></i> Back to Exams</a>
+        <header class="header"><div><h1>Student Exams</h1><p style="color:var(--text-secondary);margin-top:.3rem">Set each subject's total once for the class, then enter the obtained marks for each student.</p></div></header>
+        <section class="exam-steps">
+            <div class="exam-step active" id="classStep">1. Select class<select id="classSelect"><option value="">Select Class</option></select></div>
+            <div class="exam-step" id="sectionStep">2. Select section<select id="sectionSelect" disabled><option value="">Select Section</option></select></div>
+            <div class="exam-step" id="studentStep">3. Select student<select id="studentSelect" disabled><option value="">Select Student</option></select></div>
+        </section>
+        <section class="exams-panel" id="workspace"><div class="empty-state"><i data-lucide="clipboard-list" width="32"></i><p>Select a class, section, and student to enter exam marks.</p></div></section>
+    </main>
+</div>
+<script src="auth.js?v=20260814-live-auth-fix1"></script>
+<script src="script.js?v=20260902-co-curriculum-save"></script>
+<script>
+(() => {
+    const apiBase = typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : `${location.origin}/api`;
+    const token = sessionStorage.getItem('eduCore_token') || '';
+    const headers = () => ({ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) });
+    const TOTAL_RECORD_TYPE = '__class_subject_total__';
+    const TOTAL_CACHE_KEY = 'beacon_class_subject_totals';
+    const standardSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
+    const classNineSubjects = ['English','Urdu','Mathematics','Science','Biology','Chemistry','Computer','Social Study','Islamiyat','Nazra','Math'];
+    const classTenSubjects = ['English','Urdu','Mathematics','Science','Social Study','Islamiyat','Nazra','Math'];
+    let students = [], results = [], courses = [];
+    let selectedClass = '', selectedSection = '', selectedStudent = null;
+    let selectedExamType = 'Mid Term', selectedExamYear = String(new Date().getFullYear());
+    let editingTotals = false;
+    const obtainedDrafts = new Map();
+    const classSelect = document.getElementById('classSelect');
+    const sectionSelect = document.getElementById('sectionSelect');
+    const studentSelect = document.getElementById('studentSelect');
+    const workspace = document.getElementById('workspace');
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
+    const norm = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const examTypeName = value => typeof normalizeSchoolExamType === 'function' ? normalizeSchoolExamType(value) : String(value || 'Mid Term').trim();
+    const gradeFor = percentage => percentage >= 90 ? 'A+' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : percentage >= 60 ? 'C' : percentage >= 50 ? 'D' : 'F';
+    const today = () => new Date().toISOString().slice(0, 10);
+    const isTotal = record => String(record?.recordType || '') === TOTAL_RECORD_TYPE;
+    const idForTotal = (subject, examType = selectedExamType, examYear = selectedExamYear) => `TOTAL-${selectedClass}-${subject}-${examTypeName(examType)}-${examYear}`.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
+    const idForMark = (subject, examType = selectedExamType, examYear = selectedExamYear) => `MARKS-${selectedStudent?.id || 'student'}-${subject}-${examTypeName(examType)}-${examYear}`.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 255);
+    const draftId = (subject, examType = selectedExamType, examYear = selectedExamYear) => [selectedStudent?.id || '', subject, examTypeName(examType), examYear].map(norm).join('|');
+
+    function localTotals() {
+        try { const saved = JSON.parse(localStorage.getItem(TOTAL_CACHE_KEY) || '[]'); return Array.isArray(saved) ? saved.filter(isTotal) : []; } catch (_) { return []; }
+    }
+    function storeTotals() { localStorage.setItem(TOTAL_CACHE_KEY, JSON.stringify(results.filter(isTotal))); }
+    function resultId(record) { return String(record?.id || `${record?.studentId || ''}|${record?.subject || ''}|${record?.examType || ''}|${record?.examYear || ''}`); }
+    function mergeResults(primary = [], fallback = []) { const map = new Map(); [...fallback, ...primary].filter(Boolean).forEach(record => map.set(resultId(record), record)); return [...map.values()]; }
+    function totalFor(subject, examType = selectedExamType, examYear = selectedExamYear) { return results.find(record => isTotal(record) && norm(record.classGrade) === norm(selectedClass) && norm(record.subject) === norm(subject) && norm(examTypeName(record.examType)) === norm(examTypeName(examType)) && String(record.examYear || record.session || '') === String(examYear || '')); }
+    function totalValue(subject) { const value = totalFor(subject)?.totalMarks; return Number(value) > 0 ? Number(value) : ''; }
+    function markFor(subject) { return results.find(record => !isTotal(record) && String(record.studentId || '') === String(selectedStudent?.id || '') && norm(record.subject) === norm(subject) && norm(examTypeName(record.examType || record.examName)) === norm(examTypeName(selectedExamType)) && String(record.examYear || record.session || '') === String(selectedExamYear || '')); }
+    function defaultSubjectsForClass() {
+        const className = norm(selectedClass);
+        if (['class nine', 'class 9', '9th', '9'].includes(className)) return classNineSubjects;
+        if (['class 10', 'class ten', '10th', '10'].includes(className)) return classTenSubjects;
+        return standardSubjects;
+    }
+    function availableSubjects() {
+        const studentSubjects = Array.isArray(selectedStudent?.subjects) ? selectedStudent.subjects : String(selectedStudent?.subjects || '').split(/[,|]/);
+        const courseSubjects = courses.filter(course => norm(course.classGrade) === norm(selectedClass) && (!String(course.section || '').trim() || norm(course.section) === norm(selectedSection))).map(course => course.title || course.subject || '');
+        const savedSubjects = results.filter(record => norm(record.classGrade) === norm(selectedClass)).map(record => record.subject || '');
+        return [...new Map([...defaultSubjectsForClass(), ...studentSubjects, ...courseSubjects, ...savedSubjects].map(value => String(value || '').trim()).filter(Boolean).map(value => [norm(value), value])).values()];
+    }
+    function classNames() { return [...new Map(students.map(student => String(student.classGrade || '').trim()).filter(Boolean).map(value => [norm(value), value])).values()].sort(); }
+    function updateSteps() { document.getElementById('classStep').classList.toggle('active', Boolean(selectedClass)); document.getElementById('sectionStep').classList.toggle('active', Boolean(selectedSection)); document.getElementById('studentStep').classList.toggle('active', Boolean(selectedStudent)); }
+    function renderSelectors() {
+        const classes = classNames();
+        classSelect.innerHTML = '<option value="">Select Class</option>' + classes.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+        classSelect.value = selectedClass;
+        const sections = selectedClass ? [...new Map(students.filter(student => norm(student.classGrade) === norm(selectedClass)).map(student => String(student.section || 'General').trim()).filter(Boolean).map(value => [norm(value), value])).values()].sort() : [];
+        sectionSelect.disabled = !sections.length;
+        sectionSelect.innerHTML = '<option value="">Select Section</option>' + sections.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+        sectionSelect.value = selectedSection;
+        const roster = selectedSection ? students.filter(student => norm(student.classGrade) === norm(selectedClass) && norm(student.section || 'General') === norm(selectedSection)) : [];
+        studentSelect.disabled = !roster.length;
+        studentSelect.innerHTML = '<option value="">Select Student</option>' + roster.map(student => `<option value="${esc(student.id)}">${esc(student.fullName || student.name || 'Unnamed Student')}</option>`).join('');
+        studentSelect.value = selectedStudent?.id || '';
+        updateSteps();
+    }
+    function chooseClass() { selectedClass = classSelect.value; selectedSection = ''; selectedStudent = null; editingTotals = false; renderSelectors(); workspace.innerHTML = '<div class="empty-state">Select a section to continue.</div>'; }
+    function chooseSection() { selectedSection = sectionSelect.value; selectedStudent = null; editingTotals = false; renderSelectors(); workspace.innerHTML = '<div class="empty-state">Select a student to enter exam marks.</div>'; }
+    function chooseStudent() { selectedStudent = students.find(student => String(student.id) === String(studentSelect.value)) || null; editingTotals = false; renderSelectors(); renderEditor(); }
+    function updateSummary() {
+        const rows = [...workspace.querySelectorAll('[data-subject]')].map(row => ({ obtained: row.querySelector('.obtain').value, total: row.querySelector('.total').value })).filter(row => row.obtained !== '' && Number(row.total) > 0 && Number.isFinite(Number(row.obtained)));
+        const obtained = rows.reduce((sum, row) => sum + Number(row.obtained), 0); const total = rows.reduce((sum, row) => sum + Number(row.total), 0); const percentage = total > 0 ? Math.round(obtained / total * 100) : null;
+        document.getElementById('summaryObtained').textContent = rows.length ? String(obtained) : '-'; document.getElementById('summaryTotal').textContent = rows.length ? String(total) : '-'; document.getElementById('summaryPercentage').textContent = percentage == null ? '-' : `${percentage}%`; document.getElementById('summaryGrade').textContent = percentage == null ? '-' : gradeFor(percentage);
+    }
+    function renderEditor() {
+        if (!selectedStudent) return;
+        const subjects = availableSubjects(); const totalsReady = subjects.length > 0 && subjects.every(subject => Number(totalValue(subject)) > 0); const isEditing = editingTotals || !totalsReady;
+        const years = [...new Set([selectedExamYear, ...results.map(record => String(record.examYear || record.session || '')).filter(Boolean), ...Array.from({ length: 6 }, (_, index) => String(new Date().getFullYear() - index))])].sort((a, b) => Number(b) - Number(a));
+        const status = totalsReady ? `Shared total marks are saved for ${esc(selectedClass)}, ${esc(selectedExamType)} ${esc(selectedExamYear)}. Enter this student's obtained marks and save the report.` : 'Enter total marks for every subject and save them. Each obtained-marks box opens as soon as its total is valid.';
+        workspace.innerHTML = `<div class="exam-heading"><div><h2>${esc(selectedStudent.fullName || selectedStudent.name || 'Student')}</h2><span class="meta">${esc(selectedClass)} · ${esc(selectedSection)} · Roll No: ${esc(selectedStudent.rollNo || selectedStudent.studentCode || '-')}</span></div></div><div class="exam-filter"><label class="field-label">Report Year<select id="examYear">${years.map(year => `<option value="${esc(year)}">${esc(year)}</option>`).join('')}</select></label><label class="field-label">Exam Type<select id="examType"><option>First Term</option><option>Mid Term</option><option>Third Term</option><option>Final</option></select></label><span class="meta">${status}</span></div><div class="marks-wrap"><table class="marks-table"><thead><tr><th>Subject</th><th>Obtained Marks</th><th>Total Marks</th><th>Grade</th><th>Percentage</th></tr></thead><tbody>${subjects.map(subject => { const total = totalValue(subject); const savedMark = markFor(subject); const obtained = obtainedDrafts.get(draftId(subject)) ?? savedMark?.obtainedMarks ?? ''; const percentage = Number(total) > 0 && obtained !== '' ? Math.round(Number(obtained) / Number(total) * 100) : ''; return `<tr data-subject="${esc(subject)}"><td class="subject-name">${esc(subject)}</td><td><input class="obtain" type="number" min="0" step="1" aria-label="${esc(subject)} obtained marks" value="${esc(obtained)}" ${Number(total) > 0 ? '' : 'disabled title="Enter total marks first"'}></td><td><input class="total" type="number" min="1" step="1" aria-label="${esc(subject)} total marks" value="${esc(total)}" ${isEditing ? '' : 'readonly'}></td><td class="grade">${percentage === '' ? '-' : gradeFor(percentage)}</td><td class="percentage">${percentage === '' ? '-' : `${percentage}%`}</td></tr>`; }).join('')}<tr class="totals-row"><th>All Subjects</th><th id="summaryObtained">-</th><th id="summaryTotal">-</th><th id="summaryGrade">-</th><th id="summaryPercentage">-</th></tr></tbody></table></div><div class="actions"><button type="button" class="action-button secondary" id="saveTotals">${isEditing ? '<i data-lucide="save" width="18"></i> Save Total Marks' : '<i data-lucide="pencil" width="18"></i> Edit Total Marks'}</button><button type="button" class="action-button" id="saveReport" ${totalsReady && !isEditing ? '' : 'disabled'}><i data-lucide="file-check-2" width="18"></i> Save Student Report</button></div>`;
+        document.getElementById('examYear').value = selectedExamYear; document.getElementById('examType').value = selectedExamType;
+        document.getElementById('examYear').onchange = event => { selectedExamYear = event.target.value; editingTotals = false; renderEditor(); };
+        document.getElementById('examType').onchange = event => { selectedExamType = event.target.value; editingTotals = false; renderEditor(); };
+        document.getElementById('saveTotals').onclick = () => { if (totalsReady && !isEditing) { editingTotals = true; renderEditor(); } else saveTotals(subjects); };
+        document.getElementById('saveReport').onclick = () => saveReport(subjects);
+        workspace.querySelectorAll('[data-subject]').forEach(row => {
+            const subject = row.dataset.subject, obtain = row.querySelector('.obtain'), total = row.querySelector('.total'), grade = row.querySelector('.grade'), percentage = row.querySelector('.percentage');
+            const update = () => { const totalNumber = Number(total.value), obtainedNumber = Number(obtain.value), calculated = totalNumber > 0 && obtain.value !== '' ? Math.round(obtainedNumber / totalNumber * 100) : null; obtain.disabled = !Number.isInteger(totalNumber) || totalNumber <= 0; if (obtain.disabled) obtain.title = 'Enter total marks first'; else obtain.removeAttribute('title'); percentage.textContent = calculated == null ? '-' : `${calculated}%`; grade.textContent = calculated == null ? '-' : gradeFor(calculated); updateSummary(); };
+            obtain.oninput = () => { obtainedDrafts.set(draftId(subject), obtain.value); update(); };
+            total.oninput = update; update();
+        });
+        updateSummary(); if (window.lucide) lucide.createIcons();
+    }
+    async function postResult(record) { const response = await fetch(`${apiBase}/student-results`, { method:'POST', headers:headers(), body:JSON.stringify(record) }); const data = await response.json().catch(() => ({})); if (!response.ok || data.success === false) throw new Error(data.message || 'Marks could not be saved.'); return data.result || record; }
+    async function saveTotals(subjects) {
+        const records = [];
+        for (const row of workspace.querySelectorAll('[data-subject]')) { const subject = row.dataset.subject, raw = row.querySelector('.total').value.trim(), total = Number(raw); if (raw === '' || !Number.isInteger(total) || total <= 0) { showAppAlert(`Enter a valid whole-number total for ${subject}.`, 'Total Marks Required'); row.querySelector('.total').focus(); return; } records.push({ id:idForTotal(subject), recordType:TOTAL_RECORD_TYPE, studentId:'__class_total__', studentName:'', classGrade:selectedClass, section:'', subject, examType:selectedExamType, examYear:selectedExamYear, examName:selectedExamType, session:selectedExamYear, obtainedMarks:null, totalMarks:total, grade:'', percentage:0, performanceDate:today() }); }
+        try { const saved = await Promise.all(records.map(postResult)); results = mergeResults(saved, results); storeTotals(); editingTotals = false; renderEditor(); showSuccessModal('Total Marks Saved', `Totals are now shared for all ${selectedClass} students in ${selectedExamType} ${selectedExamYear}.`); } catch (error) { showAppAlert(error.message || 'Total marks could not be saved.', 'Save Failed'); }
+    }
+    async function saveReport(subjects) {
+        if (!subjects.every(subject => Number(totalValue(subject)) > 0)) { showAppAlert('Save total marks for every subject first.', 'Total Marks Required'); return; }
+        const records = [];
+        for (const row of workspace.querySelectorAll('[data-subject]')) { const subject = row.dataset.subject, raw = row.querySelector('.obtain').value.trim(), obtained = Number(raw), total = Number(totalValue(subject)); if (raw === '' || !Number.isInteger(obtained) || obtained < 0 || obtained > total) { showAppAlert(`Enter obtained marks from 0 to ${total} for ${subject}.`, 'Obtained Marks Required'); row.querySelector('.obtain').focus(); return; } const percentage = Math.round(obtained / total * 100); records.push({ id:idForMark(subject), studentId:String(selectedStudent.id), studentName:selectedStudent.fullName || selectedStudent.name || '', classGrade:selectedClass, section:selectedSection, subject, examType:selectedExamType, examYear:selectedExamYear, examName:selectedExamType, session:selectedExamYear, obtainedMarks:obtained, totalMarks:total, grade:gradeFor(percentage), percentage, performanceDate:today() }); }
+        try { const saved = await Promise.all(records.map(postResult)); results = mergeResults(saved, results); subjects.forEach(subject => obtainedDrafts.delete(draftId(subject))); renderEditor(); showSuccessModal('Report Saved', `${selectedStudent.fullName || selectedStudent.name || 'Student'}'s report has been saved.`); } catch (error) { showAppAlert(error.message || 'Student report could not be saved.', 'Save Failed'); }
+    }
+    async function init() {
+        try {
+            const [studentResponse, resultResponse, courseResponse] = await Promise.all([fetch(`${apiBase}/students`, { cache:'no-store' }), fetch(`${apiBase}/student-results`, { headers:headers(), cache:'no-store' }), fetch(`${apiBase}/student-courses`, { headers:headers(), cache:'no-store' })]);
+            const studentData = await studentResponse.json().catch(() => ({})); const resultData = await resultResponse.json().catch(() => ({})); const courseData = await courseResponse.json().catch(() => ({}));
+            if (!studentResponse.ok) throw new Error('Students could not be loaded.'); students = Array.isArray(studentData) ? studentData : Array.isArray(studentData.students) ? studentData.students : [];
+            const remoteResults = Array.isArray(resultData.results) ? resultData.results : []; results = mergeResults(remoteResults, localTotals()); storeTotals(); courses = Array.isArray(courseData.courses) ? courseData.courses : [];
+            renderSelectors();
+        } catch (error) { workspace.innerHTML = `<div class="empty-state">${esc(error.message || 'Exam data could not be loaded.')} Reload the page after checking the server connection.</div>`; }
+    }
+    classSelect.onchange = chooseClass; sectionSelect.onchange = chooseSection; studentSelect.onchange = chooseStudent; init(); if (window.lucide) lucide.createIcons();
+})();
+</script>
+</body>
+</html>

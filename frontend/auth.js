@@ -173,6 +173,8 @@ if (window.Capacitor?.isNativePlatform?.()) {
         'exams.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Exams', icon: 'clipboard-list' },
         'exam_schedule.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Exam Schedule', icon: 'calendar-days' },
         'exam_result.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Result', icon: 'file-badge' },
+        'student_exams.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Student Exams', icon: 'clipboard-list' },
+        'exam_reports.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Examination Reports', icon: 'file-text' },
         'testing_result.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Testing Result', icon: 'clipboard-check' },
         'exam_result_history.html': { moduleKey: 'exams', defaultHome: 'dashboard.html', label: 'Student Result History', icon: 'history' },
         'revenue.html': { moduleKey: 'revenue', defaultHome: 'dashboard.html', label: 'Revenue', icon: 'trending-up' },
@@ -833,6 +835,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
                     ]
                 },
                 { type: 'link', page: 'student_scheduling.html', label: 'Students Scheduling', icon: 'calendar-clock' },
+                { type: 'link', page: 'exam_reports.html', label: 'Examination Reports', icon: 'file-text' },
                 { type: 'link', page: 'teacher_scheduling.html', label: 'Teachers Scheduling', icon: 'calendar-days' },
                 {
                     type: 'dropdown',
