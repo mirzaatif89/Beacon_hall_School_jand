@@ -49,7 +49,7 @@ if ($IncludeNodeModules) {
 
 $allFiles = Get-ChildItem -Path $projectRoot -Recurse -File -Force
 $filesToPack = $allFiles | Where-Object {
-    $relative = $_.FullName.Substring($projectRoot.Length).TrimStart('\', '/')
+    $relative = $_.FullName.Substring($projectRoot.Length).TrimStart('\', '/').Replace('\', '/')
     if ($excludePrefixes | Where-Object { $relative.StartsWith($_, [System.StringComparison]::OrdinalIgnoreCase) }) {
         return $false
     }
