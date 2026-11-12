@@ -37,10 +37,22 @@
     const classInput = document.getElementById('reportClass'), sectionInput = document.getElementById('reportSection'), studentInput = document.getElementById('reportStudent'), examInput = document.getElementById('reportExam'), reportCard = document.getElementById('reportCard'), printButton = document.getElementById('printReport');
     const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
     const norm = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const subjectKey = value => norm(value) === 'math' ? 'mathematics' : norm(value);
+    const canonicalSubject = value => subjectKey(value) === 'mathematics' ? 'Mathematics' : String(value || '').trim();
     const typeName = value => typeof normalizeSchoolExamType === 'function' ? normalizeSchoolExamType(value) : String(value || '').trim();
     const gradeFor = percentage => percentage >= 90 ? 'A+' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : percentage >= 60 ? 'C' : percentage >= 50 ? 'D' : 'F';
     const unique = values => [...new Map(values.map(value => String(value || '').trim()).filter(Boolean).map(value => [norm(value), value])).values()].sort();
-    const reportRows = () => results.filter(record => String(record?.recordType || '') !== '__class_subject_total__' && String(record?.studentId || '') === String(studentInput.value || '') && record?.subject && record?.obtainedMarks !== '' && record?.obtainedMarks != null);
+    const reportRows = () => {
+        const latestBySubject = new Map();
+        results.filter(record => String(record?.recordType || '') !== '__class_subject_total__' && String(record?.studentId || '') === String(studentInput.value || '') && record?.subject && record?.obtainedMarks !== '' && record?.obtainedMarks != null).forEach(record => {
+            const year = String(record.examYear || record.session || '');
+            const type = norm(typeName(record.examType || record.examName || 'Exam'));
+            const key = `${subjectKey(record.subject)}|${type}|${year}`;
+            const current = latestBySubject.get(key);
+            if (!current || String(record.updatedAt || record.createdAt || record.id || '') > String(current.updatedAt || current.createdAt || current.id || '')) latestBySubject.set(key, { ...record, subject: canonicalSubject(record.subject) });
+        });
+        return [...latestBySubject.values()];
+    };
     function populateClasses() { const selected = classInput.value; const classes = unique(students.map(student => student.classGrade)); classInput.innerHTML = '<option value="">All Classes</option>' + classes.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join(''); classInput.value = classes.some(value => norm(value) === norm(selected)) ? selected : ''; }
     function populateSections() { const selected = sectionInput.value; const sections = unique(students.filter(student => !classInput.value || norm(student.classGrade) === norm(classInput.value)).map(student => student.section || 'General')); sectionInput.disabled = !sections.length; sectionInput.innerHTML = '<option value="">All Sections</option>' + sections.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join(''); sectionInput.value = sections.some(value => norm(value) === norm(selected)) ? selected : ''; }
     function populateStudents() { const selected = studentInput.value; const list = students.filter(student => (!classInput.value || norm(student.classGrade) === norm(classInput.value)) && (!sectionInput.value || norm(student.section || 'General') === norm(sectionInput.value))); studentInput.disabled = !list.length; studentInput.innerHTML = '<option value="">Select Student</option>' + list.map(student => `<option value="${esc(student.id)}">${esc(student.fullName || student.name || 'Unnamed Student')} — ${esc(student.classGrade || '-')} ${esc(student.section || '')}</option>`).join(''); studentInput.value = list.some(student => String(student.id) === String(selected)) ? selected : ''; }
