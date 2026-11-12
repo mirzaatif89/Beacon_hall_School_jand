@@ -123,9 +123,9 @@ jobs:
             done
 
             test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$BRANCH)"
-            test -f frontend/student_performance.html
-            grep -q "filters:v5-simple-student-lists" frontend/script.js
-            grep -q "databaseStatus" backend/server.js
+            test -f frontend/student_exams.html
+            grep -q "const standardSubjects" frontend/student_exams.html
+            grep -q "student-results" backend/server.js
 
       - name: Restart cPanel Passenger application
         uses: appleboy/ssh-action@v1.2.0
