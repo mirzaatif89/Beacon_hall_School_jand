@@ -3606,6 +3606,7 @@ function renderAdminSidebarSequence() {
     const currentPage = getCurrentPageName();
     const schedulingNavPages = {
         'student_scheduling.html': new Set([
+            'weekly_tests.html',
             'student_scheduling.html',
             'assignments.html',
             'assignment_uploading.html',
@@ -3678,6 +3679,8 @@ function renderAdminSidebarSequence() {
         },
         { type: 'link', page: 'student_scheduling.html', label: 'Students Scheduling', icon: 'calendar-clock' },
         { type: 'link', page: 'exam_reports.html', label: 'Examination Reports', icon: 'file-text' },
+        { type: 'link', page: 'weekly_test_report.html', label: 'Weekly Test Report', icon: 'calendar-check' },
+        { type: 'link', page: 'certificate.html', label: 'Certificate', icon: 'award' },
         { type: 'link', page: 'teacher_scheduling.html', label: 'Teachers Scheduling', icon: 'calendar-days' },
         {
             type: 'dropdown',
@@ -3754,7 +3757,7 @@ function ensureSchedulingNav() {
     if (navLinks.querySelector('[data-scheduling-nav]')) return;
 
     const currentPage = getCurrentPageName();
-    const studentSchedulingPages = ['student_scheduling.html', 'assignments.html', 'assignment_uploading.html', 'student_timetable.html', 'student_diary.html', 'student_leave_requests.html', 'student_courses.html', 'student_performance.html', 'student_full_report.html', 'quiz_uploading.html', 'lecture_uploading.html', 'exam_schedule.html', 'stuck_off.html'];
+    const studentSchedulingPages = ['weekly_tests.html', 'student_scheduling.html', 'assignments.html', 'assignment_uploading.html', 'student_timetable.html', 'student_diary.html', 'student_leave_requests.html', 'student_courses.html', 'student_performance.html', 'student_full_report.html', 'quiz_uploading.html', 'lecture_uploading.html', 'exam_schedule.html', 'stuck_off.html'];
     const isStudentSchedulingPage = studentSchedulingPages.includes(currentPage);
     const teacherSchedulingPages = ['teacher_scheduling.html', 'teacher_timetable.html', 'teacher_assigned_classes.html', 'teacher_leave_requests.html'];
     const isTeacherSchedulingPage = teacherSchedulingPages.includes(currentPage);

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Weekly Test - Beacon Light School System</title>
+<link rel="icon" href="images/logo.jpeg"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="student_schedule_theme.css"><link rel="stylesheet" href="weekly_tests.css">
+<script src="https://unpkg.com/lucide@latest"></script></head>
+<body data-weekly-mode="entry"><div class="dashboard-container"><aside class="sidebar">
+            <div class="logo-section">
+                <img class="sidebar-logo-img" src="images/logo.jpeg" alt="Beacon Light School System logo">
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+                <a href="students.html" class="nav-item"><i data-lucide="users"></i><span>Students</span></a>
+                <a href="teachers.html" class="nav-item"><i data-lucide="book-open"></i><span>Teachers</span></a>
+                <a href="staff.html" class="nav-item"><i data-lucide="briefcase"></i><span>Staff</span></a>
+                <a href="classes.html" class="nav-item"><i data-lucide="school"></i><span>Classes</span></a>
+                <a href="fees.html" class="nav-item"><i data-lucide="credit-card"></i><span>Fees</span></a>
+                <a href="fee_challan.html" class="nav-item"><i data-lucide="file-text"></i><span>Fee Challan</span></a>
+                <a href="teacher_salaries.html" class="nav-item"><i data-lucide="wallet"></i><span>Salaries</span></a>
+                <a href="exams.html" class="nav-item"><i data-lucide="clipboard-list"></i><span>Exams</span></a>
+                <a href="revenue.html" class="nav-item"><i data-lucide="trending-up"></i><span>Revenue</span></a>
+                <a href="permissions.html" class="nav-item"><i data-lucide="shield"></i><span>Permissions</span></a>
+                <a href="aboutme.html" class="nav-item"><i data-lucide="info"></i><span>About Us</span></a>
+                <a href="#" class="nav-item" onclick="logoutUser(event)"><i data-lucide="log-out"></i><span>Logout</span></a>
+            </nav>
+            <a href="settings.html" class="user-profile">
+                <div class="avatar">AD</div>
+                <div class="user-info"><h4>Admin User</h4><p>Principal</p></div>
+            </a>
+        </aside><main class="main-content">
+<header class="header"><div><h1>Weekly Test</h1><p>Select a week, class, and student to enter subject marks.</p></div></header>
+<section class="schedule-shell">
+<a class="btn btn-outline" href="student_scheduling.html">Back to Student Scheduling</a>
+<div class="weekly-filters"><label>Month<input id="weeklyMonth" type="month" required></label></div>
+<h2 id="weeklyMonthTitle"></h2><div class="schedule-hub-grid" id="weeklyCards"></div>
+<div id="weeklyWorkspace" hidden><h2 id="weeklyHeading">Report Filters</h2>
+<div class="weekly-filters"><label>Class<select id="weeklyClass"><option value="">Select Class</option></select></label><label>Section<select id="weeklySection"><option value="">All Sections</option></select></label><label>Student<select id="weeklyStudent"><option value="">Select Student</option></select></label></div>
+<form id="weeklyMarksForm"><div class="table-container"><table><thead><tr><th>Subject</th><th>Total Marks</th><th>Obtained Marks</th></tr></thead><tbody id="weeklyMarksBody"></tbody></table></div><p>Enter the subjects tested this week. Blank obtained marks are left unsaved; zero is saved as a mark.</p><button class="btn btn-primary" id="weeklySave" type="submit" disabled>Save Marks</button></form>
+</div><p id="weeklyStatus" role="status" aria-live="polite">Loading weekly tests...</p><button id="weeklyRetry" class="btn btn-outline" type="button" hidden>Retry Loading</button></section></main></div>
+<script src="auth.js?v=20261118-weekly-tests"></script><script src="script.js?v=20261118-weekly-tests"></script><script src="student_schedule_sections.js"></script><script src="weekly_tests.js"></script></body></html>

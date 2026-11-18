@@ -1,0 +1,31 @@
+
+            @page { size: A4 landscape; margin: 8mm; }
+            @media screen { body { min-width: 900px; } }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #17304a; font-family: Arial, sans-serif; font-size: 10px; }
+            .report-card { border: 1.5px solid #0f766e; border-radius: 8px; overflow: hidden; }
+            .heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 15px; color: #fff; background: linear-gradient(120deg, #064e4a, #16837a); }
+            .school-identity { display: flex; align-items: center; gap: 10px; }
+            .logo { width: 43px; height: 43px; padding: 2px; object-fit: contain; border-radius: 7px; background: #fff; }
+            h1 { margin: 0 0 3px; font-size: 18px; letter-spacing: .01em; }
+            .subtitle, .meta { margin: 0; font-size: 10px; }
+            .subtitle { opacity: .88; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
+            .meta { text-align: right; line-height: 1.65; }
+            .filters { margin: 0; padding: 7px 12px; color: #234b5a; background: #e9f7f4; border-bottom: 1px solid #a9d8d0; font-size: 9px; font-weight: 700; }
+            .table-wrap { padding: 10px; overflow: hidden; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 8px; }
+            th, td { padding: 6px 4px; border: 1px solid #aac7c2; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+            th { color: #143f3a; background: #d9eeea; font-size: 7px; text-transform: uppercase; letter-spacing: .025em; }
+            th.subject { text-align: center; background: #e7f4e7; }
+            td.number { width: 20px; text-align: center; }
+            td.mark, td.total-mark, td.obtained-mark, td.percentage { text-align: center; font-weight: 700; }
+            td.mark { color: #1f4d3c; }
+            td.total-mark { background: #f2f7f6; }
+            td.obtained-mark { color: #075f4d; background: #e8f5ee; }
+            td.percentage { color: #7a5514; background: #fff7dd; }
+            td.empty { padding: 24px 8px; color: #526476; text-align: center; }
+            tbody tr:nth-child(even) { background: #f8fbfa; }
+            .legend { margin: 0 10px 10px; color: #4a6271; font-size: 8px; text-align: right; }
+            .footer { display: flex; justify-content: space-between; gap: 12px; padding: 7px 12px; color: #45616a; background: #f0f8f6; border-top: 1px solid #c2dfd9; font-size: 8px; }
+            thead { display: table-header-group; } tr { break-inside: avoid; }
+        

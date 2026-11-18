@@ -1,0 +1,20 @@
+.weekly-filters { display:flex; flex-wrap:wrap; gap:1rem; margin:1.25rem 0; }
+.weekly-filters label { display:flex; flex-direction:column; gap:.4rem; flex:1 1 180px; font-weight:600; }
+.weekly-filters input, .weekly-filters select, #weeklyMarksBody input { min-height:42px; padding:.6rem; border:1px solid var(--border-color); border-radius:8px; background:var(--surface-color); color:var(--text-primary); width:100%; }
+#weeklyMarksBody input { min-width:85px; max-width:160px; }
+#weeklyWorkspace { margin-top:1.5rem; }
+#weeklyWorkspace[hidden], #weeklyPreview[hidden] { display:none; }
+#weeklyMarksForm p, #weeklyStatus { margin:1rem 0; color:var(--text-secondary); }
+#weeklyStatus[data-error="true"] { color:#b91c1c; }
+.weekly-actions { display:flex; flex-wrap:wrap; gap:.75rem; margin:1rem 0; }
+.weekly-actions .btn { min-width:140px; white-space:nowrap; justify-content:center; }
+#weeklyPreview { width:100%; height:580px; border:1px solid var(--border-color); border-radius:10px; background:white; }
+.weekly-week-card { text-align:left; cursor:pointer; font:inherit; background:var(--surface-color); }
+.weekly-week-card[aria-pressed="true"] { border:2px solid var(--primary-color); }
+@media(max-width:600px) { .weekly-filters label { flex-basis:100%; } .weekly-actions .btn { flex:1; } }
+@media(max-width:900px) {
+    html, body { height:auto !important; overflow-y:auto !important; }
+    body { display:block !important; }
+    .dashboard-container { position:relative; inset:auto; height:auto !important; overflow:visible !important; }
+    .dashboard-container .main-content { height:auto !important; overflow:visible !important; }
+}

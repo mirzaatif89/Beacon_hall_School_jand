@@ -3702,6 +3702,19 @@ registerMobileCollectionRoutes({ route: 'uploaded-assignments', storeName: 'uplo
 registerMobileCollectionRoutes({ route: 'uploaded-lectures', storeName: 'uploaded_lectures', recordsKey: 'lectures', itemKey: 'lecture', prefix: 'LECTURE' });
 registerMobileCollectionRoutes({ route: 'student-quizzes', storeName: 'student_quizzes', recordsKey: 'quizzes', itemKey: 'quiz', prefix: 'QUIZ' });
 registerMobileCollectionRoutes({ route: 'student-quiz-submissions', storeName: 'student_quiz_submissions', recordsKey: 'submissions', itemKey: 'submission', prefix: 'QUIZ-SUB' });
+// Weekly tests have their own store and never enter examination results.
+app.get('/api/weekly-tests', (req, res) => {
+    res.json({ success: true, tests: readMobileStore('weekly_tests') });
+});
+app.post('/api/weekly-tests', (req, res) => {
+    try {
+        const { validateWeeklyTest } = require('../api/_lib/weeklyTests');
+        const { record } = upsertMobileRecord('weekly_tests', validateWeeklyTest(req.body), 'WEEKLY');
+        res.json({ success: true, test: record });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    }
+});
 registerMobileCollectionRoutes({ route: 'student-results', storeName: 'student_results', recordsKey: 'results', itemKey: 'result', prefix: 'RESULT' });
 registerMobileCollectionRoutes({ route: 'student-syllabus', storeName: 'student_syllabus', recordsKey: 'syllabus', itemKey: 'syllabusItem', prefix: 'SYL' });
 

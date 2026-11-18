@@ -125,6 +125,8 @@ if (window.Capacitor?.isNativePlatform?.()) {
         'dashboard.html': { moduleKey: 'dashboard', defaultHome: 'dashboard.html', label: 'Dashboard', icon: 'layout-dashboard' },
         'students.html': { moduleKey: 'students', defaultHome: 'students.html', label: 'Students', icon: 'users' },
         'families.html': { moduleKey: 'families', defaultHome: 'dashboard.html', label: 'Families', icon: 'home' },
+        'weekly_tests.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Weekly Test', icon: 'calendar-check' },
+        'weekly_test_report.html': { moduleKey: 'students', defaultHome: 'dashboard.html', label: 'Weekly Test Report', icon: 'file-chart-column' },
         'student_scheduling.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Student Scheduling', icon: 'calendar-clock' },
         'assignments.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Assignments', icon: 'upload' },
         'assignment_uploading.html': { moduleKey: 'student_scheduling', defaultHome: 'dashboard.html', label: 'Upload Assignments', icon: 'file-up' },
@@ -763,7 +765,8 @@ if (window.Capacitor?.isNativePlatform?.()) {
 
             const schedulingNavPages = {
                 'student_scheduling.html': new Set([
-                    'student_scheduling.html',
+                    'weekly_tests.html',
+            'student_scheduling.html',
                     'assignments.html',
                     'assignment_uploading.html',
                     'student_timetable.html',
@@ -836,6 +839,8 @@ if (window.Capacitor?.isNativePlatform?.()) {
                 },
                 { type: 'link', page: 'student_scheduling.html', label: 'Students Scheduling', icon: 'calendar-clock' },
                 { type: 'link', page: 'exam_reports.html', label: 'Examination Reports', icon: 'file-text' },
+        { type: 'link', page: 'weekly_test_report.html', label: 'Weekly Test Report', icon: 'calendar-check' },
+        { type: 'link', page: 'certificate.html', label: 'Certificate', icon: 'award' },
                 { type: 'link', page: 'teacher_scheduling.html', label: 'Teachers Scheduling', icon: 'calendar-days' },
                 {
                     type: 'dropdown',

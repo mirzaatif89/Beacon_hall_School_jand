@@ -9,6 +9,7 @@
     const path = (page, hash = '') => `/${String(page || '').replace(/\.html$/i, '')}${hash || ''}`;
     const schedulingNavPages = {
         student_scheduling: new Set([
+            'weekly_tests',
             'student_scheduling',
             'assignments',
             'assignment_uploading',
@@ -78,6 +79,8 @@
         },
         { type: 'link', page: 'student_scheduling', label: 'Students Scheduling', icon: 'calendar-clock' },
         { type: 'link', page: 'exam_reports', label: 'Examination Reports', icon: 'file-text' },
+        { type: 'link', page: 'weekly_test_report', label: 'Weekly Test Report', icon: 'calendar-check' },
+        { type: 'link', page: 'certificate', label: 'Certificate', icon: 'award' },
         { type: 'link', page: 'teacher_scheduling', label: 'Teachers Scheduling', icon: 'calendar-days' },
         {
             type: 'dropdown',

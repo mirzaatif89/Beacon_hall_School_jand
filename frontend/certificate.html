@@ -25,12 +25,36 @@
         .certificate-name { font-size:28px; font-weight:900; color:#0f766e; border-bottom:1px solid #94a3b8; display:inline-block; padding:0 30px 6px; margin:10px 0; }
         .certificate-sign { display:flex; justify-content:space-between; gap:2rem; margin-top:44px; text-align:center; }
         .certificate-sign div { flex:1; border-top:1px solid #111827; padding-top:8px; font-weight:800; }
+        @media (max-width:900px) {
+            html, body { height:auto !important; overflow-y:auto !important; }
+            body { display:block !important; }
+            .dashboard-container { position:relative; inset:auto; height:auto !important; min-height:100dvh; overflow:visible !important; }
+            .dashboard-container .main-content { height:auto !important; overflow:visible !important; }
+        }
+        @media (max-width:600px) {
+            .certificate-sheet { padding:16px; border-width:5px; }
+            .certificate-head { grid-template-columns:48px 1fr 48px; gap:8px; }
+            .certificate-logo { width:48px; height:48px; }
+            .certificate-head h1 { font-size:20px; }
+            .certificate-title { font-size:20px; }
+            .certificate-body { font-size:16px; }
+            .certificate-name { font-size:24px; padding:0 8px 6px; }
+            .certificate-grid { grid-template-columns:minmax(0,1fr); }
+        }
         @media print {
+            @page { size:A4 landscape; margin:10mm; }
+            html, body { height:auto !important; overflow:visible !important; background:white !important; }
+            .dashboard-container { position:static; inset:auto; display:block !important; height:auto !important; overflow:visible !important; }
+            .sidebar, .header, .main-content > .module-panel:first-of-type { display:none !important; }
+            .main-content { margin:0 !important; padding:0 !important; width:100% !important; height:auto !important; overflow:visible !important; }
+            .module-panel { border:0; padding:0; margin:0; box-shadow:none; }
             body * { visibility:hidden; }
             #certificatePreview, #certificatePreview * { visibility:visible; }
-            #certificatePreview { position:absolute; inset:0; margin:0; max-width:none; border-width:8px; }
+            #certificatePreview { position:relative; margin:0; max-width:none; border-width:8px; break-inside:avoid; }
         }
     </style>
+
+
 </head>
 
 <body>
@@ -61,15 +85,11 @@
                 <p>Create and print certificates with the saved school logo, name, and title.</p>
                 <form id="certificateForm" class="certificate-grid">
                     <label>Certificate Type
-                        <select id="certificateType">
-                            <option>Certificate of Achievement</option>
-                            <option>Character Certificate</option>
-                            <option>School Leaving Certificate</option>
-                            <option>Participation Certificate</option>
-                        </select>
+                        <select id="certificateType"></select>
                     </label>
-                    <label>Student Name<input type="text" id="certificateStudentName" placeholder="Student name"></label>
-                    <label>Class<input type="text" id="certificateClass" placeholder="Class"></label>
+                    <label><span id="certificateRecipientLabel">Select Student (Optional)</span><select id="certificateRecipient"><option value="">Enter name manually</option></select></label>
+                    <label><span id="certificateNameLabel">Student Name</span><input type="text" id="certificateStudentName" placeholder="Student name"></label>
+                    <label><span id="certificateDetailLabel">Class</span><input type="text" id="certificateClass" placeholder="Class"></label>
                     <label>Date<input type="date" id="certificateDate"></label>
                     <label style="grid-column:1/-1;">Certificate Text
                         <textarea id="certificateText">This is to certify that the student has successfully completed the required academic work and demonstrated good conduct.</textarea>
@@ -84,44 +104,9 @@
             </section>
         </main>
     </div>
-    <script src="auth.js?v=20260814-live-auth-fix1"></script>
-    <script src="script.js?v=20260814-local-runtime-fix6"></script>
-    <script>
-        function renderCertificatePreview() {
-            const branding = typeof getBrandingSettings === 'function' ? getBrandingSettings() : {};
-            const logoSrc = typeof getBrandingLogoSrc === 'function' ? getBrandingLogoSrc() : 'images/logo.jpeg';
-            const schoolName = 'Beacon Light School System';
-            const dateValue = certificateDate.value ? new Date(certificateDate.value).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
-            certificatePreview.innerHTML = `
-                <div class="certificate-head">
-                    <img class="certificate-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(schoolName)} logo">
-                    <div>
-                        <h1>${escapeHtml(schoolName)}</h1>
-                        <p>${escapeHtml(schoolName)}</p>
-                    </div>
-                    <img class="certificate-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(schoolName)} logo">
-                </div>
-                <div class="certificate-title">${escapeHtml(certificateType.value || 'Certificate')}</div>
-                <div class="certificate-body">
-                    <div>This certificate is awarded to</div>
-                    <div class="certificate-name">${escapeHtml(certificateStudentName.value || 'Student Name')}</div>
-                    <div>Class: <strong>${escapeHtml(certificateClass.value || '-')}</strong></div>
-                    <div>${escapeHtml(certificateText.value || '-')}</div>
-                    <div>Date: <strong>${escapeHtml(dateValue)}</strong></div>
-                </div>
-                <div class="certificate-sign">
-                    <div>${escapeHtml(certificatePreparedBy.value || 'Administration')}</div>
-                    <div>${escapeHtml(certificatePrincipal.value || 'Principal')}</div>
-                </div>
-            `;
-        }
-        certificateDate.value = new Date().toISOString().slice(0, 10);
-        certificateForm.addEventListener('input', renderCertificatePreview);
-        certificateForm.addEventListener('change', renderCertificatePreview);
-        printCertificateBtn.addEventListener('click', () => { renderCertificatePreview(); window.print(); });
-        renderCertificatePreview();
-        if (window.lucide) window.lucide.createIcons();
-    </script>
+    <script src="auth.js?v=20261002-sidebar-facility-nav1"></script>
+    <script src="script.js?v=20261002-sidebar-facility-nav1"></script>
+    <script src="certificate.js?v=20261118-certificates"></script>
 </body>
 
 </html>
