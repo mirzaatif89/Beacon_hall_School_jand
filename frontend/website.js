@@ -83,7 +83,7 @@
     });
     const art = document.querySelector(".hero-art");
     const book = document.querySelector(".book");
-    art.addEventListener("pointermove", (event) => {
+    if (art && book) art.addEventListener("pointermove", (event) => {
       if (reduceMotion.matches) return;
       const rect = art.getBoundingClientRect();
       const x = (event.clientX - rect.left) / rect.width - 0.5;
@@ -92,7 +92,7 @@
         12 - y * 14
       }deg) rotateZ(-11deg)`;
     });
-    art.addEventListener("pointerleave", () => {
+    if (art && book) art.addEventListener("pointerleave", () => {
       book.style.transform = "";
     });
   }
