@@ -3677,6 +3677,7 @@ function renderAdminSidebarSequence() {
             ]
         },
         { type: 'link', page: 'student_scheduling.html', label: 'Students Scheduling', icon: 'calendar-clock' },
+        { type: 'link', page: 'exam_reports.html', label: 'Examination Reports', icon: 'file-text' },
         { type: 'link', page: 'teacher_scheduling.html', label: 'Teachers Scheduling', icon: 'calendar-days' },
         {
             type: 'dropdown',
@@ -5106,10 +5107,24 @@ function updateDashboardStats() {
     if (document.getElementById('dashStaffCount')) document.getElementById('dashStaffCount').innerText = staffMembers.length || '0';
 
     updateDashboardRevenueStats(students);
+    updateDashboardActivityStats();
 
     updateDashboardComplaintStats();
     updateDashboardBannerStats();
     updateActivePortalLogins();
+}
+
+function updateDashboardActivityStats() {
+    const notifications = getArrayData(STORAGE_KEY_NOTIFICATIONS);
+    const visitors = getArrayData('eduCore_visitor_books');
+    const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    };
+    setText('dashNotificationCount', notifications.length);
+    setText('dashNotificationDetail', `${notifications.length} saved notifications`);
+    setText('dashVisitorCount', visitors.length);
+    setText('dashVisitorDetail', `${visitors.length} recorded visitors`);
 }
 
 function updateDashboardComplaintStats() {
@@ -10081,6 +10096,7 @@ function pushNotification(title, message, type = 'info') {
 }
 
 function renderNotifications() {
+    updateDashboardActivityStats();
     const list = document.getElementById('notificationList');
     const badge = document.getElementById('notifBadge');
     const panel = document.getElementById('notificationPanel');

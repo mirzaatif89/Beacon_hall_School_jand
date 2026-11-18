@@ -77,6 +77,7 @@
             ]
         },
         { type: 'link', page: 'student_scheduling', label: 'Students Scheduling', icon: 'calendar-clock' },
+        { type: 'link', page: 'exam_reports', label: 'Examination Reports', icon: 'file-text' },
         { type: 'link', page: 'teacher_scheduling', label: 'Teachers Scheduling', icon: 'calendar-days' },
         {
             type: 'dropdown',

@@ -3551,3 +3551,74 @@ td {
 #teachersTable th:last-child, #teachersTable td:last-child, #staffTable th:last-child, #staffTable td:last-child { width: 105px !important; min-width: 105px !important; overflow: visible !important; text-overflow: clip !important; }
 .table-action-select, .staff-action-select { display: inline-block !important; visibility: visible !important; opacity: 1 !important; }
 @media (max-width: 1100px) { .teacher-table-container th, .teacher-table-container td, .staff-table-container th, .staff-table-container td, #studentsTable th, #studentsTable td { padding: .42rem .3rem !important; font-size: .7rem; } }
+/* Teal overview and coordinated navigation accents. */
+body:has(#dashboardStatsGrid) .main-content {
+    background: radial-gradient(ellipse at top right, #dcf2ef, transparent 65%), #edf8f7;
+}
+#dashboardStatsGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+    max-width: none;
+}
+#dashboardStatsGrid > .card {
+    --card-accent: #19b4ae;
+    background: #fff;
+    border: 1px solid #d3e8e5;
+    border-top: 3px solid var(--card-accent);
+    border-radius: 13px;
+    height: auto;
+    min-height: 148px;
+    padding: 16px;
+    text-decoration: none;
+    box-shadow: 0 5px 16px #155d5610;
+}
+#dashboardStatsGrid > .card:nth-child(5n + 2) { --card-accent: #e3bd55; }
+#dashboardStatsGrid > .card:nth-child(5n + 3) { --card-accent: #43bf8b; }
+#dashboardStatsGrid > .card:nth-child(5n + 4) { --card-accent: #42c5d5; }
+#dashboardStatsGrid > .card:nth-child(5n) { --card-accent: #279fc4; }
+#dashboardStatsGrid .card::before { display: none; }
+#dashboardStatsGrid .card-title { color: #647b85; min-height: 30px; line-height: 1.4; flex-shrink: 0; }
+#dashboardStatsGrid .card-value { color: #104e5b; line-height: 1.3; font-size: 24px; margin: 8px 0 10px; }
+#dashboardStatsGrid .card-trend { color: #009d91; font-size: 12px; line-height: 1.4; }
+#dashboardStatsGrid .card-icon {
+    border-radius: 10px;
+    color: var(--card-accent);
+    background: color-mix(in srgb, var(--card-accent) 9%, white);
+    border: 1px solid color-mix(in srgb, var(--card-accent) 22%, white);
+    opacity: 1;
+}
+#dashboardStatsGrid .card-icon svg { width: 22px; height: 22px; }
+#dashboardStatsGrid .card:hover { border-color: var(--card-accent); box-shadow: 0 10px 24px #155d561a; }
+.dashboard-container .sidebar {
+    background: radial-gradient(ellipse at top left, #188e89 0%, transparent 65%), linear-gradient(180deg, #11545f, #123d50);
+    border-right-color: #236c75;
+}
+.sidebar .nav-links > :nth-child(4n + 1) { --nav-accent: #079c92; }
+.sidebar .nav-links > :nth-child(4n + 2) { --nav-accent: #b98825; }
+.sidebar .nav-links > :nth-child(4n + 3) { --nav-accent: #438bbd; }
+.sidebar .nav-links > :nth-child(4n) { --nav-accent: #8e6ab5; }
+.dashboard-container .sidebar .nav-item { border-radius: 10px; transition: background .2s, box-shadow .2s, transform .2s; }
+.dashboard-container .sidebar .nav-item:not(.active) { color: #e0f3f5; background: #ffffff08; }
+.dashboard-container .sidebar .nav-item:not(.active) svg { color: #83dbd3; }
+.dashboard-container .sidebar .nav-item:not(.active):hover { color: #fff; background: #ffffff1c; border-color: #ffffff26; box-shadow: 0 4px 12px #082f401f; }
+.dashboard-container .sidebar .nav-item.active,
+.dashboard-container .sidebar .nav-subitem.active,
+.dashboard-container .sidebar .nav-dropdown.open > .nav-dropdown-toggle {
+    background: linear-gradient(120deg, #12afa5, #168b9d);
+    color: white;
+    box-shadow: 0 5px 14px #119d9430;
+    border-color: transparent;
+}
+.dashboard-container .sidebar .nav-item.active svg,
+.dashboard-container .sidebar .nav-subitem.active svg,
+.dashboard-container .sidebar .nav-dropdown.open > .nav-dropdown-toggle svg { color: white; }
+.dashboard-container .sidebar .nav-submenu { border-left-color: #60c8ba; }
+.sidebar .user-profile { background: #ffffffed; }
+.dashboard-container .sidebar .nav-subitem { color: #d9edf0; }
+.dashboard-container .sidebar .nav-subitem:hover { background: #ffffff1c; color: white; }
+.dashboard-container .sidebar .nav-links::-webkit-scrollbar-thumb { background: #71c8bf80; }
+.dashboard-container .sidebar .nav-item:not(.active):hover svg { color: #b3f1e8; }
+@media (max-width: 1200px) { #dashboardStatsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { #dashboardStatsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { #dashboardStatsGrid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { #dashboardStatsGrid .card:hover, .sidebar .nav-item:hover { transform: none; } }
